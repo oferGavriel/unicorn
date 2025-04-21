@@ -1,0 +1,45 @@
+# ── Node / pnpm ─────────────────────────────────────────────
+node_modules/
+.pnpm/
+.pnpm-debug.log*
+.env
+.env.*.local
+dist/
+build/
+
+# ── Python / Poetry ────────────────────────────────────────
+apps/**/.venv/
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.log
+.eggs/
+*.egg-info/
+
+# pytest cache
+.pytest_cache/
+
+# Ruff / Black / MyPy
+.mypy_cache/
+.dmypy.json
+ruff_cache/
+
+# Alembic versions (optional — keep if you want versions in VCS)
+# apps/api/db/migrations/versions/
+
+# ── Docker ─────────────────────────────────────────────────
+**/.docker/
+docker-compose.override.yml
+
+# ── IDEs ───────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*~
+
+# ── OS ─────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Misc ───────────────────────────────────────────────────
+coverage/
