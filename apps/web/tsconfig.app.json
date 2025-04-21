@@ -32,5 +32,6 @@
   },
   "include": [
     "src"
-  ]
+  ],
+  "extends": "../../packages/config/tsconfig.base.json",
 }
