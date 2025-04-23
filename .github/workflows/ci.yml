@@ -1,0 +1,48 @@
+name: CI
+
+on: 
+    pull_request:
+    push:
+        branches: [main]
+
+jobs:
+    backend:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: apps/api
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-python@v5
+              with:
+                python-version: 3.12
+            - name: Install Poetry
+              run: pip install poetry
+            - name: Install deps
+              run: pip install poetry
+            - name: Lint (Ruff)
+              run: poetry run ruff check .
+            - name: Type-check
+              run: poetry run mypy app
+            - name: Tests
+              run: poetry run pytest
+    
+    frontend:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: apps/web
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                node-version: 20
+                cache: pnpm
+            - name: Install pnpm
+              run: npm -g i pnpm@9
+            - name: Install deps
+              run: pnpm install
+            - name: Lint (ESLint)
+              run: pnpm exec eslint src --ext .ts,.tsx
+            - name: Tests
+              run: pnpm test -- --run
