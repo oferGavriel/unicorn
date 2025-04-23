@@ -4,11 +4,10 @@ from logging.config import fileConfig
 
 import os
 from sqlalchemy import pool
-from sqlalchemy.engine import Connection, create_engine
+from sqlalchemy.engine import create_engine
 
 from alembic import context
 from db.base import Base
-from app.models.user import User
 
 
 config = context.config
