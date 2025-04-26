@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import App from './App';
+import App from './AppRouter';
 
 test('renders happy button', () => {
   render(<App />);
