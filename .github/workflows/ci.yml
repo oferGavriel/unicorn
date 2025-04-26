@@ -9,6 +9,12 @@ jobs:
     backend:
         runs-on: ubuntu-latest
         defaults: { run: { working-directory: apps/api } }
+        env:
+          DB_USER: test
+          DB_PASS: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: testdb
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-python@v5
