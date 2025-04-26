@@ -15,7 +15,7 @@ class AuthService:
         
         new_user = User(
             email=data.email,
-            username=data.username,
+            name=data.name,
             password_hash=hash_password(data.password),
         )
         return await self.repo.create(new_user)
@@ -25,7 +25,7 @@ class AuthService:
         if not user or not verify_password(password, user.password_hash):
             raise ValueError("Invalid credentials")
         return (
-            create_access_token(user.id),
-            create_refresh_token(user.id),
+            create_access_token(str(user.id)),
+            create_refresh_token(str(user.id)),
         )
     
