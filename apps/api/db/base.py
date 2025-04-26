@@ -22,7 +22,7 @@ class CustomBase:
 
     @declared_attr.directive
     def __tablename__(cls) -> str:  # type: ignore[override]
-        return cls.__name__.lower()
+        return cls.__tablename__.lower()
 
 
 Base = declarative_base(cls=CustomBase, metadata=metadata)
