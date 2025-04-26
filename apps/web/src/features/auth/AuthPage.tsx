@@ -46,16 +46,6 @@ export default function AuthPage() {
             setAuthMode(AuthMode.Login);
             reset();
         }
-
-        // if (authMode === AuthMode.Login) {
-        //     const { access_token } = await login({ email: data.email, password: data.password }).unwrap();
-        //     d(setToken(access_token));
-        //     reset();
-        // } else {
-        //     await register(data).unwrap();
-        //     setMode(true);
-        //     reset();
-        // }
     });
 
     return (
