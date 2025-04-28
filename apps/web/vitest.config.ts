@@ -2,14 +2,20 @@ import { defineConfig } from 'vitest/config';
 import path from 'path';
 
 export default defineConfig({
-    test: {
-        globals: true,
-        environment: 'jsdom',
-        setupFiles: './src/test/setup.ts',
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.ts',
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
     },
-    resolve: {
-        alias: {
-            '@': path.resolve(__dirname, './src'), // ✅ this tells vitest what "@" means
-        },
-    },
+  },
+  build: {
+    outDir: './build',
+  },
+  server: {
+    port: 8000,
+  },
 });
