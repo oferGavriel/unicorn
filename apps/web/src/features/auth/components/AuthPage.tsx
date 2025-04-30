@@ -27,7 +27,7 @@ export type AuthPageProps = {};
 
 const AuthPage: FunctionComponent<AuthPageProps> = () => {
   const [authMode, setAuthMode] = useState<AuthMode>(AuthMode.Login);
-  const user = useAppSelector((state) => state.auth.user);
+  const user = useAppSelector((state) => state.authUser.user);
   const dispatch = useAppDispatch();
   const [signIn] = useSignInMutation();
   const [signUp] = useSignUpMutation();

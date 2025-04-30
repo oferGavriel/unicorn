@@ -16,7 +16,7 @@ const persistConfig = {
 
 export const combineReducer = combineReducers({
   [api.reducerPath]: api.reducer,
-  auth: authReducer,
+  authUser: authReducer,
 });
 
 export const rootReducers: Reducer<RootState> = (state, action) => {
