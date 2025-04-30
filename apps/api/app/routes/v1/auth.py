@@ -5,6 +5,8 @@ from db.session import get_db
 from app.services.auth_service import AuthService
 from app.schemas.user import UserCreate, UserRead, UserData, UserLogin
 from app.utils.auth_cookies import set_auth_cookies
+from app.DI.auth import get_current_user
+from app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -44,3 +46,11 @@ async def login(
         }
     except ValueError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid credentials")
+
+@router.get("/current-user", response_model=UserRead, status_code=status.HTTP_200_OK)
+async def get_user(current: User = Depends(get_current_user)):
+    return {
+        "user": UserData.model_validate(current),
+        "message": "successfully retrieved user",
+        "status": "success",
+    }
