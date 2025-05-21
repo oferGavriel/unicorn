@@ -23,5 +23,9 @@ export const getUserFromLocalStorage = (key: string): IAuthUser | null => {
 
 export const applicationLogout = (navigation: NavigateFunction): void => {
   localStorage.removeItem('persist:root');
-  navigation('/');
+  navigation('/login');
+};
+
+export const isEmptyObject = (obj: object): boolean => {
+  return !(obj && Object.keys(obj).length);
 };

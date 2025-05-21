@@ -12,6 +12,8 @@ export default {
         sm: 'calc(var(--radius) - 4px)',
       },
       colors: {
+        'workspace-bg': 'var(--workspace-bg)',
+        'board-list-bg': 'var(--board-list-bg)',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {

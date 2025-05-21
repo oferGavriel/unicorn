@@ -1,35 +1,78 @@
 import pytest
 from httpx import AsyncClient
+from http import HTTPStatus
+from uuid import uuid4
 
 
-@pytest.mark.asyncio
-async def test_register_and_login(test_app):
-    async with AsyncClient(app=test_app, base_url="http://test") as ac:
-        # Register
-        r = await ac.post("/api/v1/auth/register", json={
-            "email": "a@b.com",
-            "name": "testuser",
-            "password": "password123"
-        })
-        assert r.status_code == 201
-        data = r.json()
-        assert "user" in data
-        assert data["user"]["email"] == "a@b.com"
-        assert data["user"]["name"] == "testuser"
-        assert data["message"] == "successfully registered"
-        assert data["status"] == "success"
+@pytest.mark.anyio
+async def test_register_and_login(async_client: AsyncClient) -> None:
+    email = f"user+{uuid4().hex}@example.com"
+    payload = {"name": "Test User", "email": email, "password": "secret123"}
 
-        # Login
-        r = await ac.post("/api/v1/auth/login", json={
-            "email": "a@b.com",
-            "password": "password123"
-        })
-        assert r.status_code == 200
-        data = r.json()
-        assert "user" in data
-        assert data["user"]["email"] == "a@b.com"
-        assert data["user"]["name"] == "testuser"
-        assert data["message"] == "Login successful"
-        assert data["status"] == "success"
+    # Register
+    register_resp = await async_client.post("/api/v1/auth/register", json=payload)
+    assert register_resp.status_code == HTTPStatus.CREATED
+    assert "access_token" in register_resp.cookies
+    assert "refresh_token" in register_resp.cookies
 
-        assert "set-cookie" in r.headers
+    # Login
+    login_resp = await async_client.post("/api/v1/auth/login", json=payload)
+    assert login_resp.status_code == HTTPStatus.OK
+    assert "access_token" in login_resp.cookies
+    assert "refresh_token" in login_resp.cookies
+    assert login_resp.cookies["refresh_token"] == register_resp.cookies["refresh_token"]
+
+
+@pytest.mark.anyio
+async def test_register_duplicate_email(async_client: AsyncClient) -> None:
+    email = f"user+{uuid4().hex}@example.com"
+    payload = {"name": "User", "email": email, "password": "1234"}
+
+    await async_client.post("/api/v1/auth/register", json=payload)
+    second_register_resp = await async_client.post(
+        "/api/v1/auth/register", json=payload
+    )
+    second_register_resp_json = second_register_resp.json()
+    assert second_register_resp.status_code == HTTPStatus.CONFLICT
+    assert second_register_resp_json["message"] == "Email already registered"
+
+
+@pytest.mark.anyio
+async def test_login_invalid_credentials(async_client: AsyncClient):
+    payload = {"email": "nonexistent@example.com", "password": "wrongpass"}
+    resp = await async_client.post("/api/v1/auth/login", json=payload)
+    json_resp = resp.json()
+    assert resp.status_code == HTTPStatus.UNAUTHORIZED
+    assert json_resp["message"] == "Invalid email or password"
+
+
+@pytest.mark.anyio
+async def test_refresh_token_success_and_failure(async_client: AsyncClient):
+    email = f"user+{uuid4().hex}@example.com"
+    payload = {"name": "User", "email": email, "password": "test123"}
+
+    register_resp = await async_client.post("/api/v1/auth/register", json=payload)
+    refresh_token = register_resp.cookies.get("refresh_token")
+    async_client.cookies.set("refresh_token", refresh_token)
+
+    refresh_resp = await async_client.get("/api/v1/auth/refresh-token")
+    assert refresh_resp.status_code == HTTPStatus.OK
+    assert "access_token" in refresh_resp.cookies
+
+    # simulate invalid token
+    async_client.cookies.set("refresh_token", "invalid.token")
+    invalid_resp = await async_client.get("/api/v1/auth/refresh-token")
+    assert invalid_resp.status_code == HTTPStatus.UNAUTHORIZED
+
+
+@pytest.mark.anyio
+async def test_logout(async_client: AsyncClient):
+    email = f"user+{uuid4().hex}@example.com"
+    payload = {"name": "User", "email": email, "password": "test123"}
+
+    register_resp = await async_client.post("/api/v1/auth/register", json=payload)
+    refresh_token = register_resp.cookies.get("refresh_token")
+    async_client.cookies.set("refresh_token", refresh_token)
+
+    logout_resp = await async_client.get("/api/v1/auth/logout")
+    assert logout_resp.status_code == HTTPStatus.NO_CONTENT

@@ -4,7 +4,9 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: #ffffff;
+    --workspace-bg: #503131;
+    --board-list-bg: #202020;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 3.9%;
@@ -32,6 +34,8 @@
   }
   .dark {
     --background: 0 0% 3.9%;
+    --workspace-bg: #191919;
+    --board-list-bg: #202020;
     --foreground: 0 0% 98%;
     --card: 0 0% 3.9%;
     --card-foreground: 0 0% 98%;
@@ -62,5 +66,14 @@
   body {
     @apply border-border;
     @apply bg-background text-foreground;
+    @apply h-full w-full overflow-auto bg-primary text-primary-foreground;
+  }
+
+  .board-list {
+    @apply bg-board-list-bg;
+  }
+
+  .workspace {
+    @apply bg-workspace-bg;
   }
 }

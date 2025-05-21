@@ -1,0 +1,23 @@
+### set the variable for  base url
+@baseUrl  = http://localhost:8000/api/v1/boards
+@boardId = 28a8c20f-eb0e-4408-bd22-f83e9720e1c4
+@jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwNzFjMTQzNC1mYjI3LTQ4MDktOGIzYS1kNWYzZmFmOWI4ZmYiLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ2OTc3Mjc3fQ.7Smldw2c8FCKddlUk_3nt2YPh1TJFRYngtU9bqxwWkc
+@tableId = "9ca34d27-1705-4250-9802-a59d4fccc8ba"
+
+
+
+
+### List Tables
+GET {{baseUrl}}/{{boardId}}/tables/
+Cookie: access_token={{jwt}}
+
+
+### Create Table
+POST {{baseUrl}}/{{boardId}}/tables
+Content-Type: application/json
+Cookie: access_token={{jwt}}
+
+{
+  "name": "Test Table",
+  "description": "Demo"
+}

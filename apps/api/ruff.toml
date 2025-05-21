@@ -1,0 +1,54 @@
+target-version = "py312"
+line-length = 125
+
+[lint]
+select = [
+  # pycodestyle
+  "E",
+  # pyflakes
+  "F",
+  # flake8-bugbear
+  "B",
+  # flake8-simplify
+  "SIM",
+  # flake8-bandit
+  "S",
+  # naming conventions
+  "N",
+  # check async compliance
+  "ASYNC",
+  # pyLint checks
+  "PL",
+]
+
+exclude = [
+  ".direnv",
+  ".git",
+  ".mypy_cache",
+  ".pyenv",
+  ".pytest_cache",
+  ".ruff_cache",
+  ".venv",
+  ".vscode",
+  "__pypackages__",
+  "build",
+  "dist",
+  "node_modules",
+  "venv",
+  "site-packages",
+  "alembic-migrations",
+]
+
+ignore = ["I", "UP", "B019"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[lint.pylint]
+max-args = 5
+
+[lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]

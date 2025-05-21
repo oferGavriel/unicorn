@@ -1,9 +1,9 @@
 import { FC, Suspense } from 'react';
-import AuthPage from './features/auth/components/AuthPage';
 import { RouteObject, useRoutes } from 'react-router-dom';
 import Error from './features/error/Error';
 import ProtectedRoute from './features/ProtectedRoute';
-import WorkSpace from './features/workspace/components/Workspace';
+import WorkSpacePage from './pages/WorkspacePage';
+import AuthPage from './pages/AuthPage';
 
 const AppRoutes: FC = () => {
   const routes: RouteObject[] = [
@@ -20,7 +20,7 @@ const AppRoutes: FC = () => {
       element: (
         <Suspense>
           <ProtectedRoute>
-            <WorkSpace />
+            <WorkSpacePage />
           </ProtectedRoute>
         </Suspense>
       ),
