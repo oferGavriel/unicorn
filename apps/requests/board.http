@@ -1,0 +1,13 @@
+@baseUrl  = http://localhost:8000/api/v1/boards
+@jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwNzFjMTQzNC1mYjI3LTQ4MDktOGIzYS1kNWYzZmFmOWI4ZmYiLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ2OTc2MjY1fQ.z2dA4WFLUjFD9wl-yD3sxG0fVRUg-vaTne32O7tXX5w
+
+GET {{baseUrl}}
+
+### Create Board
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "name": "Test Board",
+  "description": "Demo"
+}

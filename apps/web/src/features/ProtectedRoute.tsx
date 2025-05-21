@@ -21,6 +21,8 @@ const ProtectedRoute: FC<IProtectedRouteProps> = ({ children }): ReactElement =>
       dispatch(setAuthUser(data.user));
     }
 
+    console.log('data', data);
+    console.log('isError', isError);
     if (isError) {
       dispatch(setAuthUser(null));
       applicationLogout(navigate);
@@ -34,7 +36,7 @@ const ProtectedRoute: FC<IProtectedRouteProps> = ({ children }): ReactElement =>
   if (data?.user || authUser) {
     return <>{children}</>;
   } else {
-    return <>{<Navigate to="/" />}</>;
+    return <>{<Navigate to="/login" />}</>;
   }
 };
 

@@ -1,0 +1,14 @@
+@baseUrl  = http://localhost:8000/api/v1/boards
+@boardId = 044977ad-b632-445a-aaa0-32a2a710d99d
+# @jwt = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwNzFjMTQzNC1mYjI3LTQ4MDktOGIzYS1kNWYzZmFmOWI4ZmYiLCJ0eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ2OTc3Mjc3fQ.7Smldw2c8FCKddlUk_3nt2YPh1TJFRYngtU9bqxwWkc
+@tableId = 37097168-5e11-4172-83f3-415281fdd990
+
+### Create Row
+POST {{baseUrl}}/{{boardId}}/tables/{{tableId}}/rows
+Content-Type: application/json
+
+{
+  "name": "Test Row",
+  "description": "Demo"
+}
+
