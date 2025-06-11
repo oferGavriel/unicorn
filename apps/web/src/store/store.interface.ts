@@ -1,4 +1,4 @@
-import { IAuthUser } from '@/features/auth/interfaces/auth.interface';
+import type { IAuthUser } from '@/features/auth/types/auth.interface';
 
 export interface IReduxState {
   authUser: IAuthUser;

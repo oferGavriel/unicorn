@@ -32,7 +32,7 @@ async def create_table(
     return await table_service.create_table(board_id, current_user.id, data)
 
 
-@router.put("/{table_id}", response_model=TableRead, description="Update a table by ID")
+@router.patch("/{table_id}", response_model=TableRead, description="Update a table by ID")
 async def update_table(
     board_id: UUID,
     table_id: UUID,

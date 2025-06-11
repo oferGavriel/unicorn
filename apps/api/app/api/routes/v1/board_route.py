@@ -1,6 +1,6 @@
 from uuid import UUID
 from fastapi import APIRouter, status
-from app.api.models.board_model import BoardCreate, BoardRead, BoardUpdate
+from app.api.models.board_model import BoardCreate, BoardRead, BoardUpdate, BoardDetailRead
 from app.api.services.board_service import BoardServiceDep
 from app.DI.current_user import CurrentUserDep
 from app.database_models.user import User
@@ -25,7 +25,7 @@ async def create_board(
     return await board_service.create_board(current_user.id, data)
 
 
-@router.get("/{board_id}", response_model=BoardRead)
+@router.get("/{board_id}", response_model=BoardDetailRead)
 async def get_board(
     board_id: UUID,
     board_service: BoardServiceDep,
@@ -34,7 +34,7 @@ async def get_board(
     return await board_service.get_board(board_id, current_user.id)
 
 
-@router.put("/{board_id}", response_model=BoardRead)
+@router.patch("/{board_id}", response_model=BoardRead)
 async def update_board(
     board_id: UUID,
     data: BoardUpdate,

@@ -2,9 +2,7 @@ from typing import Optional
 
 
 class AppExceptionError(Exception):
-    def __init__(
-        self, message: str, status_code: int, error_code: Optional[str] = None
-    ):
+    def __init__(self, message: str, status_code: int, error_code: Optional[str] = None):
         self.message = message
         self.status_code = status_code
         self.error_code = error_code or self.__class__.__name__
@@ -30,8 +28,13 @@ class InvalidCredentialsError(AppExceptionError):
         super().__init__(message, status_code=401)
 
 
-class TokenExpiredError(AppExceptionError):
+class AccessTokenExpiredError(AppExceptionError):
     def __init__(self, message="Token expired"):
+        super().__init__(message, status_code=401)
+
+
+class RefreshTokenExpiredError(AppExceptionError):
+    def __init__(self, message="Refresh Token expired"):
         super().__init__(message, status_code=401)
 
 

@@ -1,12 +1,20 @@
-FROM node:22-alpine AS deps
-WORKDIR /code
-COPY  apps/web/package.json apps/web/pnpm-lock.yaml ./
-RUN corepack enable && corepack prepare pnpm@9.0.1 --activate
-RUN pnpm install --frozen-lockfile 
+FROM node:22-alpine AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+COPY . /app
+WORKDIR /app
 
-FROM node:22-alpine AS dev
-WORKDIR /code
-COPY apps/web .
-COPY --from=deps /code/node_modules ./node_modules
-EXPOSE 5173
-CMD ["pnpm", "dev", "--host", "0.0.0.0", "--port", "5173"]
+FROM base AS prod-deps
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --prod --frozen-lockfile --ignore-scripts
+
+FROM base AS build
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN pnpm run build
+
+FROM base
+COPY --from=prod-deps /app/node_modules /app/node_modules
+COPY --from=build /app/dist /app/dist
+EXPOSE 8000
+CMD [ "pnpm", "dev" ]

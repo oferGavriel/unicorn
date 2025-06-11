@@ -5,18 +5,21 @@ from pydantic import Field
 from pydantic import ConfigDict
 from app.api.models.row_model import RowRead
 from app.db.base import BaseSchema
+from app.database_models.table import TableColorEnum
 
 
 class TableCreate(BaseSchema):
     name: str
     description: Optional[str] = None
+    color: TableColorEnum = Field(default=TableColorEnum.DEFAULT)
+    position: Optional[int] = 0
 
 
 class TableUpdate(BaseSchema):
     name: Optional[str] = None
     description: Optional[str] = None
-    order: Optional[int] = None
-    version: int
+    position: Optional[int] = None
+    color: Optional[TableColorEnum] = None
 
 
 class TableRead(BaseSchema):
@@ -24,8 +27,8 @@ class TableRead(BaseSchema):
     board_id: UUID = Field(description="Foreign key for board")
     name: str = Field(description="Table name")
     description: Optional[str] = Field(description="Table description")
-    order: int = Field(description="Table order")
-    version: int = Field(description="Table version")
+    position: int = Field(description="Table order")
+    color: TableColorEnum = Field(description="Table color")
     created_at: datetime = Field(description="Table creation date")
     updated_at: datetime = Field(description="Table update date")
     rows: List[RowRead] = Field(description="List of rows in the table")

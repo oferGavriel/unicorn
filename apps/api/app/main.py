@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 from pydantic import ValidationError
@@ -11,6 +12,17 @@ from app.common.errors.exceptions import AppExceptionError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.core.logger import logger
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Print registered routes
+    print("🔍 Registered Routes:")
+    for route in app.routes:
+        print(f"  ➤ {route.path}")
+    yield
+    # No cleanup needed for this case
+
+
 app = FastAPI(
     title="Monday Lite API",
     version="0.1.0",
@@ -22,6 +34,7 @@ app = FastAPI(
         "defaultModelsExpandDepth": -1,
         "persistAuthorization": True,
     },
+    lifespan=lifespan,
 )
 
 app.add_middleware(

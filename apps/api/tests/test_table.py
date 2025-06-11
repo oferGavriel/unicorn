@@ -58,9 +58,9 @@ async def test_update_table_success():
     )
     table = create_resp.json()
 
-    update_resp = await client.put(
+    update_resp = await client.patch(
         f"/api/v1/boards/{board_id}/tables/{table['id']}",
-        json={"name": "After", "description": "Updated", "version": table["version"]},
+        json={"name": "After", "description": "Updated"},
     )
     assert update_resp.status_code == HTTPStatus.OK
     updated = update_resp.json()
@@ -68,37 +68,12 @@ async def test_update_table_success():
 
 
 @pytest.mark.anyio
-async def test_update_table_version_conflict():
-    client, _, board_id = await create_board_with_authenticated_user()
-    create_resp = await client.post(
-        f"/api/v1/boards/{board_id}/tables/",
-        json={"name": "Test", "description": "v1"},
-    )
-    table = create_resp.json()
-
-    # First update
-    await client.put(
-        f"/api/v1/boards/{board_id}/tables/{table['id']}",
-        json={"name": "v2", "version": table["version"]},
-    )
-
-    # Second update with old version
-    resp = await client.put(
-        f"/api/v1/boards/{board_id}/tables/{table['id']}",
-        json={"name": "v3", "version": table["version"]},
-    )
-    assert resp.status_code == HTTPStatus.CONFLICT
-    json = resp.json()
-    assert json["message"] == f"Version conflict for table {table['id']}"
-
-
-@pytest.mark.anyio
 async def test_update_table_not_found():
     client, _, board_id = await create_board_with_authenticated_user()
     invalid_table_id = str(uuid4())
-    resp = await client.put(
+    resp = await client.patch(
         f"/api/v1/boards/{board_id}/tables/{invalid_table_id}",
-        json={"name": "NotFound", "description": "Should not work", "version": 0},
+        json={"name": "NotFound", "description": "Should not work"},
     )
     assert resp.status_code == HTTPStatus.NOT_FOUND
     json = resp.json()
@@ -131,9 +106,9 @@ async def test_table_access_from_other_user():
     table_id = table_resp.json()["id"]
 
     client2, _ = await get_authenticated_client(email="newuser@example.com")
-    resp = await client2.put(
+    resp = await client2.patch(
         f"/api/v1/boards/{board_id}/tables/{table_id}",
-        json={"name": "Hacked", "version": 0},
+        json={"name": "Hacked"},
     )
     # assert resp.status_code in (403, 404)
     assert resp.status_code in (HTTPStatus.FORBIDDEN, HTTPStatus.NOT_FOUND)

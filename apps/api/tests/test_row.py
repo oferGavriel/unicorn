@@ -15,15 +15,14 @@ async def test_create_row() -> None:
 
     response = await client.post(
         f"/api/v1/boards/{board_id}/tables/{table_id}/rows/",
-        json={"name": "Task 1", "description": "Test task"},
+        json={"name": "Task 1"},
     )
     assert response.status_code == HTTPStatus.CREATED
     data = response.json()
-    print("response", data)
     assert data["name"] == "Task 1"
-    assert data["description"] == "Test task"
     assert data["tableId"] == table_id
     assert data["id"] is not None
+    assert data["position"] == 0
 
 
 @pytest.mark.anyio
@@ -32,7 +31,7 @@ async def test_update_row() -> None:
 
     create_resp = await client.post(
         f"/api/v1/boards/{board_id}/tables/{table_id}/rows/",
-        json={"name": "Task 1", "description": "Test task"},
+        json={"name": "Task 1"},
     )
     row = create_resp.json()
     row_id = row["id"]
@@ -41,14 +40,14 @@ async def test_update_row() -> None:
         f"/api/v1/boards/{board_id}/tables/{table_id}/rows/{row_id}",
         json={
             "name": "Updated Task",
-            "description": "Updated description",
+            "position": 3,
         },
     )
 
     assert update_resp.status_code == HTTPStatus.OK
     updated_row = update_resp.json()
-    assert updated_row["name"] == "Updated Task"
-    assert updated_row["description"] == "Updated description"
+    assert updated_row["name"] == update_resp.json()["name"]
+    assert updated_row["position"] == update_resp.json()["position"]
 
 
 @pytest.mark.anyio
@@ -57,7 +56,7 @@ async def test_delete_row(row_service: RowService) -> None:
 
     create_resp = await client.post(
         f"/api/v1/boards/{board_id}/tables/{table_id}/rows/",
-        json={"name": "Task 1", "description": "Test task"},
+        json={"name": "Task 1"},
     )
 
     row = create_resp.json()
@@ -80,7 +79,7 @@ async def test_row_not_found() -> None:
     # update a row that doesn't exist
     resp = await client.put(
         f"/api/v1/boards/{board_id}/tables/{table_id}/rows/{row_id}",
-        json={"name": "Updated Task", "description": "Updated description"},
+        json={"name": "Updated Task"},
     )
     assert resp.status_code == HTTPStatus.NOT_FOUND
 
@@ -102,7 +101,7 @@ async def test_user_cannot_create_row_in_other_user_table() -> None:
     # User B try to create a row in User A's table
     resp = await client_b.post(
         f"/api/v1/boards/{board_id}/tables/{table_id}/rows/",
-        json={"name": "Should fail", "description": "Unauthorized"},
+        json={"name": "Should fail"},
     )
     assert resp.status_code in (HTTPStatus.FORBIDDEN, HTTPStatus.NOT_FOUND)
 
@@ -113,7 +112,7 @@ async def test_user_cannot_update_row_in_other_user_table() -> None:
     client_a, _, board_id, table_id = await create_table_with_authenticated_user()
     row_resp = await client_a.post(
         f"/api/v1/boards/{board_id}/tables/{table_id}/rows/",
-        json={"name": "Task 1", "description": "Row A"},
+        json={"name": "Task 1"},
     )
 
     assert row_resp.status_code == HTTPStatus.CREATED
@@ -125,6 +124,6 @@ async def test_user_cannot_update_row_in_other_user_table() -> None:
     # User B tries to update User A's row
     update_resp = await client_b.put(
         f"/api/v1/boards/{board_id}/tables/{table_id}/rows/{row_id}",
-        json={"name": "Should fail", "description": "Unauthorized"},
+        json={"name": "Should fail"},
     )
     assert update_resp.status_code in (HTTPStatus.FORBIDDEN, HTTPStatus.NOT_FOUND)

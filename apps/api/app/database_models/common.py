@@ -3,7 +3,6 @@ from datetime import datetime
 from sqlalchemy import func, Boolean, INTEGER, String, DECIMAL
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import TIMESTAMP
-from sqlalchemy import Integer
 
 
 class TimestampMixin:
@@ -19,18 +18,7 @@ class TimestampMixin:
 
 
 class SoftDeleteMixin:
-    is_deleted: Mapped[bool] = mapped_column(
-        Boolean, default=False, nullable=False, doc="Soft-delete flag"
-    )
-
-
-class VersionedMixin:
-    version: Mapped[int] = mapped_column(
-        Integer,
-        default=1,
-        nullable=False,
-        doc="Optimistic locking field; incremented on each update",
-    )
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, doc="Soft-delete flag")
 
 
 IntPk = Annotated[int, mapped_column(INTEGER, primary_key=True, autoincrement=True)]

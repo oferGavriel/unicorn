@@ -1,7 +1,7 @@
 from uuid import UUID
 from typing import Annotated
 from fastapi import Depends
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from app.database_models.board_member import BoardMember
 from app.common.repository import BaseRepository
 from app.db.database import DBSessionDep
@@ -13,9 +13,12 @@ class BoardMemberRepository(BaseRepository[BoardMember]):
         super().__init__(BoardMember, BoardMember.id, session)
         self.session = session
 
-    async def add(
-        self, board_id: UUID, user_id: UUID, role: RoleEnum = RoleEnum.member
-    ) -> BoardMember:
+    async def list_members(self, board_id: UUID) -> list[BoardMember]:
+        q = select(BoardMember).where(BoardMember.board_id == board_id)
+        result = await self.session.execute(q)
+        return result.scalars().all()
+
+    async def add(self, board_id: UUID, user_id: UUID, role: RoleEnum = RoleEnum.member) -> BoardMember:
         bm = BoardMember(board_id=board_id, user_id=user_id, role=role)
         self.session.add(bm)
         await self.session.commit()
@@ -31,6 +34,4 @@ class BoardMemberRepository(BaseRepository[BoardMember]):
         await self.session.commit()
 
 
-BoardMemberRepositoryDep = Annotated[
-    BoardMemberRepository, Depends(BoardMemberRepository)
-]
+BoardMemberRepositoryDep = Annotated[BoardMemberRepository, Depends(BoardMemberRepository)]

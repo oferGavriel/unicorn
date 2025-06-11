@@ -61,7 +61,7 @@ async def test_update_board() -> None:
     data = create_resp.json()
     board_id = data["id"]
 
-    update_resp = await client.put(
+    update_resp = await client.patch(
         f"/api/v1/boards/{board_id}",
         json={"name": "Updated Board", "description": "This is an updated test board."},
     )

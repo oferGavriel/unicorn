@@ -1,14 +1,19 @@
-import { FC, ReactElement } from 'react';
-import { UseFormRegister, FieldErrors } from 'react-hook-form';
+import React, { ReactElement } from 'react';
+import { FieldErrors, UseFormRegister } from 'react-hook-form';
+
+import { FormValues } from '@/pages/auth-page/AuthPage';
+import { UI_IDS } from '@/pages/auth-page/AuthPage.consts';
 import FormInput from '@/shared/components/FormInput';
-import { FormValues } from '@/pages/AuthPage';
 
 export type LoginFormProps = {
   register: UseFormRegister<FormValues>;
   errors: FieldErrors<FormValues>;
 };
 
-const LoginForm: FC<LoginFormProps> = ({ register, errors }): ReactElement => {
+export const LoginForm: React.FC<LoginFormProps> = ({
+  register,
+  errors
+}): ReactElement => {
   return (
     <>
       <FormInput
@@ -17,6 +22,7 @@ const LoginForm: FC<LoginFormProps> = ({ register, errors }): ReactElement => {
         autoComplete="email"
         registration={register('email')}
         error={errors.email}
+        data-testid={UI_IDS.LOGIN_EMAIL_INPUT}
       />
       <FormInput
         label="Password"
@@ -24,9 +30,8 @@ const LoginForm: FC<LoginFormProps> = ({ register, errors }): ReactElement => {
         autoComplete="current-password"
         registration={register('password')}
         error={errors.password}
+        data-testid={UI_IDS.LOGIN_PASSWORD_INPUT}
       />
     </>
   );
 };
-
-export default LoginForm;

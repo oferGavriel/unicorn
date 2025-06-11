@@ -1,30 +1,41 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
-import { FLUSH, PAUSE, PERSIST, persistReducer, PURGE, REGISTER, REHYDRATE } from 'redux-persist';
-import { useDispatch, useSelector, TypedUseSelectorHook } from 'react-redux';
 import { setupListeners } from '@reduxjs/toolkit/query';
+import { type TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
+import type { Reducer } from 'redux';
+import {
+  FLUSH,
+  PAUSE,
+  PERSIST,
+  persistReducer,
+  PURGE,
+  REGISTER,
+  REHYDRATE
+} from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
-import { Reducer } from 'redux';
+
 import { authReducer } from '@/features/auth/reducers/auth.reducer';
+
 import { api } from './api';
 
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['auth'],
-  blacklist: ['clientApi', '_persist'],
+  whitelist: ['authUser'],
+  blacklist: ['clientApi', '_persist']
 };
 
 export const combineReducer = combineReducers({
   [api.reducerPath]: api.reducer,
-  authUser: authReducer,
+  authUser: authReducer
 });
 
 export const rootReducers: Reducer<RootState> = (state, action) => {
   if (action.type === 'auth/logout') {
-    state = {
+    const newState = {
       ...state,
-      auth: undefined,
-    } as RootState;
+      authUser: undefined
+    } as unknown as RootState;
+    return combineReducer(newState, action);
   }
   return combineReducer(state, action);
 };
@@ -37,9 +48,9 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-      },
-    }).concat(api.middleware),
+        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER]
+      }
+    }).concat(api.middleware)
 });
 
 setupListeners(store.dispatch);

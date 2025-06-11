@@ -2,15 +2,17 @@ from enum import Enum
 
 
 class StatusEnum(str, Enum):
-    todo = "todo"
-    in_progress = "in_progress"
-    done = "done"
+    NOT_STARTED = "not_started"
+    STUCK = "stuck"
+    WORKING_ON_IT = "working_on_it"
+    DONE = "done"
 
 
 class PriorityEnum(str, Enum):
-    low = "low"
-    medium = "medium"
-    high = "high"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
 
 
 class RoleEnum(str, Enum):

@@ -1,0 +1,79 @@
+version: '3.9'
+services:
+  postgres:
+    container_name: postgres_container
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=3578
+      - POSTGRES_DB=mondaylite
+    ports: ['5432:5432']
+    volumes:
+      - ./docker-volumes/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready', '-U', 'postgres', '-d', 'mondaylite']
+      interval: 5s
+      retries: 5
+
+  redis:
+    container_name: redis_container
+    image: redis:alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - ./docker-volumes/cache:/data
+    command: redis-server --loglevel warning
+    restart: always
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      retries: 5
+
+  # redis-commander:
+  #   container_name: redis-commander
+  #   image: ghcr.io/joeferner/redis-commander:latest
+  #   restart: always
+  #   ports:
+  #     - '8081:8081'
+  #   environment:
+  #     - REDIS_HOSTS=local:redis_container:6379
+
+  api:
+    container_name: api
+    build:
+      context: ../
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - ../.env
+    volumes:
+      - ../apps/api:/code
+    ports:
+      - '8000:8000' # api
+      # - '5678:5678' # debugpy
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl --fail http://localhost:8000/api/v1/health || exit 1']
+      interval: 5s
+      retries: 5
+      timeout: 5s
+
+  # web:
+  #   container_name: web
+  #   build:
+  #     context: ../apps/web
+  #     dockerfile: Dockerfile
+  #   working_dir: /app
+  #   volumes:
+  #     - ../apps/web:/app:cached
+  #   command: sh -c "pnpm dev -- --host 0.0.0.0 --port 5173"
+  #   ports:
+  #     - '5173:5173'
+  #   depends_on:
+  #     api:
+  #       condition: service_healthy
+volumes:
+  db_data:

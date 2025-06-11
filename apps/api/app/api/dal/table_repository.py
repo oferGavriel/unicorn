@@ -20,7 +20,7 @@ class TableRepository(BaseRepository[Table]):
             select(Table)
             .where(Table.board_id == board_id, ~Table.is_deleted)
             .options(joinedload(Table.rows))
-            .order_by(Table.order)
+            .order_by(Table.position)
         )
         res = await self.session.execute(q)
         return list(res.unique().scalars().all())
@@ -65,9 +65,7 @@ class TableRepository(BaseRepository[Table]):
 
     async def soft_delete(self, table_id: UUID, board_id: UUID) -> None:
         await self.session.execute(
-            update(Table)
-            .where(Table.id == table_id, Table.board_id == board_id)
-            .values(is_deleted=True)
+            update(Table).where(Table.id == table_id, Table.board_id == board_id).values(is_deleted=True)
         )
         await self.session.commit()
 

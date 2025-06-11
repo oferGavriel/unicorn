@@ -1,6 +1,6 @@
 from uuid import UUID
 from datetime import timedelta
-from typing import Optional, Annotated
+from typing import Optional, Annotated, List
 from fastapi import Depends
 from datetime import datetime, timezone
 from sqlalchemy import select, delete
@@ -57,15 +57,12 @@ class AuthRepository(BaseRepository[User]):
     async def cleanup_old_tokens(self, user_id: UUID) -> None:
         await self.session.execute(
             delete(RefreshToken).where(
-                (RefreshToken.user_id == user_id)
-                & (RefreshToken.expires_at < datetime.now(timezone.utc))
+                (RefreshToken.user_id == user_id) & (RefreshToken.expires_at < datetime.now(timezone.utc))
             )
         )
         await self.session.commit()
 
-    async def get_valid_refresh_token_for_user(
-        self, user_id: UUID
-    ) -> Optional[RefreshToken]:
+    async def get_valid_refresh_token_for_user(self, user_id: UUID) -> Optional[RefreshToken]:
         stmt = (
             select(RefreshToken)
             .where(
@@ -88,6 +85,16 @@ class AuthRepository(BaseRepository[User]):
         self.session.add(new_token)
         await self.session.commit()
         return token
+
+    async def get_all_users(self) -> list[User]:
+        result = await self.session.execute(select(User))
+        return result.scalars().all()
+
+    async def get_users_by_ids(self, user_ids: List[UUID]) -> list[User]:
+        if not user_ids:
+            return []
+        result = await self.session.execute(select(User).where(User.id.in_(user_ids)))
+        return result.scalars().all()
 
 
 AuthRepositoryDep = Annotated[AuthRepository, Depends(AuthRepository)]

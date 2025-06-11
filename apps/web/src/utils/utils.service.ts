@@ -1,5 +1,4 @@
-import { NavigateFunction } from 'react-router-dom';
-import { IAuthUser } from '@/features/auth/interfaces/auth.interface';
+import { IAuthUser } from '@/features/auth/types/auth.interface';
 
 export const saveToSessionStorage = (data: string, username: string) => {
   window.sessionStorage.setItem('isLoggedIn', data);
@@ -13,7 +12,9 @@ export const getDataFromSessionStorage = (key: string) => {
 
 export const getUserFromLocalStorage = (key: string): IAuthUser | null => {
   const persistRoot = localStorage.getItem(key);
-  if (!persistRoot) return null;
+  if (!persistRoot) {
+    return null;
+  }
 
   const rootObj = JSON.parse(persistRoot);
   const authObj = JSON.parse(rootObj?.auth);
@@ -21,9 +22,8 @@ export const getUserFromLocalStorage = (key: string): IAuthUser | null => {
   return authObj.authUser;
 };
 
-export const applicationLogout = (navigation: NavigateFunction): void => {
+export const clearLoggedInUser = (): void => {
   localStorage.removeItem('persist:root');
-  navigation('/login');
 };
 
 export const isEmptyObject = (obj: object): boolean => {

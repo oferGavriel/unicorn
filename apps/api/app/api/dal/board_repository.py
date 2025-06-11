@@ -25,7 +25,7 @@ class BoardRepository(BaseRepository[Board]):
                     BoardMember.user_id == user_id,
                 ),
             )
-            .order_by(Board.order)
+            .order_by(Board.updated_at.desc(), Board.created_at.desc())
         )
         res = await self.session.execute(q)
         return list(res.unique().scalars().all())
@@ -45,7 +45,7 @@ class BoardRepository(BaseRepository[Board]):
             )
         )
         res = await self.session.execute(q)
-        return res.scalar_one_or_none()
+        return res.unique().scalars().one_or_none()
 
     async def create(self, board: Board) -> Board:
         self.session.add(board)

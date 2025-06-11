@@ -8,11 +8,10 @@ from app.database_models.user import User
 from app.common.service import BaseService
 from app.common.errors.exceptions import (
     ConflictError,
-    TokenExpiredError,
+    RefreshTokenExpiredError,
     InvalidCredentialsError,
 )
 
-# todo: convert to DI
 from app.api.services.token_service import TokenService
 
 
@@ -36,9 +35,7 @@ class AuthService(BaseService[User, UserRead]):
 
         return self.convert_to_model(new_user), access_token, refresh_token
 
-    async def authenticate(
-        self, email: str, password: str
-    ) -> Tuple[UserRead, str, str]:
+    async def authenticate(self, email: str, password: str) -> Tuple[UserRead, str, str]:
         user = await self.auth_repository.get_by_email(email)
         if not user or not verify_password(password, user.password_hash):
             raise InvalidCredentialsError(message="Invalid email or password")
@@ -49,7 +46,7 @@ class AuthService(BaseService[User, UserRead]):
     async def refresh(self, token: str) -> Tuple[UserRead, str, str]:
         token_obj = await self.auth_repository.get_valid_refresh_token(token)
         if not token_obj:
-            raise TokenExpiredError(message="Refresh token is invalid or expired")
+            raise RefreshTokenExpiredError(message="Refresh token is invalid or expired")
 
         access_token, refresh_token = await self._issue_tokens(token_obj.user)
         return self.convert_to_model(token_obj.user), access_token, refresh_token
@@ -60,18 +57,18 @@ class AuthService(BaseService[User, UserRead]):
             return
         await self.auth_repository.revoke_refresh_token(refresh_token)
 
+    async def get_all_users(self) -> list[UserRead]:
+        users = await self.auth_repository.get_all_users()
+        return [self.convert_to_model(user) for user in users]
+
     async def _issue_tokens(self, user: User) -> Tuple[str, str]:
         user.access_token = TokenService.create_access_token(str(user.id))
 
-        existing_token = await self.auth_repository.get_valid_refresh_token_for_user(
-            user.id
-        )
+        existing_token = await self.auth_repository.get_valid_refresh_token_for_user(user.id)
         if existing_token:
             user.refresh_token = existing_token.token
         else:
-            user.refresh_token = await self.auth_repository.create_refresh_token(
-                user.id
-            )
+            user.refresh_token = await self.auth_repository.create_refresh_token(user.id)
 
         return user.access_token, user.refresh_token
 

@@ -1,3 +1,6 @@
+import os
+import socket
+
 from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -9,10 +12,13 @@ class Settings(BaseSettings):
     db_user: str
     db_pass: str
 
-    secret_key: str = "your_secret_key"
+    secret_key: str = "secreto"
     algorithm: str = "HS256"
     access_token_exp_minutes: int = 1500
     refresh_token_exp_days: int = 30
+
+    max_tries: int = 60
+    wait_seconds: int = 1
 
     @property
     def db_url(self) -> str:
@@ -26,6 +32,14 @@ class Settings(BaseSettings):
         env_file=".env",
         from_attributes=True,
     )
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if self._is_running_in_docker():
+            self.db_host = "postgres"  # override for Docker
+
+    def _is_running_in_docker(self) -> bool:
+        return os.path.exists("/.dockerenv") or socket.gethostname() == "api"
 
 
 @lru_cache(maxsize=1)

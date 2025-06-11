@@ -1,33 +1,43 @@
 import { api } from '@/store/api';
-import { IResponse, ISignInPayload, ISignUpPayload } from '../interfaces/auth.interface';
+
+import type { IAuthUser, ISignInPayload, ISignUpPayload } from '../types/auth.interface';
 
 export const authApi = api.injectEndpoints({
   endpoints: (build) => ({
-    signUp: build.mutation<IResponse, ISignUpPayload>({
+    signUp: build.mutation<IAuthUser, ISignUpPayload>({
       query(body: ISignUpPayload) {
         return {
           url: '/auth/register',
           method: 'POST',
-          body,
+          body
         };
       },
-      invalidatesTags: ['Auth'],
+      invalidatesTags: ['Auth']
     }),
-    signIn: build.mutation<IResponse, ISignInPayload>({
+    signIn: build.mutation<IAuthUser, ISignInPayload>({
       query(body: ISignInPayload) {
         return {
           url: '/auth/login',
           method: 'POST',
-          body,
+          body
         };
       },
-      invalidatesTags: ['Auth'],
+      invalidatesTags: ['Auth']
     }),
-    checkCurrentUser: build.query<IResponse, void>({
-      query: () => '/auth/current-user',
-      providesTags: ['User'],
+    checkCurrentUser: build.query<IAuthUser, void>({
+      query: () => '/auth/me',
+      providesTags: ['User']
     }),
-  }),
+    getUsers: build.query<IAuthUser[], void>({
+      query: () => '/auth/users',
+      providesTags: ['User']
+    })
+  })
 });
 
-export const { useSignUpMutation, useSignInMutation, useCheckCurrentUserQuery } = authApi;
+export const {
+  useSignUpMutation,
+  useSignInMutation,
+  useCheckCurrentUserQuery,
+  useGetUsersQuery
+} = authApi;

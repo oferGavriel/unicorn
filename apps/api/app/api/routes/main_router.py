@@ -6,6 +6,7 @@ from app.api.routes.v1.auth_route import router as auth_router
 from app.api.routes.v1.board_route import router as board_router
 from app.api.routes.v1.table_route import router as table_router
 from app.api.routes.v1.row_route import router as row_router
+from app.api.routes.v1.health_route import health_router
 from app.api.routes.util import use_route_names_as_operation_ids, save_openapi_yaml
 from app.DI.current_user import CurrentUserDep
 from app.common.errors.error_model import ErrorResponseModel
@@ -49,14 +50,12 @@ routes = {
         RouteConfig(board_router, "/boards", ["board"], protected=True),
     ],
     "table": [
-        RouteConfig(
-            table_router, "/boards/{board_id}/tables", ["table"], protected=True
-        ),
+        RouteConfig(table_router, "/boards/{board_id}/tables", ["table"], protected=True),
     ],
     "row": [
         RouteConfig(
             row_router,
-            "/boards/{board_id}/tables/{table_id}/rows",
+            "/tables/{table_id}/rows",
             ["row"],
             protected=True,
         ),
@@ -82,5 +81,6 @@ def add_routes(app: FastAPI) -> None:
                 dependencies=deps,
             )
 
+    app.include_router(health_router, prefix=f"{client_prefix}")
     use_route_names_as_operation_ids(app)
     save_openapi_yaml(app, "openapi.yaml")

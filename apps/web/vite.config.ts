@@ -1,14 +1,30 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from "path"
+import { defineConfig } from 'vitest/config';
+import path from 'node:path';
+import react from '@vitejs/plugin-react';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
-
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  root: '.',
+  plugins: [
+    react({
+      include: '**/*.tsx',
+    }),
+    tsconfigPaths()
+  ],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      '@': path.resolve(__dirname, './src'),
     },
   },
-})
+  build: {
+    outDir: './build',
+  },
+  server: {
+    port: 5173,
+  },
+  test: {
+    globals: true,
+    environment: 'happy-dom',
+    setupFiles: ['./src/test/setup.ts'],
+  }
+});

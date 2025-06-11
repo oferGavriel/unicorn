@@ -1,0 +1,10 @@
+2025-06-02 21:22:24 | INFO | app | Server started successfully
+2025-06-02 21:22:34 | WARNING | app | [401] TokenExpiredError: Expired token
+2025-06-02 22:12:55 | ERROR | app | [404] HTTPException: Not Found
+2025-06-02 22:24:00 | WARNING | app | [401] TokenExpiredError: Expired token
+2025-06-02 22:24:00 | WARNING | app | [401] TokenExpiredError: Expired token
+2025-06-02 22:54:52 | WARNING | app | [401] TokenExpiredError: Expired token
+2025-06-02 23:16:11 | WARNING | app | [401] TokenExpiredError: Expired token
+2025-06-02 23:37:29 | WARNING | app | [401] TokenExpiredError: Expired token
+2025-06-02 23:37:29 | WARNING | app | [401] TokenExpiredError: Expired token
+2025-06-02 23:57:22 | WARNING | app | [401] TokenExpiredError: Expired token

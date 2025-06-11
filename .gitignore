@@ -30,6 +30,7 @@ ruff_cache/
 # ── Docker ─────────────────────────────────────────────────
 **/.docker/
 docker-compose.override.yml
+infra/docker-volumes/
 
 # ── IDEs ───────────────────────────────────────────────────
 .vscode/

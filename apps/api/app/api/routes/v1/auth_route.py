@@ -9,6 +9,8 @@ from app.api.routes.openapi_responses import (
     auth_errors,
     conflict_errors,
 )
+from app.DI.current_user import CurrentUserDep
+from app.database_models.user import User
 
 router = APIRouter()
 
@@ -44,28 +46,17 @@ async def register(data: UserCreate, response: Response, auth_service: AuthServi
     ),
 )
 async def login(data: UserLogin, response: Response, auth_service: AuthServiceDep):
-    user, access_token, refresh_token = await auth_service.authenticate(
-        data.email, data.password
-    )
+    user, access_token, refresh_token = await auth_service.authenticate(data.email, data.password)
     set_auth_cookies(response, access_token, refresh_token)
     return user
 
 
-@router.get(
+@router.post(
     "/refresh-token",
     response_model=UserRead,
     status_code=status.HTTP_200_OK,
-    responses=cast(
-        Dict[int | str, dict[str, Any]],
-        {
-            **common_errors,
-            **auth_errors,
-        },
-    ),
 )
-async def refresh_token(
-    response: Response, auth_service: AuthServiceDep, refresh_token: str = Cookie(None)
-):
+async def refresh_token(response: Response, auth_service: AuthServiceDep, refresh_token: str = Cookie(None)):
     if not refresh_token:
         raise ValueError("Missing refresh token")
     user, access_token, refresh_token = await auth_service.refresh(refresh_token)
@@ -84,3 +75,13 @@ async def logout(
 
     delete_auth_cookies(response)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/me", response_model=UserRead, status_code=status.HTTP_200_OK)
+async def get_current_user(current_user: User = CurrentUserDep) -> UserRead:
+    return UserRead.model_validate(current_user)
+
+
+@router.get("/users", response_model=list[UserRead], status_code=status.HTTP_200_OK)
+async def get_all_users(auth_service: AuthServiceDep):
+    return await auth_service.get_all_users()

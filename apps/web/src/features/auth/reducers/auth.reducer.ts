@@ -1,26 +1,24 @@
-import { initialAuthUserValues } from '@/shared/shared.interface';
-import { IAuthUser } from '../interfaces/auth.interface';
-import { createSlice, PayloadAction, Slice } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+
+import type { IAuthUser } from '../types/auth.interface';
 
 export interface AuthState {
   user: IAuthUser | null;
 }
 
-const initialValue: AuthState = {
-  user: null,
-};
+const initialState: AuthState = { user: null };
 
-const authSlice: Slice = createSlice({
-  name: 'auth',
-  initialState: initialValue,
+export const authSlice = createSlice({
+  name: 'authUser',
+  initialState,
   reducers: {
-    setAuthUser: (state, action: PayloadAction<Partial<IAuthUser>>) => {
+    setAuthUser(state, action: PayloadAction<IAuthUser>) {
       state.user = action.payload;
     },
-    clearAuthUser: (state) => {
-      state.user = initialAuthUserValues;
-    },
-  },
+    clearAuthUser(state) {
+      state.user = null;
+    }
+  }
 });
 
 export const { setAuthUser, clearAuthUser } = authSlice.actions;

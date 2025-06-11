@@ -1,11 +1,10 @@
-import { FC, Suspense } from 'react';
-import { RouteObject, useRoutes } from 'react-router-dom';
-import Error from './features/error/Error';
-import ProtectedRoute from './features/ProtectedRoute';
-import WorkSpacePage from './pages/WorkspacePage';
-import AuthPage from './pages/AuthPage';
+import React, { Suspense } from 'react';
+import { type RouteObject, useRoutes } from 'react-router-dom';
 
-const AppRoutes: FC = () => {
+import { AuthPage, BoardPage, HomePage, NotFoundPage } from './pages';
+import ProtectedRoute from './ProtectedRoute';
+
+const AppRoutes: React.FC = () => {
   const routes: RouteObject[] = [
     {
       path: '/login',
@@ -13,26 +12,44 @@ const AppRoutes: FC = () => {
         <Suspense>
           <AuthPage />,
         </Suspense>
-      ),
+      )
+    },
+    {
+      path: '/boards',
+      element: (
+        <Suspense>
+          <ProtectedRoute>
+            <BoardPage />
+          </ProtectedRoute>
+        </Suspense>
+      )
+    },
+    {
+      path: '/boards/:boardId',
+      element: (
+        <Suspense>
+          <ProtectedRoute>
+            <BoardPage />
+          </ProtectedRoute>
+        </Suspense>
+      )
     },
     {
       path: '/',
       element: (
         <Suspense>
-          <ProtectedRoute>
-            <WorkSpacePage />
-          </ProtectedRoute>
+          <HomePage />
         </Suspense>
-      ),
+      )
     },
     {
       path: '*',
       element: (
         <Suspense>
-          <Error />
+          <NotFoundPage />
         </Suspense>
-      ),
-    },
+      )
+    }
   ];
 
   return useRoutes(routes);

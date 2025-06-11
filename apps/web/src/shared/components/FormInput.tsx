@@ -1,6 +1,7 @@
-import { Input } from '@/components/ui/input';
+import React, { ReactElement } from 'react';
 import { FieldError } from 'react-hook-form';
-import { FC } from 'react';
+
+import { Input } from '@/components/ui/input';
 
 type FormInputProps = {
   label: string;
@@ -9,18 +10,26 @@ type FormInputProps = {
   error?: FieldError;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   registration: ReturnType<any>;
+  'data-testid'?: string;
 };
 
-const FormInput: FC<FormInputProps> = ({
+const FormInput: React.FC<FormInputProps> = ({
   label,
   type = 'text',
   autoComplete,
   error,
   registration,
-}) => {
+  'data-testid': dataTestId
+}): ReactElement => {
   return (
     <div className="space-y-1">
-      <Input type={type} placeholder={label} autoComplete={autoComplete} {...registration} />
+      <Input
+        type={type}
+        placeholder={label}
+        autoComplete={autoComplete}
+        {...registration}
+        data-testid={dataTestId}
+      />
       {error && <p className="text-red-500 text-sm">{error.message}</p>}
     </div>
   );

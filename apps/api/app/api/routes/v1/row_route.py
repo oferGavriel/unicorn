@@ -17,7 +17,7 @@ async def create_row(
     return await row_service.create_row(table_id, current_user.id, data)
 
 
-@router.put("/{row_id}", response_model=RowRead)
+@router.patch("/{row_id}", response_model=RowRead)
 async def update_row(
     table_id: UUID,
     row_id: UUID,
