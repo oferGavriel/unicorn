@@ -23,7 +23,7 @@ class BoardRead(BaseSchema):
     name: str
     description: str | None
     owner_id: UUID
-    members: List[str]
+    member_ids: List[UUID]
     created_at: datetime
     updated_at: datetime
 

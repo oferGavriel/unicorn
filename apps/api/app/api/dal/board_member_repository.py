@@ -16,7 +16,7 @@ class BoardMemberRepository(BaseRepository[BoardMember]):
     async def list_members(self, board_id: UUID) -> list[BoardMember]:
         q = select(BoardMember).where(BoardMember.board_id == board_id)
         result = await self.session.execute(q)
-        return result.scalars().all()
+        return list(result.scalars().all())
 
     async def add(self, board_id: UUID, user_id: UUID, role: RoleEnum = RoleEnum.member) -> BoardMember:
         bm = BoardMember(board_id=board_id, user_id=user_id, role=role)

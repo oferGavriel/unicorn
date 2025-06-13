@@ -88,13 +88,13 @@ class AuthRepository(BaseRepository[User]):
 
     async def get_all_users(self) -> list[User]:
         result = await self.session.execute(select(User))
-        return result.scalars().all()
+        return list(result.scalars().all())
 
     async def get_users_by_ids(self, user_ids: List[UUID]) -> list[User]:
         if not user_ids:
             return []
         result = await self.session.execute(select(User).where(User.id.in_(user_ids)))
-        return result.scalars().all()
+        return list(result.scalars().all())
 
 
 AuthRepositoryDep = Annotated[AuthRepository, Depends(AuthRepository)]

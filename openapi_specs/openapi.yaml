@@ -36,6 +36,12 @@ components:
           format: uuid
           title: Id
           type: string
+        memberIds:
+          items:
+            format: uuid
+            type: string
+          title: Memberids
+          type: array
         members:
           default: []
           items:
@@ -64,6 +70,7 @@ components:
       - name
       - description
       - ownerId
+      - memberIds
       - createdAt
       - updatedAt
       title: BoardDetailRead
@@ -83,10 +90,11 @@ components:
           format: uuid
           title: Id
           type: string
-        members:
+        memberIds:
           items:
+            format: uuid
             type: string
-          title: Members
+          title: Memberids
           type: array
         name:
           title: Name
@@ -104,7 +112,7 @@ components:
       - name
       - description
       - ownerId
-      - members
+      - memberIds
       - createdAt
       - updatedAt
       title: BoardRead

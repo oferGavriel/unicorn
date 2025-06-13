@@ -42,9 +42,7 @@ class BaseService(Generic[T, M], Service[T, M]):
         self.repository = repository
 
     async def get_paged(self, q: PageParams) -> PaginatedResponse[M]:
-        total_count, entities, next_cursor = await self.repository.get_paged(
-            q.skip, q.limit
-        )
+        total_count, entities, next_cursor = await self.repository.get_paged(q.skip, q.limit)
         return self.convert_to_paginated_response(total_count, entities, next_cursor)
 
     def convert_to_paginated_response(
@@ -76,13 +74,11 @@ class BaseService(Generic[T, M], Service[T, M]):
 
 
 def convert_to_model(
-    entity: Optional[DeclarativeMeta],
+    entity: DeclarativeMeta,
     pydantic_model: Type[M],
     custom_mapping: Optional[Dict[str, Any]] = None,
     field_mapping: Optional[Dict[str, str]] = None,
-) -> Optional[M]:
-    if entity is None:
-        return None
+) -> M:
 
     custom_mapping = custom_mapping or {}
     field_mapping = field_mapping or {}
