@@ -33,29 +33,26 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
-    defaults: { run: { working-directory: apps/web } }
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
         with:
-          node-version: 20
-          cache: npm
-      - name: Enable pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm@9.0.1 --activate
-      - name: Cache pnpm store
-        uses: actions/cache@v4
-        with:
-          path: ~/.local/share/pnpm/store
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          version: 9.0.1
+
       - name: Install deps
+        working-directory: ./apps/web
         run: pnpm install
-      - name: Lint (ESLint)
-        run: pnpm exec eslint src --ext .ts,.tsx
+
       - name: Format check
-        run: pnpm run format -- --check
+        working-directory: ./apps/web
+        run: pnpm lint:check
+
+      - name: Build
+        working-directory: ./apps/web
+        run: pnpm build
+
       - name: Tests
-        run: pnpm run test -- --run
+        working-directory: ./apps/web
+        run: pnpm test

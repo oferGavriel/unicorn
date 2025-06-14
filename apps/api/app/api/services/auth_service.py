@@ -26,7 +26,8 @@ class AuthService(BaseService[User, UserRead]):
 
         new_user = User(
             email=data.email,
-            name=data.name,
+            first_name=data.first_name,
+            last_name=data.last_name,
             password_hash=hash_password(data.password),
         )
 

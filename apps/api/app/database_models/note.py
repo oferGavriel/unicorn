@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING
-from uuid import UUID, uuid4
-from sqlalchemy import ForeignKey, Text, Index
+from uuid import UUID
+from sqlalchemy import ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from app.database_models.common import TimestampMixin
+from app.database_models.common import TimestampMixin, UuidPk, StrLen1K
 from app.db.base import Base
 
 if TYPE_CHECKING:
@@ -12,16 +12,10 @@ if TYPE_CHECKING:
 
 
 class Note(TimestampMixin, Base):
-    id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), primary_key=True, default=uuid4
-    )
-    row_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), ForeignKey("rows.id"), nullable=False
-    )
-    user_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=False
-    )
-    content: Mapped[str] = mapped_column(Text, nullable=False)
+    id: Mapped[UuidPk]
+    row_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("rows.id"), nullable=False)
+    user_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    content: Mapped[StrLen1K] = mapped_column(nullable=False)
 
     row: Mapped["Row"] = relationship("Row", back_populates="notes")
     user: Mapped["User"] = relationship("User", back_populates="notes")

@@ -22,7 +22,7 @@ class RowRepository(BaseRepository[Row]):
         return (await self.session.execute(q)).scalar_one_or_none()
 
     async def create(self, row: Row) -> Row:
-        if row.position is None:
+        if row.position > 0:
             max_position = (
                 await self.session.execute(select(func.max(Row.position)).where(Row.table_id == row.table_id))
             ).scalar_one() or 0
@@ -34,13 +34,7 @@ class RowRepository(BaseRepository[Row]):
                 .values(position=Row.position + 1)
             )
 
-        print(f"REPOSITORY DEBUG: Row status before session.add: {repr(row.status)}")
-        print(f"REPOSITORY DEBUG: Row priority before session.add: {repr(row.priority)}")
-
         self.session.add(row)
-
-        print(f"REPOSITORY DEBUG: Row status after session.add: {repr(row.status)}")
-        print(f"REPOSITORY DEBUG: Row priority after session.add: {repr(row.priority)}")
 
         await self.session.commit()
         await self.session.refresh(row)

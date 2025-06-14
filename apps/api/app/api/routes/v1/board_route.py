@@ -1,4 +1,5 @@
 from uuid import UUID
+from typing import List
 from fastapi import APIRouter, status
 from app.api.models.board_model import BoardCreate, BoardRead, BoardUpdate, BoardDetailRead
 from app.api.services.board_service import BoardServiceDep
@@ -12,7 +13,7 @@ router = APIRouter()
 async def list_boards(
     board_service: BoardServiceDep,
     current_user: User = CurrentUserDep,
-):
+) -> List[BoardRead]:
     return await board_service.list_boards(current_user.id)
 
 
@@ -21,7 +22,7 @@ async def create_board(
     data: BoardCreate,
     board_service: BoardServiceDep,
     current_user: User = CurrentUserDep,
-):
+) -> BoardRead:
     return await board_service.create_board(current_user.id, data)
 
 
@@ -29,8 +30,8 @@ async def create_board(
 async def get_board(
     board_id: UUID,
     board_service: BoardServiceDep,
-    current_user=CurrentUserDep,
-):
+    current_user: User = CurrentUserDep,
+) -> BoardDetailRead:
     return await board_service.get_board(board_id, current_user.id)
 
 
@@ -39,8 +40,8 @@ async def update_board(
     board_id: UUID,
     data: BoardUpdate,
     board_service: BoardServiceDep,
-    current_user=CurrentUserDep,
-):
+    current_user: User = CurrentUserDep,
+) -> BoardRead:
     return await board_service.update_board(board_id, current_user.id, data)
 
 
@@ -48,8 +49,8 @@ async def update_board(
 async def delete_board(
     board_id: UUID,
     board_service: BoardServiceDep,
-    current_user=CurrentUserDep,
-):
+    current_user: User = CurrentUserDep,
+) -> None:
     await board_service.delete_board(board_id, current_user.id)
 
 
@@ -58,6 +59,6 @@ async def remove_member(
     board_id: UUID,
     user_id: UUID,
     board_service: BoardServiceDep,
-    current_user=CurrentUserDep,
-):
+    current_user: User = CurrentUserDep,
+) -> None:
     await board_service.remove_member(board_id, current_user.id, user_id)

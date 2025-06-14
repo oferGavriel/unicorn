@@ -36,7 +36,7 @@ add_routes(app)
 
 
 @app.exception_handler(AppExceptionError)
-async def app_exception_handler(request: Request, exc: AppExceptionError):
+async def app_exception_handler(request: Request, exc: AppExceptionError) -> JSONResponse:
     logger.warning(f"[{exc.status_code}] {exc.error_code}: {exc.message}")
     return JSONResponse(
         status_code=exc.status_code,
@@ -49,7 +49,7 @@ async def app_exception_handler(request: Request, exc: AppExceptionError):
 
 
 @app.exception_handler(ValidationError)
-async def validation_exception_handler(request: Request, exc: ValidationError):
+async def validation_exception_handler(request: Request, exc: ValidationError) -> JSONResponse:
     logger.warning(f"[422] ValidationError: {exc.errors()}")
     return JSONResponse(
         status_code=422,
@@ -62,7 +62,7 @@ async def validation_exception_handler(request: Request, exc: ValidationError):
 
 
 @app.exception_handler(StarletteHTTPException)
-async def starlette_exception_handler(request: Request, exc: StarletteHTTPException):
+async def starlette_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
     logger.error(f"[{exc.status_code}] HTTPException: {exc.detail}")
     return JSONResponse(
         status_code=exc.status_code,
@@ -71,7 +71,7 @@ async def starlette_exception_handler(request: Request, exc: StarletteHTTPExcept
 
 
 @app.exception_handler(Exception)
-async def generic_exception_handler(request: Request, exc: Exception):
+async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.exception("Unhandled error occurred")
     return JSONResponse(
         status_code=500,

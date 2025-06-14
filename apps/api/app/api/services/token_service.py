@@ -1,8 +1,10 @@
 import jwt
 import secrets
 from datetime import timedelta, datetime, timezone
-from typing import Any
+from typing import Any, cast
 from app.core.config import get_settings
+from app.core.security import TokenPayload
+
 
 settings = get_settings()
 
@@ -23,8 +25,9 @@ class TokenService:
         )
 
     @staticmethod
-    def decode_token(token: str) -> dict[str, Any]:
-        return jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+    def decode_token(token: str) -> TokenPayload:
+        decoded = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        return cast(TokenPayload, decoded)
 
     @staticmethod
     def _create_token(data: dict[str, Any], expires_delta: timedelta) -> str:

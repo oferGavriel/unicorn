@@ -14,7 +14,7 @@ async def test_create_row() -> None:
     client, _, board_id, table_id = await create_table_with_authenticated_user()
 
     response = await client.post(
-        f"/api/v1/boards/{board_id}/tables/{table_id}/rows/",
+        f"/api/v1/tables/{table_id}/rows/",
         json={"name": "Task 1"},
     )
     assert response.status_code == HTTPStatus.CREATED
@@ -30,14 +30,14 @@ async def test_update_row() -> None:
     client, _, board_id, table_id = await create_table_with_authenticated_user()
 
     create_resp = await client.post(
-        f"/api/v1/boards/{board_id}/tables/{table_id}/rows/",
+        f"/api/v1/tables/{table_id}/rows/",
         json={"name": "Task 1"},
     )
     row = create_resp.json()
     row_id = row["id"]
 
-    update_resp = await client.put(
-        f"/api/v1/boards/{board_id}/tables/{table_id}/rows/{row_id}",
+    update_resp = await client.patch(
+        f"/api/v1/tables/{table_id}/rows/{row_id}",
         json={
             "name": "Updated Task",
             "position": 3,
@@ -55,7 +55,7 @@ async def test_delete_row(row_service: RowService) -> None:
     client, user_id, board_id, table_id = await create_table_with_authenticated_user()
 
     create_resp = await client.post(
-        f"/api/v1/boards/{board_id}/tables/{table_id}/rows/",
+        f"/api/v1/tables/{table_id}/rows/",
         json={"name": "Task 1"},
     )
 
@@ -63,7 +63,7 @@ async def test_delete_row(row_service: RowService) -> None:
     row_id = row["id"]
 
     delete_resp = await client.delete(
-        f"/api/v1/boards/{board_id}/tables/{table_id}/rows/{row_id}",
+        f"/api/v1/tables/{table_id}/rows/{row_id}",
     )
     assert delete_resp.status_code == HTTPStatus.NO_CONTENT
 
@@ -77,15 +77,15 @@ async def test_row_not_found() -> None:
 
     row_id = uuid4()
     # update a row that doesn't exist
-    resp = await client.put(
-        f"/api/v1/boards/{board_id}/tables/{table_id}/rows/{row_id}",
+    resp = await client.patch(
+        f"/api/v1/tables/{table_id}/rows/{row_id}",
         json={"name": "Updated Task"},
     )
     assert resp.status_code == HTTPStatus.NOT_FOUND
 
     # delete a row that doesn't exist
     resp = await client.delete(
-        f"/api/v1/boards/{board_id}/tables/{table_id}/rows/{row_id}",
+        f"/api/v1/tables/{table_id}/rows/{row_id}",
     )
     assert resp.status_code == HTTPStatus.NOT_FOUND
 
@@ -100,7 +100,7 @@ async def test_user_cannot_create_row_in_other_user_table() -> None:
 
     # User B try to create a row in User A's table
     resp = await client_b.post(
-        f"/api/v1/boards/{board_id}/tables/{table_id}/rows/",
+        f"/api/v1/tables/{table_id}/rows/",
         json={"name": "Should fail"},
     )
     assert resp.status_code in (HTTPStatus.FORBIDDEN, HTTPStatus.NOT_FOUND)
@@ -111,19 +111,20 @@ async def test_user_cannot_update_row_in_other_user_table() -> None:
     # User A created a board and table and adds a row
     client_a, _, board_id, table_id = await create_table_with_authenticated_user()
     row_resp = await client_a.post(
-        f"/api/v1/boards/{board_id}/tables/{table_id}/rows/",
+        f"/api/v1/tables/{table_id}/rows/",
         json={"name": "Task 1"},
     )
 
     assert row_resp.status_code == HTTPStatus.CREATED
+
     row = row_resp.json()
     row_id = row["id"]
 
     # User B logs in
     client_b, _ = await get_authenticated_client(email="userb@example.com")
     # User B tries to update User A's row
-    update_resp = await client_b.put(
-        f"/api/v1/boards/{board_id}/tables/{table_id}/rows/{row_id}",
+    update_resp = await client_b.patch(
+        f"/api/v1/tables/{table_id}/rows/{row_id}",
         json={"name": "Should fail"},
     )
     assert update_resp.status_code in (HTTPStatus.FORBIDDEN, HTTPStatus.NOT_FOUND)

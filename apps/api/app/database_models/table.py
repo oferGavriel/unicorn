@@ -1,39 +1,21 @@
-from uuid import UUID, uuid4
+from uuid import UUID
 from typing import List, Optional
-from sqlalchemy import String, ForeignKey, Integer, Text, Index, Enum as SQLEnum
+from sqlalchemy import ForeignKey, Integer, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from enum import Enum as PyEnum
-from app.database_models.common import TimestampMixin, SoftDeleteMixin
+from app.database_models.common import TimestampMixin, SoftDeleteMixin, UuidPk, StrLen10, StrLen50, StrLen1K
 from app.database_models.row import Row
 from app.database_models.board import Board
+from app.api.models.table_model import DEFAULT_TABLE_COLOR
 from app.db.base import Base
 
 
-class TableColorEnum(str, PyEnum):
-    RED = "#ff5733"
-    ORANGE = "#ff8c00"
-    YELLOW = "#ffd700"
-    GREEN = "#32cd32"
-    BLUE = "#1e90ff"
-    PURPLE = "#9370db"
-    PINK = "#ff69b4"
-    CYAN = "#00ced1"
-    LIME = "#00ff00"
-    MAGENTA = "#ff00ff"
-    BROWN = "#8b4513"
-    GRAY = "#808080"
-    BLACK = "#000000"
-    WHITE = "#ffffff"
-    DEFAULT = "#6b7280"
-
-
 class Table(TimestampMixin, SoftDeleteMixin, Base):
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UuidPk]
     board_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("boards.id"), nullable=False)
-    name: Mapped[str] = mapped_column(String(255))
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    color: Mapped[TableColorEnum] = mapped_column(SQLEnum(TableColorEnum), default=TableColorEnum.DEFAULT)
+    name: Mapped[StrLen50] = mapped_column()
+    description: Mapped[Optional[StrLen1K]] = mapped_column(nullable=True)
+    color: Mapped[StrLen10] = mapped_column(default=DEFAULT_TABLE_COLOR)
     position: Mapped[int] = mapped_column(Integer, default=0)
 
     # relationships

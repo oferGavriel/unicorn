@@ -5,7 +5,8 @@ from http import HTTPStatus
 
 async def register_and_login_user(
     async_client: AsyncClient,
-    name: str = "Alice",
+    first_name: str = "Alice",
+    last_name: str = "Smith",
     email: str = None,
     password: str = "secret123",  # noqa: S107
 ) -> tuple[dict[str, str], int]:
@@ -14,12 +15,13 @@ async def register_and_login_user(
 
     login_resp = await async_client.post(
         "/api/v1/auth/login",
-        json={"name": name, "email": email, "password": password},
+        json={"email": email, "password": password},
     )
 
     if login_resp.status_code == HTTPStatus.OK:
         user_data = login_resp.json()
-        assert user_data["name"] == name
+        assert user_data["firstName"] == first_name
+        assert user_data["lastName"] == last_name
         assert user_data["email"] == email
         assert user_data["id"] is not None
 
@@ -27,12 +29,13 @@ async def register_and_login_user(
 
     register_resp = await async_client.post(
         "/api/v1/auth/register",
-        json={"name": name, "email": email, "password": password},
+        json={"firstName": first_name, "lastName": last_name, "email": email, "password": password},
     )
     assert register_resp.status_code == HTTPStatus.CREATED
     user_data = register_resp.json()
 
-    assert user_data["name"] == name
+    assert user_data["firstName"] == first_name
+    assert user_data["lastName"] == last_name
     assert user_data["email"] == email
     assert user_data["id"] is not None
 

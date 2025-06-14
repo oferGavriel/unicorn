@@ -21,7 +21,7 @@ async_session_maker = async_sessionmaker(
 )
 
 
-async def get_db_session():
+async def get_db_session() -> AsyncSession:  # type: ignore
     async with async_session_maker() as session:
         yield session
         await session.close()

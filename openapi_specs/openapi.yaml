@@ -8,12 +8,14 @@ components:
           - type: 'null'
           title: Description
         memberIds:
+          anyOf:
+          - items:
+              format: uuid
+              type: string
+            type: array
+          - type: 'null'
           default: []
-          items:
-            format: uuid
-            type: string
           title: Memberids
-          type: array
         name:
           title: Name
           type: string
@@ -37,11 +39,14 @@ components:
           title: Id
           type: string
         memberIds:
-          items:
-            format: uuid
-            type: string
+          anyOf:
+          - items:
+              format: uuid
+              type: string
+            type: array
+          - type: 'null'
+          default: []
           title: Memberids
-          type: array
         members:
           default: []
           items:
@@ -70,7 +75,6 @@ components:
       - name
       - description
       - ownerId
-      - memberIds
       - createdAt
       - updatedAt
       title: BoardDetailRead
@@ -91,11 +95,14 @@ components:
           title: Id
           type: string
         memberIds:
-          items:
-            format: uuid
-            type: string
+          anyOf:
+          - items:
+              format: uuid
+              type: string
+            type: array
+          - type: 'null'
+          default: []
           title: Memberids
-          type: array
         name:
           title: Name
           type: string
@@ -112,7 +119,6 @@ components:
       - name
       - description
       - ownerId
-      - memberIds
       - createdAt
       - updatedAt
       title: BoardRead
@@ -279,30 +285,14 @@ components:
       - done
       title: StatusEnum
       type: string
-    TableColorEnum:
-      enum:
-      - '#ff5733'
-      - '#ff8c00'
-      - '#ffd700'
-      - '#32cd32'
-      - '#1e90ff'
-      - '#9370db'
-      - '#ff69b4'
-      - '#00ced1'
-      - '#00ff00'
-      - '#ff00ff'
-      - '#8b4513'
-      - '#808080'
-      - '#000000'
-      - '#ffffff'
-      - '#6b7280'
-      title: TableColorEnum
-      type: string
     TableCreate:
       properties:
         color:
-          $ref: '#/components/schemas/TableColorEnum'
-          default: '#6b7280'
+          anyOf:
+          - type: string
+          - type: 'null'
+          default: '#579bfc'
+          title: Color
         description:
           anyOf:
           - type: string
@@ -329,8 +319,9 @@ components:
           title: Boardid
           type: string
         color:
-          $ref: '#/components/schemas/TableColorEnum'
           description: Table color
+          title: Color
+          type: string
         createdAt:
           description: Table creation date
           format: date-time
@@ -382,8 +373,9 @@ components:
       properties:
         color:
           anyOf:
-          - $ref: '#/components/schemas/TableColorEnum'
+          - type: string
           - type: 'null'
+          title: Color
         description:
           anyOf:
           - type: string
@@ -405,16 +397,28 @@ components:
       properties:
         email:
           format: email
+          maxLength: 255
+          minLength: 1
           title: Email
           type: string
-        name:
-          title: Name
+        firstName:
+          maxLength: 50
+          minLength: 1
+          title: Firstname
+          type: string
+        lastName:
+          maxLength: 50
+          minLength: 1
+          title: Lastname
           type: string
         password:
+          maxLength: 128
+          minLength: 6
           title: Password
           type: string
       required:
-      - name
+      - firstName
+      - lastName
       - email
       - password
       title: UserCreate
@@ -443,12 +447,15 @@ components:
           format: email
           title: Email
           type: string
+        firstName:
+          title: Firstname
+          type: string
         id:
           format: uuid
           title: Id
           type: string
-        name:
-          title: Name
+        lastName:
+          title: Lastname
           type: string
         updatedAt:
           format: date-time
@@ -456,7 +463,8 @@ components:
           type: string
       required:
       - id
-      - name
+      - firstName
+      - lastName
       - email
       - createdAt
       - updatedAt
@@ -504,33 +512,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserRead'
           description: Successful Response
-        '401':
-          content:
-            application/json:
-              examples:
-                expired_token:
-                  summary: Expired token
-                  value:
-                    error: Token expired
-                invalid_credentials:
-                  summary: Invalid credentials
-                  value:
-                    error: Invalid email or password
-                missing_token:
-                  summary: Missing refresh token
-                  value:
-                    error: Missing refresh token
-              schema:
-                $ref: '#/components/schemas/ErrorResponseModel'
-          description: Unauthorized
         '422':
           content:
             application/json:
-              example:
-                error: Validation failed
               schema:
-                $ref: '#/components/schemas/ErrorResponseModel'
-          description: Validation error
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
         '500':
           content:
             application/json:
@@ -651,22 +638,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserRead'
           description: Successful Response
-        '409':
-          content:
-            application/json:
-              example:
-                error: Email already registered
-              schema:
-                $ref: '#/components/schemas/ErrorResponseModel'
-          description: Conflict with current resource state
         '422':
           content:
             application/json:
-              example:
-                error: Validation failed
               schema:
-                $ref: '#/components/schemas/ErrorResponseModel'
-          description: Validation error
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
         '500':
           content:
             application/json:

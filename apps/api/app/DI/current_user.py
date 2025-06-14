@@ -10,7 +10,7 @@ from app.common.errors.exceptions import TokenInvalidError, AccessTokenExpiredEr
 async def current_user(request: Request, session: DBSessionDep) -> User:
     access_token = request.cookies.get("access_token")
     refresh_token = request.cookies.get("refresh_token")
-    print(f"Access Token: {access_token}, Refresh Token: {refresh_token}")
+
     if not access_token and not refresh_token:
         raise TokenInvalidError(message="Not authenticated, please login first")
 

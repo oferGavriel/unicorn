@@ -3,6 +3,7 @@ from fastapi import APIRouter, status
 from app.api.models.row_model import RowCreate, RowRead, RowUpdate
 from app.api.services.row_service import RowServiceDep
 from app.DI.current_user import CurrentUserDep
+from app.database_models.user import User
 
 router = APIRouter()
 
@@ -12,8 +13,8 @@ async def create_row(
     table_id: UUID,
     data: RowCreate,
     row_service: RowServiceDep,
-    current_user=CurrentUserDep,
-):
+    current_user: User = CurrentUserDep,
+) -> RowRead:
     return await row_service.create_row(table_id, current_user.id, data)
 
 
@@ -23,8 +24,8 @@ async def update_row(
     row_id: UUID,
     data: RowUpdate,
     row_service: RowServiceDep,
-    current_user=CurrentUserDep,
-):
+    current_user: User = CurrentUserDep,
+) -> RowRead:
     return await row_service.update_row(row_id, table_id, current_user.id, data)
 
 
@@ -33,6 +34,6 @@ async def delete_row(
     table_id: UUID,
     row_id: UUID,
     row_service: RowServiceDep,
-    current_user=CurrentUserDep,
-):
+    current_user: User = CurrentUserDep,
+) -> None:
     await row_service.delete_row(row_id, table_id, current_user.id)

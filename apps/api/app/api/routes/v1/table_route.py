@@ -1,19 +1,21 @@
 from uuid import UUID
+from typing import List
 from fastapi import APIRouter, status
 from fastapi.responses import Response
 from app.api.models.table_model import TableCreate, TableRead, TableUpdate
 from app.api.services.table_service import TableServiceDep
 from app.DI.current_user import CurrentUserDep
+from app.database_models.user import User
 
 router = APIRouter()
 
 
-@router.get("/", response_model=list[TableRead], description="List all tables")
+@router.get("/", response_model=List[TableRead], description="List all tables")
 async def list_tables(
     board_id: UUID,
     table_service: TableServiceDep,
-    current_user=CurrentUserDep,
-):
+    current_user: User = CurrentUserDep,
+) -> List[TableRead]:
     return await table_service.list_tables(board_id, current_user.id)
 
 
@@ -27,8 +29,8 @@ async def create_table(
     board_id: UUID,
     data: TableCreate,
     table_service: TableServiceDep,
-    current_user=CurrentUserDep,
-):
+    current_user: User = CurrentUserDep,
+) -> TableRead:
     return await table_service.create_table(board_id, current_user.id, data)
 
 
@@ -38,8 +40,8 @@ async def update_table(
     table_id: UUID,
     data: TableUpdate,
     table_service: TableServiceDep,
-    current_user=CurrentUserDep,
-):
+    current_user: User = CurrentUserDep,
+) -> TableRead:
     return await table_service.update_table(table_id, board_id, current_user.id, data)
 
 
@@ -52,7 +54,7 @@ async def delete_table(
     board_id: UUID,
     table_id: UUID,
     table_service: TableServiceDep,
-    current_user=CurrentUserDep,
-):
+    current_user: User = CurrentUserDep,
+) -> Response:
     await table_service.delete_table(table_id, board_id, current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

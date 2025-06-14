@@ -4,11 +4,8 @@ import React from 'react';
 import { vi } from 'vitest';
 
 import * as authHooks from '@/features/auth/services/auth.service';
-import {
-  createUnauthenticatedStore,
-  mockAuthUser,
-  renderWithProviders
-} from '@/test/test-utils';
+import { mockUser } from '@/mocks/user.mock';
+import { createUnauthenticatedStore, renderWithProviders } from '@/test/test-utils';
 
 import { AuthPage } from './AuthPage';
 import { UI_IDS, UI_TITLES } from './AuthPage.consts';
@@ -114,7 +111,7 @@ describe('AuthPage', () => {
   it('should successfully login a user', async () => {
     const store = createUnauthenticatedStore();
     const mockSignIn = vi.fn();
-    const mockSignInUnwrap = vi.fn().mockResolvedValue(mockAuthUser);
+    const mockSignInUnwrap = vi.fn().mockResolvedValue(mockUser);
 
     mockSignIn.mockReturnValue({
       unwrap: mockSignInUnwrap
@@ -145,13 +142,13 @@ describe('AuthPage', () => {
     await waitFor(() =>
       expect(mockNavigate).toHaveBeenCalledWith('/boards', { replace: true })
     );
-    await waitFor(() => expect(store.getState().authUser.user).toEqual(mockAuthUser));
+    await waitFor(() => expect(store.getState().authUser.user).toEqual(mockUser));
   });
 
   it('should successfully register a user', async () => {
     const store = createUnauthenticatedStore();
     const mockSignUp = vi.fn();
-    const mockSignUpUnwrap = vi.fn().mockResolvedValue(mockAuthUser);
+    const mockSignUpUnwrap = vi.fn().mockResolvedValue(mockUser);
     mockSignUp.mockReturnValue({
       unwrap: mockSignUpUnwrap
     });
@@ -185,7 +182,7 @@ describe('AuthPage', () => {
     await waitFor(() =>
       expect(mockNavigate).toHaveBeenCalledWith('/boards', { replace: true })
     );
-    await waitFor(() => expect(store.getState().authUser.user).toEqual(mockAuthUser));
+    await waitFor(() => expect(store.getState().authUser.user).toEqual(mockUser));
   });
 
   it('should display error message on login failure', async () => {

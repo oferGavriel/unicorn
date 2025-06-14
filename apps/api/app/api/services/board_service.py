@@ -51,8 +51,12 @@ class BoardService(BaseService[Board, BoardRead]):
 
         await self.member_repository.add(created_board.id, owner_id, role=RoleEnum.owner)
 
-        for uid in data.member_ids:
-            await self.member_repository.add(created_board.id, uid, role=RoleEnum.member)
+        if data.member_ids:
+            if owner_id in data.member_ids:
+                data.member_ids.remove(owner_id)
+
+            for uid in data.member_ids:
+                await self.member_repository.add(created_board.id, uid, role=RoleEnum.member)
 
         return await self._to_board_with_members(created_board)
 
@@ -88,7 +92,7 @@ class BoardService(BaseService[Board, BoardRead]):
             board,
             BoardRead,
             custom_mapping={
-                "members": [str(m.user_id) for m in members],
+                "member_ids": [str(m.user_id) for m in members],
             },
         )
 

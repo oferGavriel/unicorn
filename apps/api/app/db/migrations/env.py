@@ -12,6 +12,12 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
+print(f"DB Host: {settings.db_host}")
+print(f"DB Port: {settings.db_port}")
+print(f"DB Name: {settings.db_name}")
+print(f"DB User: {settings.db_user}")
+print(f"DB URL: {settings.db_url_async}")
+
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

@@ -1,14 +1,9 @@
 from fastapi import APIRouter, status, Response, Cookie
-from typing import cast, Dict, Any
-
+from typing import List
 from app.api.services.auth_service import AuthServiceDep
 from app.api.models.user_model import UserCreate, UserRead, UserLogin
 from app.utils.auth_cookies import set_auth_cookies, delete_auth_cookies
-from app.api.routes.openapi_responses import (
-    common_errors,
-    auth_errors,
-    conflict_errors,
-)
+
 from app.DI.current_user import CurrentUserDep
 from app.database_models.user import User
 
@@ -19,15 +14,8 @@ router = APIRouter()
     "/register",
     response_model=UserRead,
     status_code=status.HTTP_201_CREATED,
-    responses=cast(
-        Dict[int | str, dict[str, Any]],
-        {
-            **common_errors,
-            **conflict_errors,
-        },
-    ),
 )
-async def register(data: UserCreate, response: Response, auth_service: AuthServiceDep):
+async def register(data: UserCreate, response: Response, auth_service: AuthServiceDep) -> UserRead:
     user, access_token, refresh_token = await auth_service.register(data)
     set_auth_cookies(response, access_token, refresh_token)
     return user
@@ -37,15 +25,8 @@ async def register(data: UserCreate, response: Response, auth_service: AuthServi
     "/login",
     response_model=UserRead,
     status_code=status.HTTP_200_OK,
-    responses=cast(
-        Dict[int | str, dict[str, Any]],
-        {
-            **common_errors,
-            **auth_errors,
-        },
-    ),
 )
-async def login(data: UserLogin, response: Response, auth_service: AuthServiceDep):
+async def login(data: UserLogin, response: Response, auth_service: AuthServiceDep) -> UserRead:
     user, access_token, refresh_token = await auth_service.authenticate(data.email, data.password)
     set_auth_cookies(response, access_token, refresh_token)
     return user
@@ -56,7 +37,7 @@ async def login(data: UserLogin, response: Response, auth_service: AuthServiceDe
     response_model=UserRead,
     status_code=status.HTTP_200_OK,
 )
-async def refresh_token(response: Response, auth_service: AuthServiceDep, refresh_token: str = Cookie(None)):
+async def refresh_token(response: Response, auth_service: AuthServiceDep, refresh_token: str = Cookie(None)) -> UserRead:
     if not refresh_token:
         raise ValueError("Missing refresh token")
     user, access_token, refresh_token = await auth_service.refresh(refresh_token)
@@ -69,7 +50,7 @@ async def logout(
     response: Response,
     auth_service: AuthServiceDep,
     refresh_token: str = Cookie(None),
-):
+) -> Response:
     if refresh_token:
         await auth_service.logout(refresh_token)
 
@@ -83,5 +64,5 @@ async def get_current_user(current_user: User = CurrentUserDep) -> UserRead:
 
 
 @router.get("/users", response_model=list[UserRead], status_code=status.HTTP_200_OK)
-async def get_all_users(auth_service: AuthServiceDep):
+async def get_all_users(auth_service: AuthServiceDep) -> List[UserRead]:
     return await auth_service.get_all_users()

@@ -13,7 +13,7 @@ from app.api.services.row_service import RowService
 from app.api.dal.row_repository import RowRepository
 from app.api.dal.table_repository import TableRepository
 
-DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+DATABASE_URL = "postgresql+asyncpg://test:test@localhost:5432/unicorn_test"
 
 engine = create_async_engine(DATABASE_URL)
 
@@ -34,7 +34,13 @@ def anyio_backend():
 @pytest.fixture(scope="session", autouse=True)
 async def init_db():
     async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
+
+    yield
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
 
 
 @pytest.fixture(scope="session")
@@ -82,9 +88,7 @@ def disable_logger_during_tests():
 
 
 @pytest.fixture
-def row_service(
-    row_repository: RowRepository, table_repository: TableRepository
-) -> RowService:
+def row_service(row_repository: RowRepository, table_repository: TableRepository) -> RowService:
     return RowService(row_repository=row_repository, table_repository=table_repository)
 
 

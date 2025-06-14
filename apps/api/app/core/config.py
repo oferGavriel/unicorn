@@ -1,6 +1,7 @@
 import os
 import socket
 
+from typing import Any
 from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -33,7 +34,7 @@ class Settings(BaseSettings):
         from_attributes=True,
     )
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         if self._is_running_in_docker():
             self.db_host = "postgres"  # override for Docker
@@ -44,4 +45,4 @@ class Settings(BaseSettings):
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    return Settings()  # type: ignore[call-arg]
+    return Settings()

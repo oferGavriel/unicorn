@@ -7,7 +7,7 @@ from uuid import uuid4
 @pytest.mark.anyio
 async def test_register_and_login(async_client: AsyncClient) -> None:
     email = f"user+{uuid4().hex}@example.com"
-    payload = {"name": "Test User", "email": email, "password": "secret123"}
+    payload = {"first_name": "Alice", "last_name": "Smith", "email": email, "password": "secret123"}
 
     # Register
     register_resp = await async_client.post("/api/v1/auth/register", json=payload)
@@ -26,13 +26,12 @@ async def test_register_and_login(async_client: AsyncClient) -> None:
 @pytest.mark.anyio
 async def test_register_duplicate_email(async_client: AsyncClient) -> None:
     email = f"user+{uuid4().hex}@example.com"
-    payload = {"name": "User", "email": email, "password": "1234"}
+    payload = {"first_name": "Alice", "last_name": "Smith", "email": email, "password": "123456"}
 
     await async_client.post("/api/v1/auth/register", json=payload)
-    second_register_resp = await async_client.post(
-        "/api/v1/auth/register", json=payload
-    )
+    second_register_resp = await async_client.post("/api/v1/auth/register", json=payload)
     second_register_resp_json = second_register_resp.json()
+    print("Second register response:", second_register_resp_json)
     assert second_register_resp.status_code == HTTPStatus.CONFLICT
     assert second_register_resp_json["message"] == "Email already registered"
 
@@ -49,26 +48,26 @@ async def test_login_invalid_credentials(async_client: AsyncClient):
 @pytest.mark.anyio
 async def test_refresh_token_success_and_failure(async_client: AsyncClient):
     email = f"user+{uuid4().hex}@example.com"
-    payload = {"name": "User", "email": email, "password": "test123"}
+    payload = {"first_name": "Alice", "last_name": "Smith", "email": email, "password": "test123"}
 
     register_resp = await async_client.post("/api/v1/auth/register", json=payload)
     refresh_token = register_resp.cookies.get("refresh_token")
     async_client.cookies.set("refresh_token", refresh_token)
 
-    refresh_resp = await async_client.get("/api/v1/auth/refresh-token")
+    refresh_resp = await async_client.post("/api/v1/auth/refresh-token")
     assert refresh_resp.status_code == HTTPStatus.OK
     assert "access_token" in refresh_resp.cookies
 
     # simulate invalid token
     async_client.cookies.set("refresh_token", "invalid.token")
-    invalid_resp = await async_client.get("/api/v1/auth/refresh-token")
+    invalid_resp = await async_client.post("/api/v1/auth/refresh-token")
     assert invalid_resp.status_code == HTTPStatus.UNAUTHORIZED
 
 
 @pytest.mark.anyio
 async def test_logout(async_client: AsyncClient):
     email = f"user+{uuid4().hex}@example.com"
-    payload = {"name": "User", "email": email, "password": "test123"}
+    payload = {"first_name": "Alice", "last_name": "Smith", "email": email, "password": "test123"}
 
     register_resp = await async_client.post("/api/v1/auth/register", json=payload)
     refresh_token = register_resp.cookies.get("refresh_token")

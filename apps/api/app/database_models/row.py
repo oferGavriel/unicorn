@@ -1,19 +1,12 @@
-from uuid import UUID, uuid4
+from uuid import UUID
 from typing import List, Optional, TYPE_CHECKING
 from datetime import datetime
-from sqlalchemy import (
-    String,
-    ForeignKey,
-    Integer,
-    Index,
-    DateTime,
-    ARRAY,
-)
+from sqlalchemy import ForeignKey, Integer, Index, DateTime, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from app.database_models.common import TimestampMixin, SoftDeleteMixin
+from app.database_models.common import TimestampMixin, SoftDeleteMixin, UuidPk, StrLen255
 from app.db.base import Base
-from sqlalchemy.dialects.postgresql import ENUM
+from sqlalchemy.dialects.postgresql import UUID as PGUUID, ARRAY
+from app.core.enums import StatusEnum, PriorityEnum
 
 if TYPE_CHECKING:
     from app.database_models.table import Table
@@ -22,16 +15,16 @@ if TYPE_CHECKING:
 
 
 class Row(TimestampMixin, SoftDeleteMixin, Base):
-    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UuidPk]
     table_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("tables.id"), nullable=False)
 
-    name: Mapped[str] = mapped_column(String(500))
+    name: Mapped[StrLen255] = mapped_column(nullable=False)
     owners: Mapped[List[UUID]] = mapped_column(ARRAY(PGUUID(as_uuid=True)), default=list)
-    status: Mapped[str] = mapped_column(
-        ENUM('not_started', 'stuck', 'working_on_it', 'done', name='statusenum', create_type=False), default='stuck'
+    status: Mapped[StatusEnum] = mapped_column(
+        Enum(StatusEnum, name='statusenum', create_constraint=True, validate_strings=True), default=StatusEnum.NOT_STARTED
     )
-    priority: Mapped[str] = mapped_column(
-        ENUM('low', 'medium', 'high', 'critical', name='priorityenum', create_type=False), default='medium'
+    priority: Mapped[PriorityEnum] = mapped_column(
+        Enum(PriorityEnum, name='priorityenum', create_constraint=True, validate_strings=True), default=PriorityEnum.MEDIUM
     )
     due_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     position: Mapped[int] = mapped_column(Integer, default=0)
