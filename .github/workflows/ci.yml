@@ -9,6 +9,21 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: apps/api } }
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: unicorn_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       DB_USER: test
       DB_PASS: test
@@ -30,6 +45,12 @@ jobs:
         run: poetry run mypy app
       - name: Tests
         run: poetry run pytest
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: test
+          DB_PASS: test
+          DB_NAME: unicorn_test
 
   frontend:
     runs-on: ubuntu-latest
@@ -39,7 +60,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 9.0.1
+          version: 9.1.1
 
       - name: Install deps
         working-directory: ./apps/web
