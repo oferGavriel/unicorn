@@ -72,8 +72,12 @@ jobs:
 
       - name: Build
         working-directory: ./apps/web
+        env:
+          VITE_API_URL: http://localhost:8000
         run: pnpm build
 
       - name: Tests
         working-directory: ./apps/web
+        env:
+          VITE_API_URL: http://localhost:8000
         run: pnpm test
