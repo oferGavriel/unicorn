@@ -140,7 +140,7 @@ export const CreateBoardDialog: React.FC<CreateBoardDialogProps> = ({
             />
           </div>
 
-          <Separator className="my-4 h-[0.8px] bg-[#e6e9ef]" />
+          <Separator className="my-4 h-[1px] bg-[#636466]" />
 
           <div>
             <label className="block text-sm font-medium mb-1">Members</label>

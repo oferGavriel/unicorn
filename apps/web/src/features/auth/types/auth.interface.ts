@@ -1,7 +1,8 @@
 export interface ISignUpPayload {
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
-  name: string;
 }
 
 export interface ISignInPayload {
@@ -12,5 +13,7 @@ export interface ISignInPayload {
 export interface IAuthUser {
   id: string;
   email: string;
-  name: string;
+  firstName: string;
+  lastName: string;
+  avatar?: string;
 }

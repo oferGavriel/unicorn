@@ -1,18 +1,12 @@
 import { AlertCircle, Loader2, Plus, User, X } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
+import { IAuthUser } from '@/features/auth';
 import { useGetUsersQuery } from '@/features/auth/services/auth.service';
 
 import { BaseCellProps } from '../../../types/cell.interface';
 
 type UsersCellProps = BaseCellProps<string[]>;
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string | null;
-}
 
 export const UsersCell: React.FC<UsersCellProps> = ({ value = [], onUpdate, column }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -24,7 +18,7 @@ export const UsersCell: React.FC<UsersCellProps> = ({ value = [], onUpdate, colu
   });
 
   const { selectedUsers, invalidUserIds } = React.useMemo(() => {
-    const selected: User[] = [];
+    const selected: IAuthUser[] = [];
     const invalid: string[] = [];
 
     value.forEach((userId) => {
@@ -117,14 +111,14 @@ export const UsersCell: React.FC<UsersCellProps> = ({ value = [], onUpdate, colu
     }
   }, [isOpen]);
 
-  const renderUserAvatar = useCallback((user: User, size: 'sm' | 'md' = 'sm') => {
+  const renderUserAvatar = useCallback((user: IAuthUser, size: 'sm' | 'md' = 'sm') => {
     const sizeClass = size === 'sm' ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm';
 
     if (user.avatar) {
       return (
         <img
           src={user.avatar}
-          alt={`${user.name} avatar`}
+          alt={`${user.firstName} ${user.lastName} avatar`}
           className={`${sizeClass} rounded-full object-cover`}
           onError={(e) => {
             const target = e.target as HTMLImageElement;
@@ -134,17 +128,13 @@ export const UsersCell: React.FC<UsersCellProps> = ({ value = [], onUpdate, colu
       );
     }
 
-    const initials = user.name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2); // Max 2 initials
+    const initials =
+      `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase();
 
     return (
       <div
         className={`${sizeClass} rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white font-medium`}
-        title={user.name}
+        title={`${user.firstName} ${user.lastName}`}
       >
         {initials}
       </div>
@@ -255,7 +245,9 @@ export const UsersCell: React.FC<UsersCellProps> = ({ value = [], onUpdate, colu
                       >
                         {renderUserAvatar(user, 'md')}
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm text-white truncate">{user.name}</div>
+                          <div className="text-sm text-white truncate">
+                            {user.firstName} {user.lastName}
+                          </div>
                           <div className="text-xs text-gray-400 truncate">
                             {user.email}
                           </div>
@@ -298,7 +290,9 @@ export const UsersCell: React.FC<UsersCellProps> = ({ value = [], onUpdate, colu
                       >
                         {renderUserAvatar(user, 'md')}
                         <div className="flex-1 text-left min-w-0">
-                          <div className="text-sm text-white truncate">{user.name}</div>
+                          <div className="text-sm text-white truncate">
+                            {user.firstName} {user.lastName}
+                          </div>
                           <div className="text-xs text-gray-400 truncate">
                             {user.email}
                           </div>

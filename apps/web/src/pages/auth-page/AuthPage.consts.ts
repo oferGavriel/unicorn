@@ -3,7 +3,8 @@ const COMP_NAME = 'AuthPage';
 export const UI_IDS = {
   HEADER: `${COMP_NAME}-header`,
   FORM: `${COMP_NAME}-form`,
-  REGISTER_NAME_INPUT: `${COMP_NAME}-register-name-input`,
+  REGISTER_FIRST_NAME_INPUT: `${COMP_NAME}-register-name-input`,
+  REGISTER_LAST_NAME_INPUT: `${COMP_NAME}-register-last-name-input`,
   REGISTER_EMAIL_INPUT: `${COMP_NAME}-register-email-input`,
   REGISTER_PASSWORD_INPUT: `${COMP_NAME}-register-password-input`,
   LOGIN_EMAIL_INPUT: `${COMP_NAME}-login-email-input`,

@@ -19,11 +19,18 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   return (
     <>
       <FormInput
-        label="Name"
-        autoComplete="name"
-        registration={register('name')}
-        error={errors.name}
-        data-testid={UI_IDS.REGISTER_NAME_INPUT}
+        label="First Name"
+        autoComplete="given-name"
+        registration={register('firstName')}
+        error={errors.firstName}
+        data-testid={UI_IDS.REGISTER_FIRST_NAME_INPUT}
+      />
+      <FormInput
+        label="Last Name"
+        autoComplete="family-name"
+        registration={register('lastName')}
+        error={errors.lastName}
+        data-testid={UI_IDS.REGISTER_LAST_NAME_INPUT}
       />
       <FormInput
         label="Email"

@@ -142,21 +142,24 @@ export const TABLE_COLUMNS: TableColumn[] = [
 ];
 
 export const TABLE_COLORS = [
-  '#ff5733', // RED
-  '#ff8c00', // ORANGE
-  '#ffd700', // YELLOW
-  '#32cd32', // GREEN
-  '#1e90ff', // BLUE
-  '#9370db', // PURPLE
-  '#ff69b4', // PINK
-  '#00ced1', // CYAN
-  '#00ff00', // LIME
-  '#ff00ff', // MAGENTA
-  '#8b4513', // BROWN
-  '#808080', // GRAY
-  '#000000', // BLACK
-  '#ffffff', // WHITE
-  '#6b7280' // DEFAULT
+  '#037f4c', // GREEN
+  '#00c875', // LIGHT GREEN
+  '#9cd326', // LIME GREEN
+  '#cab641', // YELLOW GREEN
+  '#ffcb00', // GOLD
+  '#784bd1', // PURPLE
+  '#9370db', // VIOLET
+  '#007eb5', // BLUE
+  '#579bfc', // LIGHT BLUE
+  '#66ccff', // SKY BLUE
+  '#bb3354', // RED
+  '#df2f4a', // PINK RED
+  '#ff007f', // HOT PINK
+  '#ff5ac4', // FUCHSIA
+  '#ff642e', // ORANGE RED
+  '#fdab3d', // ORANGE
+  '#c4c4c4', // GRAY
+  '#757575' // DARK GRAY
 ] as const;
 
 export type TableColor = (typeof TABLE_COLORS)[number];
