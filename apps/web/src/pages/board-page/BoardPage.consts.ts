@@ -33,7 +33,10 @@ export const UI_IDS = {
   CREATE_BOARD_DESCRIPTION_LABEL: `${COMP_NAME}-create-board-description-label`,
   CREATE_BOARD_DESCRIPTION_INPUT: `${COMP_NAME}-create-board-description-input`,
   CREATE_BOARD_CANCEL_BTN: `${COMP_NAME}-create-board-cancel-btn`,
-  CREATE_BOARD_CREATE_BTN: `${COMP_NAME}-create-board-create-btn`
+  CREATE_BOARD_CREATE_BTN: `${COMP_NAME}-create-board-create-btn`,
+
+  DELETE_TABLE_BTN_CONFIRMATION: `${COMP_NAME}-delete-table-btn-confirmation`,
+  DELETE_TABLE_CANCEL_BTN: `${COMP_NAME}-delete-table-cancel-btn`
 };
 
 export const UI_TITLES = {

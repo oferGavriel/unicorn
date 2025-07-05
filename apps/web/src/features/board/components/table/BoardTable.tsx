@@ -29,6 +29,7 @@ import {
 } from '@/components';
 import { Button } from '@/components/ui/button';
 import { IAuthUser } from '@/features/auth';
+import { UI_IDS } from '@/pages/board-page/BoardPage.consts';
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 import { EditableText } from '@/shared/components/EditableText';
 
@@ -296,6 +297,8 @@ const BoardTable: React.FC<BoardTableProps> = ({ table, boardId, onAddRow }) => 
         isLoading={isDeletingTable}
         onConfirm={confirmDelete}
         onCancel={() => setShowDeleteDialog(false)}
+        confirmBtnDataTestId={UI_IDS.DELETE_TABLE_BTN_CONFIRMATION}
+        cancelBtnDataTestId={UI_IDS.DELETE_TABLE_CANCEL_BTN}
       />
     </div>
   );
