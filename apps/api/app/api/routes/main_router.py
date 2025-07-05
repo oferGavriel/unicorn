@@ -3,6 +3,7 @@ from enum import Enum
 from fastapi import APIRouter, FastAPI
 from fastapi.routing import APIRoute
 from app.api.routes.v1.auth_route import router as auth_router
+from app.api.routes.v1.user_route import router as user_router
 from app.api.routes.v1.board_route import router as board_router
 from app.api.routes.v1.table_route import router as table_router
 from app.api.routes.v1.row_route import router as row_router
@@ -13,7 +14,7 @@ from app.common.errors.error_model import ErrorResponseModel
 
 
 class RouteConfig:
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         router: APIRouter,
         prefix: str,
@@ -43,19 +44,14 @@ internal_server_error = {
 }
 
 routes = {
-    "auth": [
-        RouteConfig(auth_router, "/auth", ["auth"], protected=False),
-    ],
-    "board": [
-        RouteConfig(board_router, "/boards", ["board"], protected=True),
-    ],
-    "table": [
-        RouteConfig(table_router, "/boards/{board_id}/tables", ["table"], protected=True),
-    ],
+    "auth": [RouteConfig(auth_router, "/auth", ["auth"])],
+    "user": [RouteConfig(user_router, "/users", ["user"], protected=True)],
+    "board": [RouteConfig(board_router, "/boards", ["board"], protected=True)],
+    "table": [RouteConfig(table_router, "/boards/{board_id}/tables", ["table"], protected=True)],
     "row": [
         RouteConfig(
             row_router,
-            "/tables/{table_id}/rows",
+            "/boards/{board_id}/tables/{table_id}/rows",
             ["row"],
             protected=True,
         ),
@@ -73,7 +69,10 @@ def add_routes(app: FastAPI) -> None:
                 if isinstance(route, APIRoute):
                     route.responses.setdefault(500, internal_server_error)
 
-            deps = [CurrentUserDep] if controller.protected else []
+            deps = []
+            if controller.protected:
+                deps.append(CurrentUserDep)
+
             app.include_router(
                 controller.router,
                 prefix=f"{client_prefix}{controller.prefix}",

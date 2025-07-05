@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { UI_IDS, UI_TITLES } from './NotFoundPage.consts';
 
-export const NotFoundPage: React.FC = (): ReactElement => {
+const NotFoundPage: React.FC = (): ReactElement => {
   return (
     <div className="flex h-screen flex-col items-center justify-center">
       <div
@@ -28,3 +28,5 @@ export const NotFoundPage: React.FC = (): ReactElement => {
     </div>
   );
 };
+
+export default NotFoundPage;

@@ -1,95 +1,89 @@
-import { AlertCircle, Loader2, Plus, User, X } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Loader2, Plus, User, X } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { IAuthUser } from '@/features/auth';
 import { useGetUsersQuery } from '@/features/auth/services/auth.service';
+import { boardApi } from '@/features/board/services';
+import { IRow, TableColumn } from '@/features/board/types';
 
-import { BaseCellProps } from '../../../types/cell.interface';
+type UsersCellProps = {
+  boardId: string;
+  tableId: string;
+  rowId: string;
+  value: IAuthUser[];
+  row: IRow;
+  column: TableColumn;
+};
 
-type UsersCellProps = BaseCellProps<string[]>;
-
-export const UsersCell: React.FC<UsersCellProps> = ({ value = [], onUpdate, column }) => {
+export const UsersCell: React.FC<UsersCellProps> = ({
+  value = [],
+  column,
+  boardId,
+  tableId,
+  rowId
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { data: users = [], isLoading: isUsersLoading } = useGetUsersQuery(undefined, {
+  const { data: allUsers = [], isLoading: isUsersLoading } = useGetUsersQuery(undefined, {
     skip: !column.editable || !isOpen
   });
 
-  const { selectedUsers, invalidUserIds } = React.useMemo(() => {
-    const selected: IAuthUser[] = [];
-    const invalid: string[] = [];
+  const [addOwnerMutation] = boardApi.useAddRowOwnerMutation();
+  const [removeOwnerMutation] = boardApi.useRemoveRowOwnerMutation();
 
-    value.forEach((userId) => {
-      const user = users.find((u) => u.id === userId);
-      if (user) {
-        selected.push(user);
-      } else {
-        invalid.push(userId);
-        if (!isUsersLoading && users.length > 0) {
-          console.warn(`User with ID ${userId} not found in users list`);
-        }
-      }
-    });
+  const selectedUserIds = useMemo(() => new Set(value.map((u) => u.id)), [value]);
+  console.log('value:', value);
+  const available = useMemo(
+    () =>
+      !isOpen || isUsersLoading ? [] : allUsers.filter((u) => !selectedUserIds.has(u.id)),
+    [isOpen, isUsersLoading, allUsers, selectedUserIds]
+  );
 
-    return { selectedUsers: selected, invalidUserIds: invalid };
-  }, [value, users, isUsersLoading]);
-
-  const availableUsers = React.useMemo(() => {
-    if (isUsersLoading) {
-      return [];
-    } // Return empty during loading
-    return users.filter((user) => !value.includes(user.id));
-  }, [users, value, isUsersLoading]);
-
-  useEffect(() => {
-    if (
-      invalidUserIds.length > 0 &&
-      column.editable &&
-      !isUsersLoading &&
-      users.length > 0
-    ) {
-      const validUserIds = value.filter((id) => !invalidUserIds.includes(id));
-      if (validUserIds.length !== value.length) {
-        console.log('Cleaning up invalid user IDs:', invalidUserIds);
-        const result = onUpdate(validUserIds);
-        if (result && typeof (result as Promise<void>).catch === 'function') {
-          (result as Promise<void>).catch((error: unknown) => {
-            console.error('Failed to update users after cleanup:', error);
-          });
-        }
-      }
-    }
-  }, [invalidUserIds, value, column.editable, onUpdate, isUsersLoading, users.length]);
-
-  const handleUserToggle = useCallback(
-    async (userId: string, isSelected: boolean) => {
+  const toggleUser = useCallback(
+    async (userId: string) => {
       if (!column.editable || isUpdating || isUsersLoading) {
-        return;
-      }
-
-      const userExists = users.some((user) => user.id === userId);
-      if (!userExists) {
-        console.error(`Cannot toggle user ${userId}: user does not exist`);
         return;
       }
 
       setIsUpdating(true);
 
       try {
-        const newUserIds = isSelected
-          ? value.filter((id) => id !== userId)
-          : [...value, userId];
+        const isCurrentlySelected = selectedUserIds.has(userId);
 
-        await onUpdate(newUserIds);
+        if (isCurrentlySelected) {
+          await removeOwnerMutation({
+            boardId,
+            tableId,
+            rowId,
+            ownerId: userId
+          }).unwrap();
+        } else {
+          await addOwnerMutation({
+            boardId,
+            tableId,
+            rowId,
+            ownerId: userId
+          }).unwrap();
+        }
       } catch (error) {
-        console.error('Failed to update users:', error);
+        console.error('Failed to update row owner:', error);
       } finally {
         setIsUpdating(false);
       }
     },
-    [value, onUpdate, column.editable, isUpdating, users, isUsersLoading]
+    [
+      column.editable,
+      isUpdating,
+      isUsersLoading,
+      selectedUserIds,
+      removeOwnerMutation,
+      boardId,
+      tableId,
+      rowId,
+      addOwnerMutation
+    ]
   );
 
   const handleToggle = useCallback(() => {
@@ -111,56 +105,30 @@ export const UsersCell: React.FC<UsersCellProps> = ({ value = [], onUpdate, colu
     }
   }, [isOpen]);
 
-  const renderUserAvatar = useCallback((user: IAuthUser, size: 'sm' | 'md' = 'sm') => {
-    const sizeClass = size === 'sm' ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm';
+  const renderUserAvatar = useCallback(
+    (user: IAuthUser, size: 'sm' | 'md' = 'sm') => {
+      const sizeClass = size === 'sm' ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm';
+      if (isUpdating || user.avatarUrl === 'placeholder') {
+        return <div className={`${sizeClass} rounded-full bg-gray-500 animate-pulse`} />;
+      }
 
-    if (user.avatar) {
-      return (
-        <img
-          src={user.avatar}
-          alt={`${user.firstName} ${user.lastName} avatar`}
-          className={`${sizeClass} rounded-full object-cover`}
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.style.display = 'none';
-          }}
-        />
-      );
-    }
+      console.log('user:', user);
 
-    const initials =
-      `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase();
-
-    return (
-      <div
-        className={`${sizeClass} rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white font-medium`}
-        title={`${user.firstName} ${user.lastName}`}
-      >
-        {initials}
-      </div>
-    );
-  }, []);
-
-  const renderInvalidUserWarning = () => {
-    if (invalidUserIds.length === 0 || isUsersLoading) {
-      return null;
-    }
-
-    return (
-      <div className="flex items-center gap-2 px-2 py-1 bg-red-900/20 rounded text-xs text-red-400">
-        <AlertCircle className="w-3 h-3" />
-        <span>
-          {invalidUserIds.length} invalid user{invalidUserIds.length > 1 ? 's' : ''}
-        </span>
-      </div>
-    );
-  };
-
-  const renderLoadingState = () => (
-    <div className="flex items-center justify-center px-3 py-4">
-      <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-      <span className="ml-2 text-sm text-gray-400">Loading users...</span>
-    </div>
+      if (user.avatarUrl) {
+        return (
+          <img
+            src={user.avatarUrl}
+            alt={`${user.firstName} ${user.lastName} avatar`}
+            className={`${sizeClass} rounded-full object-cover`}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+            }}
+          />
+        );
+      }
+    },
+    [isUpdating]
   );
 
   return (
@@ -175,7 +143,7 @@ export const UsersCell: React.FC<UsersCellProps> = ({ value = [], onUpdate, colu
           ${isUpdating ? 'opacity-50' : ''}
         `}
       >
-        {selectedUsers.length === 0 ? (
+        {value.length === 0 ? (
           <div className="flex items-center gap-2 text-gray-500">
             <User className="w-4 h-4" />
             <span>Assign</span>
@@ -184,23 +152,17 @@ export const UsersCell: React.FC<UsersCellProps> = ({ value = [], onUpdate, colu
         ) : (
           <div className="flex items-center">
             <div className="flex items-center -space-x-1">
-              {selectedUsers.slice(0, 3).map((user) => (
+              {value.slice(0, 3).map((user) => (
                 <div key={user.id} className="relative">
                   {renderUserAvatar(user)}
                 </div>
               ))}
-              {selectedUsers.length > 3 && (
+              {value.length > 3 && (
                 <div className="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center text-xs text-white font-medium ml-1">
-                  +{selectedUsers.length - 3}
+                  +{value.length - 3}
                 </div>
               )}
             </div>
-            {invalidUserIds.length > 0 && !isUsersLoading && (
-              <AlertCircle
-                className="w-3 h-3 ml-1 text-red-400"
-                aria-label={`${invalidUserIds.length} invalid users`}
-              />
-            )}
             {isUpdating && (
               <Loader2 className="w-3 h-3 ml-1 animate-spin text-gray-400" />
             )}
@@ -214,108 +176,69 @@ export const UsersCell: React.FC<UsersCellProps> = ({ value = [], onUpdate, colu
 
       {isOpen && column.editable && (
         <>
-          {/* Backdrop */}
-          <div className="fixed inset-0 z-[9998]" onClick={() => setIsOpen(false)} />
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
 
-          {/* Dropdown */}
-          <div className="absolute top-full left-0 mt-1 bg-[#333333] border border-gray-600 rounded-md shadow-lg z-[9999] min-w-[250px] max-h-[300px] overflow-y-auto">
-            {/* Loading State */}
-            {isUsersLoading && renderLoadingState()}
-
-            {/* Content when users are loaded */}
-            {!isUsersLoading && (
+          <div className="absolute top-full left-0 mt-1 z-20 w-64 max-h-60 overflow-y-auto menu-dialog">
+            {isUsersLoading ? (
+              <div className="flex items-center justify-center p-4">
+                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                <span className="ml-2 text-sm text-gray-400">Loading…</span>
+              </div>
+            ) : (
               <>
-                {/* Invalid Users Warning */}
-                {invalidUserIds.length > 0 && (
-                  <div className="px-3 py-2 border-b border-gray-600">
-                    {renderInvalidUserWarning()}
-                  </div>
-                )}
-
-                {/* Selected Users */}
-                {selectedUsers.length > 0 && (
-                  <>
-                    <div className="px-3 py-2 text-xs font-medium text-gray-400 border-b border-gray-600">
-                      Assigned ({selectedUsers.length})
+                {/* Selected */}
+                {value.length > 0 && (
+                  <div className="p-2 border-b border-gray-700">
+                    <div className="text-xs font-medium text-gray-500 mb-2">
+                      Assigned ({value.length})
                     </div>
-                    {selectedUsers.map((user) => (
+                    {value.map((u) => (
                       <div
-                        key={user.id}
-                        className="flex items-center gap-3 px-3 py-2 hover:bg-[#404040] transition-colors group"
+                        key={u.id}
+                        className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer rounded-xl"
                       >
-                        {renderUserAvatar(user, 'md')}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm text-white truncate">
-                            {user.firstName} {user.lastName}
-                          </div>
-                          <div className="text-xs text-gray-400 truncate">
-                            {user.email}
-                          </div>
+                        {renderUserAvatar(u, 'md')}
+                        <div className="flex-1 text-white">
+                          {u.firstName} {u.lastName}
                         </div>
                         <button
-                          onClick={() => handleUserToggle(user.id, true)}
-                          disabled={isUpdating}
-                          className={`
-                            text-red-400 hover:text-red-300 transition-colors p-1 rounded
-                            ${isUpdating ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-400/10'}
-                          `}
-                          title="Remove user"
+                          onClick={() => toggleUser(u.id)}
+                          disabled={isUpdating || isUsersLoading}
+                          className="p-2 hover:bg-red-900 rounded-xl text-red-400 "
+                          title="Remove"
                         >
-                          {isUpdating ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <X className="w-4 h-4" />
-                          )}
+                          <X className="w-4 h-4" />
                         </button>
                       </div>
                     ))}
-                  </>
+                  </div>
                 )}
 
-                {/* Available Users */}
-                {availableUsers.length > 0 && (
-                  <>
-                    <div className="px-3 py-2 text-xs font-medium text-gray-400 border-b border-gray-600">
-                      Available ({availableUsers.length})
+                {/* Available */}
+                {available.length > 0 && (
+                  <div className="p-2">
+                    <div className="text-xs font-medium text-gray-500 mb-2">
+                      Available ({available.length})
                     </div>
-                    {availableUsers.map((user) => (
+                    {available.map((u) => (
                       <button
-                        key={user.id}
-                        onClick={() => handleUserToggle(user.id, false)}
-                        disabled={isUpdating}
-                        className={`
-                          w-full flex items-center gap-3 px-3 py-2 transition-colors
-                          ${isUpdating ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#404040] cursor-pointer'}
-                        `}
+                        key={u.id}
+                        onClick={() => toggleUser(u.id)}
+                        disabled={isUpdating || isUsersLoading}
+                        className="flex items-center gap-2 w-full p-2 hover:bg-gray-800 rounded text-white"
                       >
-                        {renderUserAvatar(user, 'md')}
-                        <div className="flex-1 text-left min-w-0">
-                          <div className="text-sm text-white truncate">
-                            {user.firstName} {user.lastName}
-                          </div>
-                          <div className="text-xs text-gray-400 truncate">
-                            {user.email}
-                          </div>
+                        {renderUserAvatar(u, 'md')}
+                        <div className="flex-1 text-left">
+                          {u.firstName} {u.lastName}
                         </div>
                       </button>
                     ))}
-                  </>
+                  </div>
                 )}
 
-                {/* No Users Available */}
-                {availableUsers.length === 0 &&
-                  selectedUsers.length === users.length &&
-                  users.length > 0 && (
-                    <div className="px-3 py-4 text-center text-gray-500 text-sm">
-                      All users are assigned
-                    </div>
-                  )}
-
-                {/* No Users Exist */}
-                {users.length === 0 && (
-                  <div className="px-3 py-4 text-center text-gray-500 text-sm">
-                    No users available
-                  </div>
+                {/* None */}
+                {!value.length && !available.length && (
+                  <div className="p-4 text-center text-gray-500 text-sm">No users</div>
                 )}
               </>
             )}

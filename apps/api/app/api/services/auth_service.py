@@ -1,6 +1,6 @@
 from typing import Annotated, Tuple
 from fastapi import Depends
-
+from uuid import uuid4
 from app.api.models.user_model import UserCreate, UserRead
 from app.api.dal.auth_repository import AuthRepositoryDep
 from app.core.security import hash_password, verify_password
@@ -13,6 +13,7 @@ from app.common.errors.exceptions import (
 )
 
 from app.api.services.token_service import TokenService
+from app.utils.avatar import avatar_url
 
 
 class AuthService(BaseService[User, UserRead]):
@@ -24,17 +25,23 @@ class AuthService(BaseService[User, UserRead]):
         if await self.auth_repository.get_by_email(data.email):
             raise ConflictError(message="Email already registered")
 
+        user_id = uuid4()
+        user_avatar_url = avatar_url(data.first_name, data.last_name, user_id)
+
         new_user = User(
+            id=user_id,
             email=data.email,
             first_name=data.first_name,
             last_name=data.last_name,
             password_hash=hash_password(data.password),
+            avatar_url=user_avatar_url,
         )
-
         await self.auth_repository.create(new_user)
+
         access_token, refresh_token = await self._issue_tokens(new_user)
 
-        return self.convert_to_model(new_user), access_token, refresh_token
+        user_read = self.convert_to_model(new_user)
+        return user_read, access_token, refresh_token
 
     async def authenticate(self, email: str, password: str) -> Tuple[UserRead, str, str]:
         user = await self.auth_repository.get_by_email(email)

@@ -3,6 +3,8 @@ from pydantic import ConfigDict, BaseModel
 from pydantic.alias_generators import to_camel
 from sqlalchemy.orm import declarative_base, declared_attr
 
+# from datetime import datetime, timezone
+
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
     "uq": "uq_%(table_name)s_%(column_0_name)s",
@@ -21,6 +23,10 @@ class BaseSchema(BaseModel):
         from_attributes=True,
         protected_namespaces=(),
         arbitrary_types_allowed=True,
+        # json_encoders={datetime: lambda v: v.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")},
+        validate_assignment=True,
+        str_strip_whitespace=True,
+        validate_default=True,
     )
 
 

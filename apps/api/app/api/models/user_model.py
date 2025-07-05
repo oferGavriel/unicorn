@@ -1,6 +1,7 @@
 from uuid import UUID
+from typing import Optional
 from datetime import datetime
-from pydantic import EmailStr, ConfigDict, Field
+from pydantic import EmailStr, Field, field_validator
 from app.db.base import BaseSchema
 
 
@@ -10,7 +11,12 @@ class UserCreate(BaseSchema):
     email: EmailStr = Field(max_length=255, min_length=1)
     password: str = Field(max_length=128, min_length=6)
 
-    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+    @field_validator('first_name', 'last_name')
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        if not value.isalpha():
+            raise ValueError("Name must contain only alphabetic characters.")
+        return value.strip().title()
 
 
 class UserRead(BaseSchema):
@@ -18,10 +24,9 @@ class UserRead(BaseSchema):
     first_name: str = Field(alias="firstName")
     last_name: str = Field(alias="lastName")
     email: EmailStr
+    avatar_url: Optional[str] = Field(default=None, alias="avatarUrl")
     created_at: datetime = Field(alias="createdAt")
     updated_at: datetime = Field(alias="updatedAt")
-
-    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
 
 
 class UserLogin(BaseSchema):

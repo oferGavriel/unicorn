@@ -75,3 +75,22 @@ async def test_logout(async_client: AsyncClient):
 
     logout_resp = await async_client.get("/api/v1/auth/logout")
     assert logout_resp.status_code == HTTPStatus.NO_CONTENT
+
+
+@pytest.mark.anyio
+async def test_register_with_invalid_chars_raise_error(async_client: AsyncClient) -> None:
+    email = f"user+{uuid4().hex}@example.com"
+    payload = {"first_name": "J0hn$", "last_name": "Sm1th@", "email": email, "password": "test123"}
+
+    resp = await async_client.post("/api/v1/auth/register", json=payload)
+    json_resp = resp.json()
+
+    assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+    errors = json_resp["detail"]
+
+    first_name_error = next((err for err in errors if "first_name" in str(err.get("loc", []))), None)
+    last_name_error = next((err for err in errors if "last_name" in str(err.get("loc", []))), None)
+
+    assert first_name_error is not None
+    assert last_name_error is not None

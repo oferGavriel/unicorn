@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     max_tries: int = 60
     wait_seconds: int = 1
 
+    cloudinary_cloud_name: str = os.getenv("CLOUDINARY_CLOUD_NAME", "")
+    cloudinary_folder: str = os.getenv("CLOUDINARY_FOLDER", "avatars")
+    cloudinary_base: str = os.getenv("CLOUDINARY_BASE", "blank.png")
+
     @property
     def db_url(self) -> str:
         return f"postgresql+psycopg2://{self.db_user}:{self.db_pass}@{self.db_host}:{self.db_port}/{self.db_name}"

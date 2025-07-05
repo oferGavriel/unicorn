@@ -4,7 +4,7 @@ import { vi } from 'vitest';
 
 import { renderWithProviders } from '@/test/test-utils';
 
-import { HomePage } from './HomePage';
+import HomePage from './HomePage';
 import { UI_IDS, UI_TITLES } from './HomePage.consts';
 
 const HomePageElements = [UI_IDS.HEADER, UI_IDS.DESCRIPTION, UI_IDS.NAV_LINK];

@@ -1,12 +1,15 @@
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database_models.common import TimestampMixin, SoftDeleteMixin, UuidPk, StrLen50
-from app.database_models.board import Board
-from app.database_models.note import Note
-from app.database_models.refresh_token import RefreshToken
-from app.database_models.board_member import BoardMember
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.database_models.board import Board
+    from app.database_models.note import Note
+    from app.database_models.refresh_token import RefreshToken
+    from app.database_models.board_member import BoardMember
+    from app.database_models.row import Row
 
 
 class User(TimestampMixin, SoftDeleteMixin, Base):
@@ -26,4 +29,7 @@ class User(TimestampMixin, SoftDeleteMixin, Base):
     )
     board_memberships: Mapped[List["BoardMember"]] = relationship(
         "BoardMember", back_populates="user", cascade="all, delete-orphan"
+    )
+    owned_rows: Mapped[List["Row"]] = relationship(
+        "Row", secondary="row_owners", back_populates="owner_users", lazy="select"
     )

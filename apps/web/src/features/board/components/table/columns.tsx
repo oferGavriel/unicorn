@@ -1,8 +1,7 @@
 import { type ColumnDef } from '@tanstack/react-table';
-import { ArrowUpDown } from 'lucide-react';
 import React from 'react';
 
-import { Button } from '@/components/ui/button';
+import { IAuthUser } from '@/features/auth';
 import { PriorityEnum, StatusEnum } from '@/shared/shared.enum';
 
 import { IRow } from '../../types/row.interface';
@@ -11,10 +10,10 @@ import {
   DateCell,
   IndicatorCell,
   PriorityCell,
-  ReadOnlyCell,
   SpacerCell,
   StatusCell,
   TextCell,
+  UpdatedAtCell,
   UsersCell
 } from './cells';
 
@@ -33,8 +32,18 @@ const isString = (value: unknown): value is string => {
   return typeof value === 'string' || value === null || value === undefined;
 };
 
-const isStringArray = (value: unknown): value is string[] => {
-  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+const isIAuthUserArray = (value: unknown): value is IAuthUser[] => {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) =>
+        typeof item === 'object' &&
+        item !== null &&
+        'id' in item &&
+        'firstName' in item &&
+        'lastName' in item
+    )
+  );
 };
 
 const isStatusEnum = (value: unknown): value is StatusEnum => {
@@ -69,18 +78,11 @@ export function createTableColumns(
       }
 
       return (
-        <div className="flex items-center">
+        <div
+          className="flex items-center justify-center text-[#eeeeee] text-sm"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
           <span>{colDef.header}</span>
-          {colDef.sortable && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="ml-2 h-4 w-4 p-0"
-              onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-            >
-              <ArrowUpDown className="h-4 w-4" />
-            </Button>
-          )}
         </div>
       );
     },
@@ -162,14 +164,17 @@ export function createTableColumns(
         }
 
         case 'users': {
-          if (!isStringArray(value) && value !== null && value !== undefined) {
-            console.warn('Expected string array for users cell, got:', typeof value);
+          if (!isIAuthUserArray(value)) {
+            console.warn('Expected IAuthUser array for users cell, got:', typeof value);
           }
+
           const cellProps = {
-            value: (value as string[]) || [],
+            value: (value as IAuthUser[]) || [],
             row: row.original,
             column: colDef,
-            onUpdate: baseOnUpdate
+            boardId: boardId,
+            tableId: row.original.tableId,
+            rowId: row.original.id
           };
           return <UsersCell {...cellProps} />;
         }
@@ -181,7 +186,7 @@ export function createTableColumns(
             column: colDef,
             onUpdate: baseOnUpdate
           };
-          return <ReadOnlyCell {...cellProps} />;
+          return <UpdatedAtCell {...cellProps} />;
         }
 
         default:

@@ -25,11 +25,11 @@ export const authApi = api.injectEndpoints({
       invalidatesTags: ['Auth']
     }),
     checkCurrentUser: build.query<IAuthUser, void>({
-      query: () => '/auth/me',
+      query: () => '/users/me',
       providesTags: ['User']
     }),
     getUsers: build.query<IAuthUser[], void>({
-      query: () => '/auth/users',
+      query: () => '/users/all',
       providesTags: ['User']
     })
   })

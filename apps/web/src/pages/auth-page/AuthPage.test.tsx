@@ -7,7 +7,7 @@ import * as authHooks from '@/features/auth/services/auth.service';
 import { mockUser } from '@/mocks/user.mock';
 import { createUnauthenticatedStore, renderWithProviders } from '@/test/test-utils';
 
-import { AuthPage } from './AuthPage';
+import AuthPage from './AuthPage';
 import { UI_IDS, UI_TITLES } from './AuthPage.consts';
 
 const AuthPageLoginElements = [
@@ -22,7 +22,8 @@ const AuthPageLoginElements = [
 const AuthPageRegisterElements = [
   UI_IDS.HEADER,
   UI_IDS.FORM,
-  UI_IDS.REGISTER_NAME_INPUT,
+  UI_IDS.REGISTER_FIRST_NAME_INPUT,
+  UI_IDS.REGISTER_LAST_NAME_INPUT,
   UI_IDS.REGISTER_EMAIL_INPUT,
   UI_IDS.REGISTER_PASSWORD_INPUT,
   UI_IDS.SUBMIT_BUTTON,
@@ -164,7 +165,8 @@ describe('AuthPage', () => {
     const toggleButton = screen.getByTestId(UI_IDS.AUTH_MODE_TOGGLE);
     await user.click(toggleButton);
 
-    await user.type(screen.getByTestId(UI_IDS.REGISTER_NAME_INPUT), 'Test User');
+    await user.type(screen.getByTestId(UI_IDS.REGISTER_FIRST_NAME_INPUT), 'Test');
+    await user.type(screen.getByTestId(UI_IDS.REGISTER_LAST_NAME_INPUT), 'User');
     await user.type(
       screen.getByTestId(UI_IDS.REGISTER_EMAIL_INPUT),
       'newuser@example.com'
@@ -174,7 +176,8 @@ describe('AuthPage', () => {
 
     await waitFor(() => {
       expect(mockSignUp).toHaveBeenCalledWith({
-        name: 'Test User',
+        firstName: 'Test',
+        lastName: 'User',
         email: 'newuser@example.com',
         password: 'newpassword123'
       });
@@ -245,7 +248,8 @@ describe('AuthPage', () => {
     const toggleButton = screen.getByTestId(UI_IDS.AUTH_MODE_TOGGLE);
     await user.click(toggleButton);
 
-    await user.type(screen.getByTestId(UI_IDS.REGISTER_NAME_INPUT), 'Test User');
+    await user.type(screen.getByTestId(UI_IDS.REGISTER_FIRST_NAME_INPUT), 'Test');
+    await user.type(screen.getByTestId(UI_IDS.REGISTER_LAST_NAME_INPUT), 'User');
     await user.type(
       screen.getByTestId(UI_IDS.REGISTER_EMAIL_INPUT),
       'existing@example.com'
@@ -255,7 +259,8 @@ describe('AuthPage', () => {
 
     await waitFor(() => {
       expect(mockSignUp).toHaveBeenCalledWith({
-        name: 'Test User',
+        firstName: 'Test',
+        lastName: 'User',
         email: 'existing@example.com',
         password: 'password123'
       });

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 import { UI_IDS, UI_TITLES } from './HomePage.consts';
 
-export const HomePage: React.FC = (): ReactElement => {
+const HomePage: React.FC = (): ReactElement => {
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
       <h1 className="text-4xl font-bold mb-4" data-testid={UI_IDS.HEADER}>
@@ -22,3 +22,5 @@ export const HomePage: React.FC = (): ReactElement => {
     </div>
   );
 };
+
+export default HomePage;

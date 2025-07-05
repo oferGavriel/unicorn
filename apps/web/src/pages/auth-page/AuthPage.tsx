@@ -31,7 +31,7 @@ export type FormValues = LoginFormValues | RegisterFormValues;
 
 export type AuthPageProps = object;
 
-export const AuthPage: React.FC<AuthPageProps> = (): ReactElement => {
+const AuthPage: React.FC<AuthPageProps> = (): ReactElement => {
   const [authMode, setAuthMode] = useState<AuthMode>(AuthMode.Login);
   const [alertMessage, setAlertMessage] = useState<string>('');
   const dispatch = useAppDispatch();
@@ -99,6 +99,7 @@ export const AuthPage: React.FC<AuthPageProps> = (): ReactElement => {
               <Button
                 className="w-full"
                 type="button"
+                variant={'secondary'}
                 disabled
                 data-testid={UI_IDS.SUBMIT_BUTTON}
               >
@@ -110,6 +111,7 @@ export const AuthPage: React.FC<AuthPageProps> = (): ReactElement => {
               <Button
                 className="w-full"
                 type="submit"
+                variant={'secondary'}
                 disabled={isSubmitting}
                 data-testid={UI_IDS.SUBMIT_BUTTON}
               >
@@ -146,3 +148,5 @@ export const AuthPage: React.FC<AuthPageProps> = (): ReactElement => {
     </div>
   );
 };
+
+export default AuthPage;

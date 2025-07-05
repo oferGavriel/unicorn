@@ -1,23 +1,29 @@
-import React, { Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { type RouteObject, useRoutes } from 'react-router-dom';
 
-import { AuthPage, BoardPage, HomePage, NotFoundPage } from './pages';
+import { Spinner } from '@/shared/components/Spinner';
+
 import ProtectedRoute from './ProtectedRoute';
+
+const AuthPage = lazy(() => import('./pages/auth-page/AuthPage'));
+const BoardPage = lazy(() => import('./pages/board-page/BoardPage'));
+const HomePage = lazy(() => import('./pages/home-page/HomePage'));
+const NotFoundPage = lazy(() => import('./pages/not-found-page/NotFoundPage'));
 
 const AppRoutes: React.FC = () => {
   const routes: RouteObject[] = [
     {
       path: '/login',
       element: (
-        <Suspense>
-          <AuthPage />,
+        <Suspense fallback={<Spinner />}>
+          <AuthPage />
         </Suspense>
       )
     },
     {
       path: '/boards',
       element: (
-        <Suspense>
+        <Suspense fallback={<Spinner />}>
           <ProtectedRoute>
             <BoardPage />
           </ProtectedRoute>
@@ -27,7 +33,7 @@ const AppRoutes: React.FC = () => {
     {
       path: '/boards/:boardId',
       element: (
-        <Suspense>
+        <Suspense fallback={<Spinner />}>
           <ProtectedRoute>
             <BoardPage />
           </ProtectedRoute>
@@ -37,7 +43,7 @@ const AppRoutes: React.FC = () => {
     {
       path: '/',
       element: (
-        <Suspense>
+        <Suspense fallback={<Spinner />}>
           <HomePage />
         </Suspense>
       )
@@ -45,7 +51,7 @@ const AppRoutes: React.FC = () => {
     {
       path: '*',
       element: (
-        <Suspense>
+        <Suspense fallback={<Spinner />}>
           <NotFoundPage />
         </Suspense>
       )

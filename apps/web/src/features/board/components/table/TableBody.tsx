@@ -3,27 +3,16 @@ import React from 'react';
 
 import { CellTypeEnum } from '../../types';
 import { IRow } from '../../types/row.interface';
-import { IndicatorCell } from './cells';
 // import DraggableRow from './DraggableRow';
 
 interface TableBodyProps {
   table: TanStackTable<IRow>;
-  tableColor: string;
 }
 
-const TableBody: React.FC<TableBodyProps> = ({ table, tableColor }) => {
+const TableBody: React.FC<TableBodyProps> = ({ table }) => {
   const rows = table.getRowModel().rows;
   if (rows.length === 0) {
-    return (
-      <div className="flex">
-        <div className="w-[6px]">
-          <IndicatorCell tableColor={tableColor} position="body" />
-        </div>
-        <div className="flex-1 px-4 py-8 text-center text-gray-500">
-          No tasks yet. Add your first task to get started.
-        </div>
-      </div>
-    );
+    return <div></div>;
   }
 
   return (

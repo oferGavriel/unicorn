@@ -1,6 +1,7 @@
 import abc
 from typing import Generic, TypeVar, List, Optional, Any, Type, Dict
 from abc import ABC
+from uuid import UUID
 from app.db.base import BaseSchema
 from sqlalchemy.orm import DeclarativeMeta
 from app.common.paging import PageParams, PaginatedResponse
@@ -20,7 +21,7 @@ class Service(Generic[T, M], ABC):
         pass
 
     @abc.abstractmethod
-    async def get_by_id(self, entity_id: int) -> Optional[M]:
+    async def get_by_id(self, entity_id: UUID) -> Optional[M]:
         pass
 
     @abc.abstractmethod
@@ -32,7 +33,7 @@ class Service(Generic[T, M], ABC):
         pass
 
     @abc.abstractmethod
-    async def delete_by_id(self, entity_id: int) -> None:
+    async def delete_by_id(self, entity_id: UUID) -> None:
         pass
 
 
@@ -61,7 +62,7 @@ class BaseService(Generic[T, M], Service[T, M]):
         entities = await self.repository.get_all()
         return [self.convert_to_model(entity) for entity in entities]
 
-    async def get_by_id(self, entity_id: int) -> Optional[M]:
+    async def get_by_id(self, entity_id: UUID) -> Optional[M]:
         entity = await self.repository.get_by_id(entity_id)
         return self.convert_to_model(entity) if entity else None
 
@@ -69,7 +70,7 @@ class BaseService(Generic[T, M], Service[T, M]):
         entity = await self.repository.create_entity(**kwargs)
         return self.convert_to_model(entity)
 
-    async def delete_by_id(self, entity_id: int) -> None:
+    async def delete_by_id(self, entity_id: UUID) -> None:
         await self.repository.delete_by_id(entity_id)
 
 

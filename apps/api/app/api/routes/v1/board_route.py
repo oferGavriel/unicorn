@@ -32,7 +32,7 @@ async def get_board(
     board_service: BoardServiceDep,
     current_user: User = CurrentUserDep,
 ) -> BoardDetailRead:
-    return await board_service.get_board(board_id, current_user.id)
+    return await board_service.get_board_full_tree(board_id, current_user.id)
 
 
 @router.patch("/{board_id}", response_model=BoardRead)
@@ -54,7 +54,19 @@ async def delete_board(
     await board_service.delete_board(board_id, current_user.id)
 
 
-@router.delete("/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/{board_id}/members/{user_id}", status_code=status.HTTP_201_CREATED)
+async def add_member(
+    board_id: UUID,
+    user_id: UUID,
+    board_service: BoardServiceDep,
+    current_user: User = CurrentUserDep,
+) -> UUID:
+    resp = await board_service.add_member(board_id, current_user.id, user_id)
+    print("Add member response:", resp)
+    return resp
+
+
+@router.delete("/{board_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_member(
     board_id: UUID,
     user_id: UUID,
@@ -62,3 +74,12 @@ async def remove_member(
     current_user: User = CurrentUserDep,
 ) -> None:
     await board_service.remove_member(board_id, current_user.id, user_id)
+
+
+@router.post("/{board_id}/duplicate", response_model=BoardRead, status_code=status.HTTP_201_CREATED)
+async def duplicate_board(
+    board_id: UUID,
+    board_service: BoardServiceDep,
+    current_user: User = CurrentUserDep,
+) -> BoardRead:
+    return await board_service.duplicate_board(board_id, current_user.id)

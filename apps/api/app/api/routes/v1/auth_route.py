@@ -1,11 +1,9 @@
 from fastapi import APIRouter, status, Response, Cookie
-from typing import List
+
 from app.api.services.auth_service import AuthServiceDep
 from app.api.models.user_model import UserCreate, UserRead, UserLogin
 from app.utils.auth_cookies import set_auth_cookies, delete_auth_cookies
 
-from app.DI.current_user import CurrentUserDep
-from app.database_models.user import User
 
 router = APIRouter()
 
@@ -56,13 +54,3 @@ async def logout(
 
     delete_auth_cookies(response)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@router.get("/me", response_model=UserRead, status_code=status.HTTP_200_OK)
-async def get_current_user(current_user: User = CurrentUserDep) -> UserRead:
-    return UserRead.model_validate(current_user)
-
-
-@router.get("/users", response_model=list[UserRead], status_code=status.HTTP_200_OK)
-async def get_all_users(auth_service: AuthServiceDep) -> List[UserRead]:
-    return await auth_service.get_all_users()

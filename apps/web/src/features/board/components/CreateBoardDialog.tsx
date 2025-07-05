@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import {
@@ -11,7 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
-  ScrollArea,
   Separator,
   Textarea
 } from '@/components';
@@ -25,6 +24,7 @@ export interface CreateBoardDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onCreateBoard: (payload: ICreateBoardRequest) => Promise<void>;
+  isCreatingBoard?: boolean;
 }
 
 export const CreateBoardDialog: React.FC<CreateBoardDialogProps> = ({
@@ -60,27 +60,19 @@ export const CreateBoardDialog: React.FC<CreateBoardDialogProps> = ({
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   const toggleUser = (id: string) =>
     setSelectedUsersId((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!name.trim()) {
       toast.warning('Please enter a board name.');
       return;
     }
+
     setIsSubmitting(true);
+
     try {
       await onCreateBoard({
         name,
@@ -95,11 +87,33 @@ export const CreateBoardDialog: React.FC<CreateBoardDialogProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [name, description, selectedUsersId, onCreateBoard, onClose]);
+
+  const handleKeydown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSubmit();
+      }
+    },
+    [onClose, handleSubmit]
+  );
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    document.addEventListener('keydown', handleKeydown);
+    return () => document.removeEventListener('keydown', handleKeydown);
+  }, [isOpen, handleKeydown]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-dialog-bg border-none p-8 rounded-2xl">
+      <DialogContent className="dialog">
         <DialogHeader>
           <DialogTitle
             className="text-3xl"
@@ -151,19 +165,21 @@ export const CreateBoardDialog: React.FC<CreateBoardDialogProps> = ({
                 No other users available to add as members.
               </p>
             ) : (
-              <ScrollArea className="max-h-40 mt-2 space-y-1">
+              <div className="max-h-32 mt-2 space-y-1 overflow-y-auto">
                 {filteredUsers.map((u) => (
-                  <div key={u.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      checked={selectedUsersId.includes(u.id)}
-                      onCheckedChange={() => toggleUser(u.id)}
-                    />
+                  <div
+                    key={u.id}
+                    className="flex items-center space-x-2"
+                    onClick={() => toggleUser(u.id)}
+                  >
+                    <Checkbox checked={selectedUsersId.includes(u.id)} />
                     <span className="text-sm">
-                      {u.name} ({u.email})
+                      {u.firstName} {u.lastName}
                     </span>
+                    <span className="text-xs text-gray-300">({u.email})</span>
                   </div>
                 ))}
-              </ScrollArea>
+              </div>
             )}
           </div>
         </div>
@@ -182,6 +198,7 @@ export const CreateBoardDialog: React.FC<CreateBoardDialogProps> = ({
             className="ml-2 text-base rounded-sm"
             disabled={isSubmitting}
             data-testid={UI_IDS.CREATE_BOARD_CREATE_BTN}
+            variant={'primary'}
           >
             {isSubmitting
               ? UI_TITLES.CREATE_BOARD_CREATING

@@ -4,7 +4,7 @@ import { vi } from 'vitest';
 
 import { renderWithProviders } from '@/test/test-utils';
 
-import { NotFoundPage } from './NotFoundPage';
+import NotFoundPage from './NotFoundPage';
 import { UI_IDS, UI_TITLES } from './NotFoundPage.consts';
 
 const NotFoundPageElements = [UI_IDS.HEADER, UI_IDS.ERROR_MESSAGE, UI_IDS.HOME_LINK];

@@ -4,7 +4,9 @@ components:
       properties:
         description:
           anyOf:
-          - type: string
+          - maxLength: 1000
+            minLength: 1
+            type: string
           - type: 'null'
           title: Description
         memberIds:
@@ -17,6 +19,8 @@ components:
           default: []
           title: Memberids
         name:
+          maxLength: 50
+          minLength: 1
           title: Name
           type: string
       required:
@@ -47,12 +51,6 @@ components:
           - type: 'null'
           default: []
           title: Memberids
-        members:
-          default: []
-          items:
-            $ref: '#/components/schemas/UserRead'
-          title: Members
-          type: array
         name:
           title: Name
           type: string
@@ -60,6 +58,9 @@ components:
           format: uuid
           title: Ownerid
           type: string
+        position:
+          title: Position
+          type: integer
         tables:
           default: []
           items:
@@ -75,6 +76,7 @@ components:
       - name
       - description
       - ownerId
+      - position
       - createdAt
       - updatedAt
       title: BoardDetailRead
@@ -110,6 +112,9 @@ components:
           format: uuid
           title: Ownerid
           type: string
+        position:
+          title: Position
+          type: integer
         updatedAt:
           format: date-time
           title: Updatedat
@@ -119,6 +124,7 @@ components:
       - name
       - description
       - ownerId
+      - position
       - createdAt
       - updatedAt
       title: BoardRead
@@ -127,14 +133,25 @@ components:
       properties:
         description:
           anyOf:
-          - type: string
+          - maxLength: 1000
+            minLength: 1
+            type: string
           - type: 'null'
           title: Description
         name:
           anyOf:
-          - type: string
+          - maxLength: 50
+            minLength: 1
+            type: string
           - type: 'null'
           title: Name
+        position:
+          anyOf:
+          - maximum: 100.0
+            minimum: 0.0
+            type: integer
+          - type: 'null'
+          title: Position
       title: BoardUpdate
       type: object
     ErrorResponseModel:
@@ -178,15 +195,45 @@ components:
     RowCreate:
       properties:
         name:
+          maxLength: 255
+          minLength: 1
           title: Name
           type: string
         position:
           default: 0
+          minimum: 0.0
           title: Position
           type: integer
       required:
       - name
       title: RowCreate
+      type: object
+    RowOwnerRead:
+      properties:
+        avatarUrl:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Avatarurl
+        email:
+          title: Email
+          type: string
+        firstName:
+          title: Firstname
+          type: string
+        id:
+          format: uuid
+          title: Id
+          type: string
+        lastName:
+          title: Lastname
+          type: string
+      required:
+      - id
+      - firstName
+      - lastName
+      - email
+      title: RowOwnerRead
       type: object
     RowRead:
       properties:
@@ -208,9 +255,9 @@ components:
           title: Name
           type: string
         owners:
+          default: []
           items:
-            format: uuid
-            type: string
+            $ref: '#/components/schemas/RowOwnerRead'
           title: Owners
           type: array
         position:
@@ -232,10 +279,8 @@ components:
       - id
       - tableId
       - name
-      - owners
       - status
       - priority
-      - dueDate
       - position
       - createdAt
       - updatedAt
@@ -251,7 +296,9 @@ components:
           title: Duedate
         name:
           anyOf:
-          - type: string
+          - maxLength: 255
+            minLength: 1
+            type: string
           - type: 'null'
           title: Name
         owners:
@@ -259,6 +306,7 @@ components:
           - items:
               format: uuid
               type: string
+            maxItems: 50
             type: array
           - type: 'null'
           title: Owners
@@ -295,15 +343,20 @@ components:
           title: Color
         description:
           anyOf:
-          - type: string
+          - maxLength: 1000
+            minLength: 1
+            type: string
           - type: 'null'
           title: Description
         name:
+          maxLength: 50
+          minLength: 1
           title: Name
           type: string
         position:
           anyOf:
-          - type: integer
+          - minimum: 0.0
+            type: integer
           - type: 'null'
           default: 0
           title: Position
@@ -378,17 +431,22 @@ components:
           title: Color
         description:
           anyOf:
-          - type: string
+          - maxLength: 1000
+            minLength: 1
+            type: string
           - type: 'null'
           title: Description
         name:
           anyOf:
-          - type: string
+          - maxLength: 50
+            minLength: 1
+            type: string
           - type: 'null'
           title: Name
         position:
           anyOf:
-          - type: integer
+          - minimum: 0.0
+            type: integer
           - type: 'null'
           title: Position
       title: TableUpdate
@@ -439,6 +497,11 @@ components:
       type: object
     UserRead:
       properties:
+        avatarUrl:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Avatarurl
         createdAt:
           format: date-time
           title: Createdat
@@ -563,29 +626,6 @@ paths:
       summary: Logout
       tags:
       - auth
-  /api/v1/auth/me:
-    get:
-      operationId: get_current_user
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserRead'
-          description: Successful Response
-        '500':
-          content:
-            application/json:
-              example:
-                error:
-                  code: INTERNAL_SERVER_ERROR
-                  message: An unexpected error occurred. Please try again later.
-              schema:
-                $ref: '#/components/schemas/ErrorResponseModel'
-          description: Internal Server Error
-      summary: Get Current User
-      tags:
-      - auth
   /api/v1/auth/refresh-token:
     post:
       operationId: refresh_token
@@ -657,32 +697,6 @@ paths:
       summary: Register
       tags:
       - auth
-  /api/v1/auth/users:
-    get:
-      operationId: get_all_users
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                items:
-                  $ref: '#/components/schemas/UserRead'
-                title: Response Get All Users Api V1 Auth Users Get
-                type: array
-          description: Successful Response
-        '500':
-          content:
-            application/json:
-              example:
-                error:
-                  code: INTERNAL_SERVER_ERROR
-                  message: An unexpected error occurred. Please try again later.
-              schema:
-                $ref: '#/components/schemas/ErrorResponseModel'
-          description: Internal Server Error
-      summary: Get All Users
-      tags:
-      - auth
   /api/v1/boards/:
     get:
       operationId: list_boards
@@ -741,46 +755,6 @@ paths:
                 $ref: '#/components/schemas/ErrorResponseModel'
           description: Internal Server Error
       summary: Create Board
-      tags:
-      - board
-  /api/v1/boards/members/{user_id}:
-    delete:
-      operationId: remove_member
-      parameters:
-      - in: path
-        name: user_id
-        required: true
-        schema:
-          format: uuid
-          title: User Id
-          type: string
-      - in: query
-        name: board_id
-        required: true
-        schema:
-          format: uuid
-          title: Board Id
-          type: string
-      responses:
-        '204':
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        '500':
-          content:
-            application/json:
-              example:
-                error:
-                  code: INTERNAL_SERVER_ERROR
-                  message: An unexpected error occurred. Please try again later.
-              schema:
-                $ref: '#/components/schemas/ErrorResponseModel'
-          description: Internal Server Error
-      summary: Remove Member
       tags:
       - board
   /api/v1/boards/{board_id}:
@@ -892,6 +866,129 @@ paths:
                 $ref: '#/components/schemas/ErrorResponseModel'
           description: Internal Server Error
       summary: Update Board
+      tags:
+      - board
+  /api/v1/boards/{board_id}/duplicate:
+    post:
+      operationId: duplicate_board
+      parameters:
+      - in: path
+        name: board_id
+        required: true
+        schema:
+          format: uuid
+          title: Board Id
+          type: string
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BoardRead'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              example:
+                error:
+                  code: INTERNAL_SERVER_ERROR
+                  message: An unexpected error occurred. Please try again later.
+              schema:
+                $ref: '#/components/schemas/ErrorResponseModel'
+          description: Internal Server Error
+      summary: Duplicate Board
+      tags:
+      - board
+  /api/v1/boards/{board_id}/members/{user_id}:
+    delete:
+      operationId: remove_member
+      parameters:
+      - in: path
+        name: board_id
+        required: true
+        schema:
+          format: uuid
+          title: Board Id
+          type: string
+      - in: path
+        name: user_id
+        required: true
+        schema:
+          format: uuid
+          title: User Id
+          type: string
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              example:
+                error:
+                  code: INTERNAL_SERVER_ERROR
+                  message: An unexpected error occurred. Please try again later.
+              schema:
+                $ref: '#/components/schemas/ErrorResponseModel'
+          description: Internal Server Error
+      summary: Remove Member
+      tags:
+      - board
+    post:
+      operationId: add_member
+      parameters:
+      - in: path
+        name: board_id
+        required: true
+        schema:
+          format: uuid
+          title: Board Id
+          type: string
+      - in: path
+        name: user_id
+        required: true
+        schema:
+          format: uuid
+          title: User Id
+          type: string
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                format: uuid
+                title: Response Add Member Api V1 Boards  Board Id  Members  User
+                  Id  Post
+                type: string
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              example:
+                error:
+                  code: INTERNAL_SERVER_ERROR
+                  message: An unexpected error occurred. Please try again later.
+              schema:
+                $ref: '#/components/schemas/ErrorResponseModel'
+          description: Internal Server Error
+      summary: Add Member
       tags:
       - board
   /api/v1/boards/{board_id}/tables/:
@@ -1069,21 +1166,52 @@ paths:
       summary: Update Table
       tags:
       - table
-  /api/v1/health:
-    get:
-      operationId: health
+  /api/v1/boards/{board_id}/tables/{table_id}/duplicate:
+    post:
+      description: Duplicate a table by ID
+      operationId: duplicate_table
+      parameters:
+      - in: path
+        name: board_id
+        required: true
+        schema:
+          format: uuid
+          title: Board Id
+          type: string
+      - in: path
+        name: table_id
+        required: true
+        schema:
+          format: uuid
+          title: Table Id
+          type: string
       responses:
-        '200':
+        '201':
           content:
             application/json:
               schema:
-                additionalProperties:
-                  type: string
-                title: Response Health Api V1 Health Get
-                type: object
+                $ref: '#/components/schemas/TableRead'
           description: Successful Response
-      summary: Health
-  /api/v1/tables/{table_id}/rows/:
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              example:
+                error:
+                  code: INTERNAL_SERVER_ERROR
+                  message: An unexpected error occurred. Please try again later.
+              schema:
+                $ref: '#/components/schemas/ErrorResponseModel'
+          description: Internal Server Error
+      summary: Duplicate Table
+      tags:
+      - table
+  /api/v1/boards/{board_id}/tables/{table_id}/rows/:
     post:
       operationId: create_row
       parameters:
@@ -1126,7 +1254,7 @@ paths:
       summary: Create Row
       tags:
       - row
-  /api/v1/tables/{table_id}/rows/{row_id}:
+  /api/v1/boards/{board_id}/tables/{table_id}/rows/{row_id}:
     delete:
       operationId: delete_row
       parameters:
@@ -1215,3 +1343,210 @@ paths:
       summary: Update Row
       tags:
       - row
+  /api/v1/boards/{board_id}/tables/{table_id}/rows/{row_id}/duplicate:
+    post:
+      description: Duplicate a row
+      operationId: duplicate_row
+      parameters:
+      - in: path
+        name: row_id
+        required: true
+        schema:
+          format: uuid
+          title: Row Id
+          type: string
+      - in: path
+        name: table_id
+        required: true
+        schema:
+          format: uuid
+          title: Table Id
+          type: string
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RowRead'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              example:
+                error:
+                  code: INTERNAL_SERVER_ERROR
+                  message: An unexpected error occurred. Please try again later.
+              schema:
+                $ref: '#/components/schemas/ErrorResponseModel'
+          description: Internal Server Error
+      summary: Duplicate Row
+      tags:
+      - row
+  /api/v1/boards/{board_id}/tables/{table_id}/rows/{row_id}/owners/{owner_id}:
+    delete:
+      operationId: remove_owner
+      parameters:
+      - in: path
+        name: table_id
+        required: true
+        schema:
+          format: uuid
+          title: Table Id
+          type: string
+      - in: path
+        name: row_id
+        required: true
+        schema:
+          format: uuid
+          title: Row Id
+          type: string
+      - in: path
+        name: owner_id
+        required: true
+        schema:
+          format: uuid
+          title: Owner Id
+          type: string
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              example:
+                error:
+                  code: INTERNAL_SERVER_ERROR
+                  message: An unexpected error occurred. Please try again later.
+              schema:
+                $ref: '#/components/schemas/ErrorResponseModel'
+          description: Internal Server Error
+      summary: Remove Owner
+      tags:
+      - row
+    post:
+      operationId: add_owner
+      parameters:
+      - in: path
+        name: table_id
+        required: true
+        schema:
+          format: uuid
+          title: Table Id
+          type: string
+      - in: path
+        name: row_id
+        required: true
+        schema:
+          format: uuid
+          title: Row Id
+          type: string
+      - in: path
+        name: owner_id
+        required: true
+        schema:
+          format: uuid
+          title: Owner Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RowOwnerRead'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              example:
+                error:
+                  code: INTERNAL_SERVER_ERROR
+                  message: An unexpected error occurred. Please try again later.
+              schema:
+                $ref: '#/components/schemas/ErrorResponseModel'
+          description: Internal Server Error
+      summary: Add Owner
+      tags:
+      - row
+  /api/v1/health:
+    get:
+      operationId: health
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                title: Response Health Api V1 Health Get
+                type: object
+          description: Successful Response
+      summary: Health
+  /api/v1/users/all:
+    get:
+      description: Get all users
+      operationId: get_all_users
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/UserRead'
+                title: Response Get All Users Api V1 Users All Get
+                type: array
+          description: Successful Response
+        '500':
+          content:
+            application/json:
+              example:
+                error:
+                  code: INTERNAL_SERVER_ERROR
+                  message: An unexpected error occurred. Please try again later.
+              schema:
+                $ref: '#/components/schemas/ErrorResponseModel'
+          description: Internal Server Error
+      summary: Get All Users
+      tags:
+      - user
+  /api/v1/users/me:
+    get:
+      description: Get the current authenticated user
+      operationId: get_current_user
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRead'
+          description: Successful Response
+        '500':
+          content:
+            application/json:
+              example:
+                error:
+                  code: INTERNAL_SERVER_ERROR
+                  message: An unexpected error occurred. Please try again later.
+              schema:
+                $ref: '#/components/schemas/ErrorResponseModel'
+          description: Internal Server Error
+      summary: Get Current User
+      tags:
+      - user

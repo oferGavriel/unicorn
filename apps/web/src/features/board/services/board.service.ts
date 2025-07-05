@@ -1,5 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { api } from '@/store/api';
+import { toast } from 'sonner';
+
+import { IAuthUser } from '@/features/auth';
+import { api, getErrorMessage } from '@/store/api';
 
 import {
   IBoard,
@@ -8,8 +10,10 @@ import {
   IUpdateBoardRequest
 } from '../types/board.interface';
 import {
+  IAddRowOwnerRequest,
   ICreateRowRequest,
   IDeleteRowRequest,
+  IRemoveRowOwnerRequest,
   IRow,
   IUpdateRowRequest
 } from '../types/row.interface';
@@ -44,7 +48,7 @@ export const boardApi = api.injectEndpoints({
             boardApi.util.updateQueryData('getBoards', undefined, (draft) => {
               draft.push({
                 ...newBoard,
-                members: newBoard.members.map((user: any) => user.id)
+                members: newBoard.members.map((user: IAuthUser) => user.id)
               });
             })
           );
@@ -101,6 +105,26 @@ export const boardApi = api.injectEndpoints({
         }
       }
     }),
+    duplicateBoard: build.mutation<IBoardList, string>({
+      query: (id) => ({
+        url: `/boards/${id}/duplicate`,
+        method: 'POST'
+      }),
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data: newBoard } = await queryFulfilled;
+          dispatch(
+            boardApi.util.updateQueryData('getBoards', undefined, (draft) => {
+              draft.push({
+                ...newBoard
+              });
+            })
+          );
+        } catch (error) {
+          console.error('Failed to duplicate board:', error);
+        }
+      }
+    }),
     addBoardMember: build.mutation<void, { boardId: string; userId: string }>({
       query: ({ boardId, userId }) => ({
         url: `/boards/${boardId}/members`,
@@ -110,7 +134,7 @@ export const boardApi = api.injectEndpoints({
     }),
     createTable: build.mutation<ITable, ICreateTableRequest>({
       query: ({ boardId, ...body }) => ({
-        url: `/boards/${boardId}/tables`,
+        url: `/boards/${boardId}/tables/`,
         method: 'POST',
         body
       }),
@@ -172,9 +196,30 @@ export const boardApi = api.injectEndpoints({
         }
       }
     }),
+    duplicateTable: build.mutation<ITable, { boardId: string; tableId: string }>({
+      query: ({ boardId, tableId }) => ({
+        url: `/boards/${boardId}/tables/${tableId}/duplicate`,
+        method: 'POST'
+      }),
+      async onQueryStarted({ boardId }, { dispatch, queryFulfilled }) {
+        try {
+          const { data: newTable } = await queryFulfilled;
+          dispatch(
+            boardApi.util.updateQueryData('getBoardById', boardId, (draft) => {
+              if (!draft.tables) {
+                draft.tables = [];
+              }
+              draft.tables.push(newTable);
+            })
+          );
+        } catch (error) {
+          console.error('Failed to duplicate table:', error);
+        }
+      }
+    }),
     createRow: build.mutation<IRow, ICreateRowRequest>({
-      query: ({ tableId, ...body }) => ({
-        url: `/tables/${tableId}/rows/`,
+      query: ({ boardId, tableId, ...body }) => ({
+        url: `/boards/${boardId}/tables/${tableId}/rows/`,
         method: 'POST',
         body
       }),
@@ -200,15 +245,13 @@ export const boardApi = api.injectEndpoints({
       }
     }),
     updateRow: build.mutation<IRow, IUpdateRowRequest>({
-      query: ({ tableId, rowId, ...body }) => ({
-        url: `/tables/${tableId}/rows/${rowId}`,
+      query: ({ boardId, tableId, rowId, ...body }) => ({
+        url: `/boards/${boardId}/tables/${tableId}/rows/${rowId}`,
         method: 'PATCH',
         body
       }),
-      async onQueryStarted(
-        { boardId, tableId, rowId, ...patch },
-        { dispatch, queryFulfilled }
-      ) {
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        const { boardId, tableId, rowId, ...patch } = _arg;
         const patchResult = dispatch(
           boardApi.util.updateQueryData('getBoardById', boardId, (draft) => {
             const table = draft.tables?.find((t) => t.id === tableId);
@@ -220,44 +263,120 @@ export const boardApi = api.injectEndpoints({
         );
 
         try {
-          await queryFulfilled;
+          const { data: updatedRow } = await queryFulfilled;
+          dispatch(
+            boardApi.util.updateQueryData('getBoardById', boardId, (draft) => {
+              const table = draft.tables?.find((t) => t.id === tableId);
+              const row = table?.rows?.find((r) => r.id === rowId);
+              if (row) {
+                Object.assign(row, updatedRow);
+              }
+            })
+          );
         } catch (error) {
           patchResult.undo();
-          console.error('Failed to update row:', error);
-          throw error;
+          console.log('got error:', error);
+          console.log('got message', getErrorMessage(error));
+          toast.error(getErrorMessage(error), {
+            action: {
+              label: 'Retry',
+              onClick: () => dispatch(boardApi.endpoints.updateRow.initiate(_arg))
+            }
+          });
         }
       }
     }),
     deleteRow: build.mutation<void, IDeleteRowRequest>({
-      query: ({ tableId, rowId }) => ({
-        url: `/tables/${tableId}/rows/${rowId}`,
+      query: ({ boardId, tableId, rowId }) => ({
+        url: `/boards/${boardId}/tables/${tableId}/rows/${rowId}`,
         method: 'DELETE'
       }),
-      async onQueryStarted({ tableId, rowId }, { dispatch, queryFulfilled, getState }) {
-        const patchResults: any[] = [];
-
-        const state = getState() as any;
-        const boardQueries = boardApi.util.selectCachedArgsForQuery(
-          state,
-          'getBoardById'
+      async onQueryStarted({ boardId, tableId, rowId }, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          boardApi.util.updateQueryData('getBoardById', boardId, (draft) => {
+            const table = draft.tables?.find((t) => t.id === tableId);
+            if (table && table.rows) {
+              table.rows = table.rows.filter((r) => r.id !== rowId);
+            }
+          })
         );
-
-        boardQueries.forEach((boardId) => {
-          const patchResult = dispatch(
+        try {
+          await queryFulfilled;
+        } catch (error) {
+          patchResult.undo();
+          console.error('Failed to delete row:', error);
+        }
+      }
+    }),
+    addRowOwner: build.mutation<IAuthUser, IAddRowOwnerRequest>({
+      query: ({ boardId, tableId, rowId, ownerId }) => ({
+        url: `/boards/${boardId}/tables/${tableId}/rows/${rowId}/owners/${ownerId}`,
+        method: 'POST'
+      }),
+      async onQueryStarted(
+        { boardId, tableId, rowId, ownerId },
+        { dispatch, queryFulfilled }
+      ) {
+        const patchResult = dispatch(
+          boardApi.util.updateQueryData('getBoardById', boardId, (draft) => {
+            const table = draft.tables?.find((t) => t.id === tableId);
+            const row = table?.rows?.find((r) => r.id === rowId);
+            if (row) {
+              const ownerExists = row.owners.some((owner) => owner.id === ownerId);
+              if (!ownerExists) {
+                const placeholder = {
+                  id: ownerId,
+                  firstName: 'Loading...',
+                  lastName: '',
+                  email: '',
+                  avatarUrl: 'placeholder'
+                };
+                row.owners.push(placeholder);
+              }
+            }
+          })
+        );
+        try {
+          const { data: newOwner } = await queryFulfilled;
+          dispatch(
             boardApi.util.updateQueryData('getBoardById', boardId, (draft) => {
               const table = draft.tables?.find((t) => t.id === tableId);
-              if (table?.rows) {
-                table.rows = table.rows.filter((r) => r.id !== rowId);
+              const row = table?.rows?.find((r) => r.id === rowId);
+              if (row) {
+                const index = row.owners.findIndex((owner) => owner.id === ownerId);
+                if (index !== -1) {
+                  row.owners[index] = newOwner;
+                }
               }
             })
           );
-          patchResults.push(patchResult);
-        });
-
+        } catch {
+          patchResult.undo();
+        }
+      }
+    }),
+    removeRowOwner: build.mutation<void, IRemoveRowOwnerRequest>({
+      query: ({ boardId, tableId, rowId, ownerId }) => ({
+        url: `/boards/${boardId}/tables/${tableId}/rows/${rowId}/owners/${ownerId}`,
+        method: 'DELETE'
+      }),
+      async onQueryStarted(
+        { boardId, tableId, rowId, ownerId },
+        { dispatch, queryFulfilled }
+      ) {
+        const patchResult = dispatch(
+          boardApi.util.updateQueryData('getBoardById', boardId, (draft) => {
+            const table = draft.tables?.find((t) => t.id === tableId);
+            const row = table?.rows?.find((r) => r.id === rowId);
+            if (row) {
+              row.owners = row.owners.filter((owner) => owner.id !== ownerId);
+            }
+          })
+        );
         try {
           await queryFulfilled;
         } catch {
-          patchResults.forEach((result) => result.undo());
+          patchResult.undo();
         }
       }
     })
@@ -270,13 +389,17 @@ export const {
   useCreateBoardMutation,
   useUpdateBoardMutation,
   useDeleteBoardMutation,
+  useDuplicateBoardMutation,
   useAddBoardMemberMutation,
 
   useCreateTableMutation,
   useUpdateTableMutation,
   useDeleteTableMutation,
+  useDuplicateTableMutation,
 
   useCreateRowMutation,
   useUpdateRowMutation,
-  useDeleteRowMutation
+  useDeleteRowMutation,
+  useAddRowOwnerMutation,
+  useRemoveRowOwnerMutation
 } = boardApi;

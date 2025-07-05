@@ -70,7 +70,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
 
   return (
     <span
-      className={`min-w-5 min-h-4 cursor-pointer outline-gray-400 rounded px-2 outline-1 hover:outline transition-opacity ${className}`}
+      className={`min-w-5 min-h-4 leading-5 cursor-pointer outline-gray-400 rounded px-2 outline-1 hover:outline transition-opacity ${className}`}
       style={style}
       onClick={startEditing}
       title={title}

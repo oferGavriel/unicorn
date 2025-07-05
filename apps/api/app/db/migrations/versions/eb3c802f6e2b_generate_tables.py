@@ -1,8 +1,8 @@
-"""create_initial_tables
+"""generate tables
 
-Revision ID: ebe66c381404
+Revision ID: eb3c802f6e2b
 Revises:
-Create Date: 2025-06-13 19:26:56.832741
+Create Date: 2025-07-04 15:36:06.690251
 
 """
 
@@ -10,10 +10,10 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+
 
 # revision identifiers, used by Alembic.
-revision: str = 'ebe66c381404'
+revision: str = 'eb3c802f6e2b'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -30,8 +30,8 @@ def upgrade() -> None:
         sa.Column('last_name', sa.String(length=50), nullable=False),
         sa.Column('password_hash', sa.String(), nullable=False),
         sa.Column('avatar_url', sa.String(), nullable=True),
-        sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('is_deleted', sa.Boolean(), nullable=False),
         sa.PrimaryKeyConstraint('id'),
     )
@@ -42,9 +42,9 @@ def upgrade() -> None:
         sa.Column('name', sa.String(length=50), nullable=False),
         sa.Column('description', sa.String(length=1000), nullable=True),
         sa.Column('owner_id', sa.UUID(), nullable=False),
-        sa.Column('order', sa.Integer(), nullable=False),
-        sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
+        sa.Column('position', sa.Integer(), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('is_deleted', sa.Boolean(), nullable=False),
         sa.ForeignKeyConstraint(
             ['owner_id'],
@@ -52,7 +52,7 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint('id'),
     )
-    op.create_index('ix_boards_user_order', 'boards', ['owner_id', 'order'], unique=False)
+    op.create_index('ix_boards_user_order', 'boards', ['owner_id', 'position'], unique=False)
     op.create_table(
         'refreshtokens',
         sa.Column('id', sa.UUID(), nullable=False),
@@ -60,8 +60,8 @@ def upgrade() -> None:
         sa.Column('token', sa.String(), nullable=False),
         sa.Column('revoked', sa.Boolean(), nullable=False),
         sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
-        sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('is_deleted', sa.Boolean(), nullable=False),
         sa.ForeignKeyConstraint(
             ['user_id'],
@@ -78,8 +78,8 @@ def upgrade() -> None:
         sa.Column('board_id', sa.UUID(), nullable=False),
         sa.Column('user_id', sa.UUID(), nullable=False),
         sa.Column('role', sa.Enum('owner', 'member', name='roleenum'), nullable=False),
-        sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.ForeignKeyConstraint(
             ['board_id'],
             ['boards.id'],
@@ -98,8 +98,8 @@ def upgrade() -> None:
         sa.Column('description', sa.String(length=1000), nullable=True),
         sa.Column('color', sa.String(length=10), nullable=False),
         sa.Column('position', sa.Integer(), nullable=False),
-        sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('is_deleted', sa.Boolean(), nullable=False),
         sa.ForeignKeyConstraint(
             ['board_id'],
@@ -113,7 +113,6 @@ def upgrade() -> None:
         sa.Column('id', sa.UUID(), nullable=False),
         sa.Column('table_id', sa.UUID(), nullable=False),
         sa.Column('name', sa.String(length=255), nullable=False),
-        sa.Column('owners', postgresql.ARRAY(sa.UUID()), nullable=False),
         sa.Column(
             'status',
             sa.Enum('NOT_STARTED', 'STUCK', 'WORKING_ON_IT', 'DONE', name='statusenum', create_constraint=True),
@@ -126,8 +125,8 @@ def upgrade() -> None:
         ),
         sa.Column('due_date', sa.DateTime(timezone=True), nullable=True),
         sa.Column('position', sa.Integer(), nullable=False),
-        sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('is_deleted', sa.Boolean(), nullable=False),
         sa.ForeignKeyConstraint(
             ['table_id'],
@@ -142,8 +141,8 @@ def upgrade() -> None:
         sa.Column('row_id', sa.UUID(), nullable=False),
         sa.Column('user_id', sa.UUID(), nullable=False),
         sa.Column('content', sa.String(length=1000), nullable=False),
-        sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.ForeignKeyConstraint(
             ['row_id'],
             ['rows.id'],
@@ -161,13 +160,21 @@ def upgrade() -> None:
         sa.Column('row_id', sa.UUID(), nullable=False),
         sa.Column('type', sa.String(), nullable=False),
         sa.Column('payload', sa.JSON(), nullable=False),
-        sa.Column('created_at', postgresql.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', postgresql.TIMESTAMP(), server_default=sa.text('now()'), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+        sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.ForeignKeyConstraint(
             ['row_id'],
             ['rows.id'],
         ),
         sa.PrimaryKeyConstraint('id'),
+    )
+    op.create_table(
+        'row_owners',
+        sa.Column('row_id', sa.UUID(), nullable=False),
+        sa.Column('user_id', sa.UUID(), nullable=False),
+        sa.ForeignKeyConstraint(['row_id'], ['rows.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+        sa.PrimaryKeyConstraint('row_id', 'user_id'),
     )
     # ### end Alembic commands ###
 
@@ -175,6 +182,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Downgrade schema."""
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_table('row_owners')
     op.drop_table('notifications')
     op.drop_index('ix_notes_row_created', table_name='notes')
     op.drop_table('notes')

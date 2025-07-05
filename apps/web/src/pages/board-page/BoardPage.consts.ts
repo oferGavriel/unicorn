@@ -18,11 +18,12 @@ export const UI_IDS = {
   BOARD_DROPDOWN_MENU_OPEN_BTN: `${COMP_NAME}-board-dropdown-menu-open-btn`,
   OPEN_IN_NEW_TAB_BTN: `${COMP_NAME}-open-in-new-tab-btn`,
   RENAME_BOARD_BTN: `${COMP_NAME}-rename-board-btn`,
+  DUPLICATE_BOARD_BTN: `${COMP_NAME}-duplicate-board-btn`,
   DELETE_BOARD_BTN: `${COMP_NAME}-delete-board-btn`,
-  ALERT_DELETE_BOARD_TITLE: `${COMP_NAME}-alert-delete-board-title`,
-  ALERT_DELETE_BOARD_DESCRIPTION: `${COMP_NAME}-alert-delete-board-description`,
-  ALERT_DELETE_BOARD_CANCEL_BTN: `${COMP_NAME}-alert-delete-board-cancel-btn`,
-  ALERT_DELETE_BOARD_BTN_CONFIRMATION: `${COMP_NAME}-alert-delete-board-btn-confirmation`,
+  DELETE_BOARD_TITLE: `${COMP_NAME}-delete-board-title`,
+  DELETE_BOARD_DESCRIPTION: `${COMP_NAME}-delete-board-description`,
+  DELETE_BOARD_CANCEL_BTN: `${COMP_NAME}-delete-board-cancel-btn`,
+  DELETE_BOARD_BTN_CONFIRMATION: `${COMP_NAME}-delete-board-btn-confirmation`,
   CREATE_BOARD_BTN: `${COMP_NAME}-create-board-btn`,
 
   // Create board dialog
@@ -51,10 +52,11 @@ export const UI_TITLES = {
   BOARD_HEADER: 'Boards',
   OPEN_IN_NEW_TAB_BTN: 'Open in new tab',
   RENAME_BOARD_BTN: 'Rename board',
+  DUPLICATE_BOARD_BTN: 'Duplicate board',
   DELETE_BOARD_BTN: 'Delete',
-  ALERT_DELETE_BOARD_TITLE: 'Delete board',
-  ALERT_DELETE_BOARD_CANCEL_BTN: 'Cancel',
-  ALERT_DELETE_BOARD_BTN_CONFIRMATION: 'Delete',
+  DELETE_BOARD_TITLE: 'Delete board',
+  DELETE_BOARD_CANCEL_BTN: 'Cancel',
+  DELETE_BOARD_CONFIRM_BTN: 'Delete',
   CREATE_BOARD_BTN: 'Create board',
 
   // Create board dialog

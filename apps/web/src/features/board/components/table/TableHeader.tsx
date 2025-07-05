@@ -20,7 +20,7 @@ const TableHeader: React.FC<TableHeaderProps> = ({ table }) => {
             return (
               <div
                 key={header.id}
-                className={`board-table-header-cell font-medium text-xs uppercase tracking-wider
+                className={`board-table-header-cell font-medium text-xs tracking-wider h-9
                   ${!isIndicator ? 'px-4 py-3' : ''}
                   ${isSpacer ? 'flex-1' : ''} `}
                 style={{
@@ -29,7 +29,7 @@ const TableHeader: React.FC<TableHeaderProps> = ({ table }) => {
               >
                 {header.isPlaceholder ? null : (
                   <div
-                    className={`${isIndicator ? 'h-full' : 'flex items-center justify-center space-x-2'}`}
+                    className={`${isIndicator ? 'h-full' : 'flex items-center justify-center space-x-2 h-full cursor-default'}`}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </div>

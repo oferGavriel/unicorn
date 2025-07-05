@@ -2,7 +2,6 @@ from uuid import UUID
 from typing import List, Optional
 from datetime import datetime
 from pydantic import Field
-from pydantic import ConfigDict
 from app.api.models.row_model import RowRead
 from app.db.base import BaseSchema
 
@@ -10,17 +9,17 @@ DEFAULT_TABLE_COLOR = "#579bfc"
 
 
 class TableCreate(BaseSchema):
-    name: str
-    description: Optional[str] = None
+    name: str = Field(..., min_length=1, max_length=50)
+    description: Optional[str] = Field(None, min_length=1, max_length=1000)
     color: Optional[str] = Field(default=DEFAULT_TABLE_COLOR)
-    position: Optional[int] = 0
+    position: Optional[int] = Field(default=0, ge=0)
 
 
 class TableUpdate(BaseSchema):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    position: Optional[int] = None
-    color: Optional[str] = None
+    name: Optional[str] = Field(None, min_length=1, max_length=50)
+    description: Optional[str] = Field(None, min_length=1, max_length=1000)
+    position: Optional[int] = Field(None, ge=0)
+    color: Optional[str] = Field(None)
 
 
 class TableRead(BaseSchema):
@@ -33,5 +32,3 @@ class TableRead(BaseSchema):
     created_at: datetime = Field(description="Table creation date")
     updated_at: datetime = Field(description="Table update date")
     rows: List[RowRead] = Field(description="List of rows in the table")
-
-    model_config = ConfigDict(from_attributes=True)

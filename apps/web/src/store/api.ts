@@ -6,6 +6,7 @@ import {
   fetchBaseQuery,
   FetchBaseQueryError
 } from '@reduxjs/toolkit/query/react';
+import { toast } from 'sonner';
 
 import { ApiErrorResponse, ErrorCodes } from '@/shared/shared.interface';
 import { clearLoggedInUser } from '@/utils/utils.service';
@@ -18,7 +19,9 @@ if (!BASE_ENDPOINT) {
 }
 
 const isApiErrorResponse = (data: unknown): data is ApiErrorResponse => {
-  console.log('Checking if data is ApiErrorResponse:', data);
+  console.log('typeof data:', typeof data);
+  console.log('data is object:', typeof data === 'object' && data !== null);
+  console.log('data', data);
   return (
     typeof data === 'object' &&
     data !== null &&
@@ -36,39 +39,60 @@ const baseQuery = fetchBaseQuery({
   credentials: 'include'
 });
 
+const handleApiError = (error: FetchBaseQueryError): void => {
+  let message: string = 'An unexpected error occurred';
+
+  if (isApiErrorResponse(error.data)) {
+    message = error.data.message;
+  } else if (typeof error.data === 'string') {
+    message = error.data;
+  }
+
+  toast.error(message, {
+    id: `api-error-${Date.now()}`,
+    dismissible: true
+  });
+};
+
 const baseQueryWithReAuth: BaseQueryFn<
   string | FetchArgs,
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
   let result = await baseQuery(args, api, extraOptions);
-  if (result.error?.status === 401 && isApiErrorResponse(result.error.data)) {
-    const errorCode = result.error.data.error_code;
 
-    switch (errorCode) {
-      case ErrorCodes.ACCESS_TOKEN_EXPIRED: {
-        console.log('Access token expired, attempting to refresh...');
+  if (result.error) {
+    if (result.error.status === 401 && isApiErrorResponse(result.error.data)) {
+      const errorCode = result.error.data.error_code;
 
-        const refreshResult = await handleTokenRefresh(api, extraOptions);
-        if (refreshResult.success) {
-          console.log('Token refreshed successfully, retrying original request...');
-          result = await baseQuery(args, api, extraOptions);
-        } else {
-          console.error('Token refresh failed, redirecting to login...');
-          logoutAndRedirectToLogin();
+      switch (errorCode) {
+        case ErrorCodes.ACCESS_TOKEN_EXPIRED: {
+          console.log('Access token expired, attempting to refresh...');
+
+          const refreshResult = await handleTokenRefresh(api, extraOptions);
+          if (refreshResult.success) {
+            console.log('Token refreshed successfully, retrying original request...');
+            result = await baseQuery(args, api, extraOptions);
+          } else {
+            console.error('Token refresh failed, redirecting to login...');
+            logoutAndRedirectToLogin();
+          }
+          break;
         }
-        break;
+        case ErrorCodes.TOKEN_INVALID:
+        case ErrorCodes.REFRESH_TOKEN_EXPIRED: {
+          console.log(`Authentication error: ${errorCode}, redirecting to login...`);
+          logoutAndRedirectToLogin();
+          break;
+        }
+        default: {
+          handleApiError(result.error);
+          console.error(`default error: ${errorCode}`);
+          break;
+        }
       }
-      case ErrorCodes.TOKEN_INVALID:
-      case ErrorCodes.REFRESH_TOKEN_EXPIRED: {
-        console.log(`Authentication error: ${errorCode}, redirecting to login...`);
-        logoutAndRedirectToLogin();
-        break;
-      }
-      default: {
-        console.error(`Unhandled error code: ${errorCode}`);
-        break;
-      }
+    } else {
+      handleApiError(result.error);
     }
   }
 
@@ -119,7 +143,7 @@ export const api = createApi({
 
 // utility functions for error handling
 export const isApiError = (error: unknown): error is FetchBaseQueryError => {
-  console.log('Checking if error is ApiError:', error);
+  console.log('Checking if error is ApiError:', typeof error === 'object');
   return typeof error === 'object' && error !== null;
 };
 

@@ -9,7 +9,7 @@ import { mockBoards } from '@/mocks/board.mock';
 import { mockUsers } from '@/mocks/user.mock';
 import { createAuthenticatedStore, renderWithProviders } from '@/test/test-utils';
 
-import { BoardPage } from './BoardPage';
+import BoardPage from './BoardPage';
 import { UI_IDS, UI_TITLES } from './BoardPage.consts';
 
 const BoardPageEmptyStateElements = [
@@ -34,10 +34,8 @@ const BoardPageSideBarDropdownElements = [
 ];
 
 const BoardPageAlertDeleteBoardElements = [
-  UI_IDS.ALERT_DELETE_BOARD_TITLE,
-  UI_IDS.ALERT_DELETE_BOARD_DESCRIPTION,
-  UI_IDS.ALERT_DELETE_BOARD_CANCEL_BTN,
-  UI_IDS.ALERT_DELETE_BOARD_BTN_CONFIRMATION
+  UI_IDS.DELETE_BOARD_CANCEL_BTN,
+  UI_IDS.DELETE_BOARD_BTN_CONFIRMATION
 ];
 
 let mockDeleteBoardTriggerFn: ReturnType<typeof vi.fn>;
@@ -203,7 +201,7 @@ describe('BoardPage', () => {
     await user.click(firstDropdownTrigger);
     const deleteButton = screen.getByTestId(UI_IDS.DELETE_BOARD_BTN);
     await user.click(deleteButton);
-    const confirmButton = screen.getByTestId(UI_IDS.ALERT_DELETE_BOARD_BTN_CONFIRMATION);
+    const confirmButton = screen.getByTestId(UI_IDS.DELETE_BOARD_BTN_CONFIRMATION);
     await user.click(confirmButton);
 
     expect(mockDeleteBoardTriggerFn).toHaveBeenCalledWith(mockBoards[0].id);

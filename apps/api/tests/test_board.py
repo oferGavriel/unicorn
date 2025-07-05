@@ -2,7 +2,7 @@ from uuid import uuid4
 import pytest
 from httpx import AsyncClient
 from http import HTTPStatus
-from tests.conftest import get_authenticated_client
+from tests.conftest import create_board_with_authenticated_user, get_authenticated_client
 
 
 @pytest.mark.anyio
@@ -35,7 +35,6 @@ async def test_get_board_by_id() -> None:
         "/api/v1/boards/",
         json={"name": "Test Board", "description": "This is a test board."},
     )
-
     assert create_resp.status_code == HTTPStatus.CREATED
     data = create_resp.json()
     board_id = data["id"]
@@ -128,3 +127,97 @@ async def test_raise_not_found_board() -> None:
     json = resp.json()
     assert resp.status_code == HTTPStatus.NOT_FOUND
     assert json["message"] == f"Board with ID {board_id} not found"
+
+
+@pytest.mark.anyio
+async def test_duplicate_board() -> None:
+    client, user_id, board_id = await create_board_with_authenticated_user()
+
+    get_board_resp = await client.get(f"/api/v1/boards/{board_id}")
+    assert get_board_resp.status_code == HTTPStatus.OK
+    original_board = get_board_resp.json()
+
+    duplicate_resp = await client.post(f"/api/v1/boards/{board_id}/duplicate")
+    assert duplicate_resp.status_code == HTTPStatus.CREATED
+    duplicated_board = duplicate_resp.json()
+
+    assert duplicated_board["id"] != board_id
+    assert duplicated_board["name"] == f"{original_board["name"]} (1)"
+    assert duplicated_board["description"] == original_board["description"]
+    assert duplicated_board["ownerId"] == user_id
+
+    # Test access to duplicated board
+    get_duplicated_resp = await client.get(f"/api/v1/boards/{duplicated_board['id']}")
+    assert get_duplicated_resp.status_code == HTTPStatus.OK
+
+    # List both of the boards
+    list_resp = await client.get("/api/v1/boards/")
+    assert list_resp.status_code == HTTPStatus.OK
+    boards = list_resp.json()
+    board_ids = [board["id"] for board in boards]
+    assert board_id in board_ids
+    assert duplicated_board["id"] in board_ids
+
+
+@pytest.mark.anyio
+async def test_add_member_to_board() -> None:
+    client_a, user_id_a, board_id = await create_board_with_authenticated_user()
+
+    client_b, user_id_b = await get_authenticated_client(email="userB@example.com")
+    await client_a.post(f"/api/v1/boards/{board_id}/members/{user_id_b}")
+    get_boards_list = await client_b.get("/api/v1/boards/")
+
+    assert get_boards_list.status_code == HTTPStatus.OK
+    boards_data = get_boards_list.json()
+
+    board = next((b for b in boards_data if b["id"] == board_id), None)
+    assert board is not None
+    assert user_id_b in board["memberIds"]
+
+
+@pytest.mark.anyio
+async def test_full_board_flow() -> None:
+    """
+    Test user A creates a board, adds a table, and a row, add user B as a member,
+    and then user B can access the board,
+    and user A set user B as the owner of the created row.
+    then both users can access the full board tree with all the data.
+    """
+
+    client_a, _, board_id = await create_board_with_authenticated_user()
+
+    create_table_resp = await client_a.post(
+        f"/api/v1/boards/{board_id}/tables/",
+        json={"name": "Test Table", "description": "This is a test table."},
+    )
+    assert create_table_resp.status_code == HTTPStatus.CREATED
+    table_data = create_table_resp.json()
+    table_id = table_data["id"]
+
+    create_row_resp = await client_a.post(
+        f"/api/v1/boards/{board_id}/tables/{table_id}/rows/",
+        json={"name": "Test Row", "description": "This is a test row."},
+    )
+    assert create_row_resp.status_code == HTTPStatus.CREATED
+    row_data = create_row_resp.json()
+    row_id = row_data["id"]
+
+    client_b, user_id_b = await get_authenticated_client(email="user_b@example.com")
+    add_member_resp = await client_a.post(f"/api/v1/boards/{board_id}/members/{user_id_b}")
+    assert add_member_resp.status_code == HTTPStatus.CREATED
+
+    get_board_resp = await client_a.get(f"/api/v1/boards/{board_id}")
+    assert get_board_resp.status_code == HTTPStatus.OK
+    board = get_board_resp.json()
+    assert user_id_b in board["memberIds"]
+
+    set_owner_resp = await client_a.post(
+        f"/api/v1/boards/{board_id}/tables/{table_id}/rows/{row_id}/owners/{user_id_b}",
+    )
+    assert set_owner_resp.status_code == HTTPStatus.OK
+
+    # Verify User B can access the full board tree with all the data
+    get_full_tree_resp = await client_b.get(f"/api/v1/boards/{board_id}")
+    assert get_full_tree_resp.status_code == HTTPStatus.OK
+    full_tree_data = get_full_tree_resp.json()
+    assert full_tree_data["id"] == board_id

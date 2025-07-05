@@ -17,20 +17,29 @@ import {
   SortingState,
   useReactTable
 } from '@tanstack/react-table';
-import { Plus } from 'lucide-react';
+import { Copy, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components';
 import { Button } from '@/components/ui/button';
+import { IAuthUser } from '@/features/auth';
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 import { EditableText } from '@/shared/components/EditableText';
-import { TableColorEnum } from '@/shared/shared.enum';
 
 import {
+  useDeleteTableMutation,
+  useDuplicateTableMutation,
   useUpdateRowMutation,
   useUpdateTableMutation
 } from '../../services/board.service';
 import { IRow } from '../../types/row.interface';
-import { ITable, TABLE_COLUMNS } from '../../types/table.interface';
+import { ITable, TABLE_COLUMNS, TableColor } from '../../types/table.interface';
 import { ColorPicker } from '../table/ColorPicker';
 import { createTableColumns } from '../table/columns';
 import TableBody from '../table/TableBody';
@@ -47,19 +56,19 @@ interface BoardTableProps {
     toTableId: string,
     newPosition: number
   ) => void;
+  boardMembers: IAuthUser[];
 }
 
-const BoardTable: React.FC<BoardTableProps> = ({
-  table,
-  boardId,
-  onAddRow /*,onRowMove*/
-}) => {
+const BoardTable: React.FC<BoardTableProps> = ({ table, boardId, onAddRow }) => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [isAddingTask, setIsAddingTask] = useState<boolean>(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const [updateRow] = useUpdateRowMutation();
   const [updateTable] = useUpdateTableMutation();
+  const [deleteTable, { isLoading: isDeletingTable }] = useDeleteTableMutation();
+  const [duplicateTable] = useDuplicateTableMutation();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -115,7 +124,7 @@ const BoardTable: React.FC<BoardTableProps> = ({
     }
   };
 
-  const handleTableColorChange = async (newColor: TableColorEnum) => {
+  const handleTableColorChange = async (newColor: TableColor) => {
     try {
       await updateTable({
         boardId: table.boardId,
@@ -156,12 +165,62 @@ const BoardTable: React.FC<BoardTableProps> = ({
     }
   };
 
+  const confirmDelete = async () => {
+    try {
+      await deleteTable({
+        boardId: table.boardId,
+        tableId: table.id
+      }).unwrap();
+
+      toast.success(`Table "${table.name}" deleted successfully`);
+    } catch (error) {
+      toast.error('Failed to delete table');
+      console.error('Failed to delete table:', error);
+    } finally {
+      setShowDeleteDialog(false);
+    }
+  };
+
   const rowIds = useMemo(() => (table.rows || []).map((row) => row.id), [table.rows]);
 
   return (
-    <div className="shadow-sm">
-      {/* Table Header */}
-      <div className="group flex items-center gap-2 mx-2">
+    <div className="shadow-sm mt-2">
+      <div className="group flex items-center gap-2 mx-2 relative">
+        <div className="absolute -left-12 group-hover:opacity-100 opacity-0 cursor-pointer p-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 h-auto hover:bg-accent rounded-lg"
+                disabled={isDeletingTable}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48 menu-dialog">
+              <DropdownMenuItem
+                onClick={() =>
+                  duplicateTable({ boardId: table.boardId, tableId: table.id })
+                }
+                disabled={isDeletingTable}
+                className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 cursor-pointer"
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Duplicate Table
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={isDeletingTable}
+                className="text-red-400 hover:text-red-300 hover:bg-red-400/10 cursor-pointer"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Table
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
         <ColorPicker selectedColor={table.color} onColorChange={handleTableColorChange} />
         <EditableText
           value={table.name}
@@ -179,7 +238,6 @@ const BoardTable: React.FC<BoardTableProps> = ({
         )}
       </div>
 
-      {/* Table Content */}
       <div className="my-2 border-gray-600 bg-board-table-color">
         <DndContext
           sensors={sensors}
@@ -189,12 +247,11 @@ const BoardTable: React.FC<BoardTableProps> = ({
           <div className="min-w-full text-sm text-center board-table">
             <TableHeader table={tableInstance} />
             <SortableContext items={rowIds} strategy={verticalListSortingStrategy}>
-              <TableBody table={tableInstance} tableColor={table.color} />
+              <TableBody table={tableInstance} />
             </SortableContext>
           </div>
         </DndContext>
 
-        {/* Add Row Button */}
         <div className="flex h-9">
           <div className="w-[6px] flex-shrink-0">
             <IndicatorCell tableColor={table.color} position="add-row" />{' '}
@@ -216,8 +273,8 @@ const BoardTable: React.FC<BoardTableProps> = ({
                 </div>
               ) : (
                 <Button
-                  variant="outline"
-                  className="flex justify-start w-64 h-6 gap-1 ml-6 text-gray-400 hover:text-white"
+                  variant="ghost"
+                  className="flex justify-start w-64 h-6 gap-1 ml-6 text-gray-400 outline-1 hover:text-white hover:outline"
                   size="sm"
                   onClick={() => setIsAddingTask(true)}
                 >
@@ -229,6 +286,17 @@ const BoardTable: React.FC<BoardTableProps> = ({
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        title="Delete Table"
+        message={`Are you sure you want to delete "${table.name}"?`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isLoading={isDeletingTable}
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteDialog(false)}
+      />
     </div>
   );
 };

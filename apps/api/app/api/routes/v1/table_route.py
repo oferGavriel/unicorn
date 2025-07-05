@@ -58,3 +58,18 @@ async def delete_table(
 ) -> Response:
     await table_service.delete_table(table_id, board_id, current_user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/{table_id}/duplicate",
+    response_model=TableRead,
+    status_code=status.HTTP_201_CREATED,
+    description="Duplicate a table by ID",
+)
+async def duplicate_table(
+    board_id: UUID,
+    table_id: UUID,
+    table_service: TableServiceDep,
+    current_user: User = CurrentUserDep,
+) -> TableRead:
+    return await table_service.duplicate_table(table_id, board_id, current_user.id)

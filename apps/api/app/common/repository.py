@@ -1,4 +1,5 @@
 import abc
+from uuid import UUID
 from sqlalchemy import ColumnExpressionArgument, Executable, select, func
 from sqlalchemy.orm import DeclarativeMeta, InstrumentedAttribute
 from sqlalchemy.sql.base import ExecutableOption
@@ -23,7 +24,7 @@ class Repository(Generic[T], ABC):
         pass
 
     @abc.abstractmethod
-    async def get_by_id(self, primary_key: int, *options: ExecutableOption) -> Optional[T]:
+    async def get_by_id(self, primary_key: UUID, *options: ExecutableOption) -> Optional[T]:
         pass
 
     @abc.abstractmethod
@@ -53,7 +54,7 @@ class Repository(Generic[T], ABC):
         pass
 
     @abc.abstractmethod
-    async def delete_by_id(self, primary_key: int) -> None:
+    async def delete_by_id(self, primary_key: UUID) -> None:
         pass
 
 
@@ -86,10 +87,10 @@ class BaseRepository(Repository[T]):
         result = await self._session.scalar(stmt)
         return int(result or 0)
 
-    async def get_by_id(self, entity_id: int, *options: ExecutableOption) -> Optional[T]:
+    async def get_by_id(self, entity_id: UUID, *options: ExecutableOption) -> Optional[T]:
         return await self.get_single(self.primary_key_column == entity_id, *options)
 
-    async def get_by_ids(self, entity_ids: List[int], *options: ExecutableOption) -> Sequence[T]:
+    async def get_by_ids(self, entity_ids: List[UUID], *options: ExecutableOption) -> Sequence[T]:
         stmt = select(self.model).where(self.primary_key_column.in_(entity_ids)).options(*options)
         result = await self._session.execute(stmt)
         return result.scalars().all()
@@ -170,7 +171,7 @@ class BaseRepository(Repository[T]):
 
         await self._session.commit()
 
-    async def delete_by_id(self, primary_key: int) -> None:
+    async def delete_by_id(self, primary_key: UUID) -> None:
         entity = await self.get_by_id(primary_key)
 
         if entity is None:

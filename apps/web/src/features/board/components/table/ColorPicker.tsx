@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { TableColorEnum } from '@/shared/shared.enum';
 
-import { TABLE_COLORS } from '../../types/table.interface';
+import { TABLE_COLORS, TableColor } from '../../types/table.interface';
 
 interface ColorPickerProps {
-  selectedColor: string;
-  onColorChange: (color: TableColorEnum) => void;
+  selectedColor: TableColor;
+  onColorChange: (color: TableColor) => void;
   className?: string;
   disabled?: boolean;
 }
@@ -21,7 +20,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleColorSelect = (color: TableColorEnum) => {
+  const handleColorSelect = (color: TableColor) => {
     onColorChange(color);
     setIsOpen(false);
   };
@@ -56,7 +55,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
                   ${selectedColor === color ? 'shadow-lg ring-4 ring-blue-500' : 'border-gray-500 hover:border-gray-300'}
                 `}
                 style={{ backgroundColor: color }}
-                onClick={() => handleColorSelect(color as TableColorEnum)}
+                onClick={() => handleColorSelect(color)}
                 title={`Select color: ${color}`}
               />
             ))}

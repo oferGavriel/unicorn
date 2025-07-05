@@ -2,20 +2,21 @@ from typing import Annotated
 from uuid import UUID, uuid4
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from datetime import datetime
-from sqlalchemy import func, Boolean, INTEGER, String, DECIMAL
+from sqlalchemy import func, Boolean, INTEGER, String, DECIMAL, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.dialects.postgresql import TIMESTAMP
 
 
 class TimestampMixin:
     created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP,
+        DateTime(timezone=True),
         server_default=func.now(),
+        nullable=False,
     )
     updated_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP,
+        DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now(),
+        nullable=False,
     )
 
 

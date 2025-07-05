@@ -1,13 +1,32 @@
-import { TableColorEnum } from '@/shared/shared.enum';
-
 import { IRow } from './row.interface';
+
+export const TABLE_COLORS = [
+  '#037f4c', // GREEN
+  '#00c875', // LIGHT GREEN
+  '#9cd326', // LIME GREEN
+  '#cab641', // YELLOW GREEN
+  '#ffcb00', // GOLD
+  '#784bd1', // PURPLE
+  '#9370db', // VIOLET
+  '#007eb5', // BLUE
+  '#579bfc', // LIGHT BLUE
+  '#66ccff', // SKY BLUE
+  '#bb3354', // RED
+  '#df2f4a', // PINK RED
+  '#ff007f', // HOT PINK
+  '#ff5ac4', // FUCHSIA
+  '#ff642e', // ORANGE RED
+  '#fdab3d', // ORANGE
+  '#c4c4c4', // GRAY
+  '#757575' // DARK GRAY
+] as const;
 
 export interface ITable {
   id: string;
   boardId: string;
   name: string;
   description?: string;
-  color: TableColorEnum;
+  color: TableColor;
   position: number;
   createdAt: string;
   updatedAt: string;
@@ -18,7 +37,7 @@ export interface ICreateTableRequest {
   boardId: string;
   name: string;
   description?: string;
-  color?: TableColorEnum;
+  color?: TableColor;
   position?: number;
 }
 
@@ -27,7 +46,7 @@ export interface IUpdateTableRequest {
   tableId: string;
   name?: string;
   description?: string;
-  color?: TableColorEnum;
+  color?: TableColor;
   position?: number;
 }
 
@@ -141,25 +160,13 @@ export const TABLE_COLUMNS: TableColumn[] = [
   }
 ];
 
-export const TABLE_COLORS = [
-  '#037f4c', // GREEN
-  '#00c875', // LIGHT GREEN
-  '#9cd326', // LIME GREEN
-  '#cab641', // YELLOW GREEN
-  '#ffcb00', // GOLD
-  '#784bd1', // PURPLE
-  '#9370db', // VIOLET
-  '#007eb5', // BLUE
-  '#579bfc', // LIGHT BLUE
-  '#66ccff', // SKY BLUE
-  '#bb3354', // RED
-  '#df2f4a', // PINK RED
-  '#ff007f', // HOT PINK
-  '#ff5ac4', // FUCHSIA
-  '#ff642e', // ORANGE RED
-  '#fdab3d', // ORANGE
-  '#c4c4c4', // GRAY
-  '#757575' // DARK GRAY
-] as const;
+export const getRandomTableColor = (existingTables: ITable[] = []): TableColor => {
+  const usedColors = new Set(existingTables.map((table) => table.color));
+  const availableColors = TABLE_COLORS.filter((color) => !usedColors.has(color));
+
+  const colorsToChooseFrom = availableColors.length > 0 ? availableColors : TABLE_COLORS;
+  const randomIndex = Math.floor(Math.random() * colorsToChooseFrom.length);
+  return colorsToChooseFrom[randomIndex];
+};
 
 export type TableColor = (typeof TABLE_COLORS)[number];

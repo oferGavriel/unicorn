@@ -12,10 +12,12 @@ from tests.utils.register_and_login_user import register_and_login_user
 from app.api.services.row_service import RowService
 from app.api.dal.row_repository import RowRepository
 from app.api.dal.table_repository import TableRepository
+from app.api.dal.row_owner_repository import RowOwnerRepository
+from app.api.dal.auth_repository import AuthRepository
 
 DATABASE_URL = "postgresql+asyncpg://test:test@localhost:5432/unicorn_test"
 
-engine = create_async_engine(DATABASE_URL)
+engine = create_async_engine(DATABASE_URL, connect_args={"server_settings": {"timezone": "UTC"}})
 
 async_session_maker = async_sessionmaker(
     engine,
@@ -43,7 +45,7 @@ async def init_db():
         await conn.run_sync(Base.metadata.drop_all)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 async def db():
     async with async_session_maker() as session:
         yield session
@@ -51,7 +53,7 @@ async def db():
         await session.close()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 async def async_client():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
@@ -88,8 +90,18 @@ def disable_logger_during_tests():
 
 
 @pytest.fixture
-def row_service(row_repository: RowRepository, table_repository: TableRepository) -> RowService:
-    return RowService(row_repository=row_repository, table_repository=table_repository)
+def row_service(
+    row_repository: RowRepository,
+    table_repository: TableRepository,
+    row_owner_repository: RowOwnerRepository,
+    auth_repository: AuthRepository,
+) -> RowService:
+    return RowService(
+        row_repository=row_repository,
+        table_repository=table_repository,
+        row_owner_repository=row_owner_repository,
+        auth_repository=auth_repository,
+    )
 
 
 @pytest.fixture
@@ -100,6 +112,16 @@ def row_repository(db: AsyncSession) -> RowRepository:
 @pytest.fixture
 def table_repository(db: AsyncSession) -> TableRepository:
     return TableRepository(db)
+
+
+@pytest.fixture
+def row_owner_repository(db: AsyncSession) -> RowOwnerRepository:
+    return RowOwnerRepository(db)
+
+
+@pytest.fixture
+def auth_repository(db: AsyncSession) -> AuthRepository:
+    return AuthRepository(db)
 
 
 async def get_authenticated_client(email=None) -> tuple[AsyncClient, str]:
@@ -117,7 +139,6 @@ async def create_board_with_authenticated_user() -> tuple[AsyncClient, str, str]
         "/api/v1/boards/",
         json={"name": "Test Board", "description": "This is a test board."},
     )
-    print("create_board_resp", create_board_resp.json())
     assert create_board_resp.status_code == HTTPStatus.CREATED
     board_id = create_board_resp.json()["id"]
     return client, user_id, board_id
