@@ -1,15 +1,20 @@
 import { Calendar, X } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 
 import { BaseCellProps } from '../../../types/cell.interface';
 
 type DateCellProps = BaseCellProps<string | null>;
 
 export const DateCell: React.FC<DateCellProps> = ({ value, onUpdate, column }) => {
-  const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(value || '');
-  const datePickerRef = useRef<HTMLDivElement>(null);
 
   const formatDate = useCallback((dateString: string | null) => {
     if (!dateString) {
@@ -22,11 +27,16 @@ export const DateCell: React.FC<DateCellProps> = ({ value, onUpdate, column }) =
       const tomorrow = new Date();
       tomorrow.setDate(today.getDate() + 1);
 
-      if (date.toDateString() === today.toDateString()) {
+      // Reset time to compare only dates
+      today.setHours(0, 0, 0, 0);
+      tomorrow.setHours(0, 0, 0, 0);
+      date.setHours(0, 0, 0, 0);
+
+      if (date.getTime() === today.getTime()) {
         return { formatted: 'Today', className: 'text-green-400' };
       }
 
-      if (date.toDateString() === tomorrow.toDateString()) {
+      if (date.getTime() === tomorrow.getTime()) {
         return { formatted: 'Tomorrow', className: 'text-blue-400' };
       }
 
@@ -53,139 +63,160 @@ export const DateCell: React.FC<DateCellProps> = ({ value, onUpdate, column }) =
   }, []);
 
   const handleDateChange = useCallback(
-    async (newDate: string) => {
-      if (!column.editable) {
+    async (newDate: Date | null) => {
+      if (!column.editable || isLoading) {
         return;
       }
 
       setIsLoading(true);
-      setIsOpen(false);
 
       try {
-        await onUpdate(newDate || null);
-        setSelectedDate(newDate);
+        const isoDate = newDate ? newDate.toISOString() : null;
+        await onUpdate(isoDate);
       } catch (error) {
         console.error('Failed to update date:', error);
       } finally {
         setIsLoading(false);
       }
     },
-    [onUpdate, column.editable]
+    [onUpdate, column.editable, isLoading]
   );
 
   const handleClearDate = useCallback(
     async (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (!column.editable) {
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        await onUpdate(null);
-        setSelectedDate('');
-      } catch (error) {
-        console.error('Failed to clear date:', error);
-      } finally {
-        setIsLoading(false);
-      }
+      await handleDateChange(null);
     },
-    [onUpdate, column.editable]
+    [handleDateChange]
   );
 
-  const handleToggle = useCallback(() => {
-    if (column.editable) {
-      setIsOpen((prev) => !prev);
-    }
-  }, [column.editable]);
+  const handleQuickSelect = useCallback(
+    async (daysOffset: number) => {
+      const date = new Date();
+      date.setDate(date.getDate() + daysOffset);
+      await handleDateChange(date);
+    },
+    [handleDateChange]
+  );
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        datePickerRef.current &&
-        !datePickerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen]);
-
+  const selectedDate = value ? new Date(value) : undefined;
   const dateInfo = formatDate(value);
 
-  return (
-    <div className="relative h-full" ref={datePickerRef}>
-      <button
-        onClick={handleToggle}
-        disabled={isLoading || !column.editable}
-        className={`
-          h-full w-full flex items-center justify-center gap-2 px-2 py-1 rounded text-sm
-          transition-all duration-200 min-w-[100px]
-          ${column.editable ? 'hover:bg-[#333333] cursor-pointer' : 'cursor-default'}
-          ${isLoading ? 'opacity-50' : ''}
-          ${!value ? 'text-gray-500' : dateInfo?.className || 'text-gray-300'}
-        `}
-      >
+  if (!column.editable) {
+    return (
+      <div className="h-full w-full flex items-center justify-center gap-2 px-2 py-1 text-sm">
         <Calendar className="w-4 h-4" />
-        <span>{dateInfo?.formatted || 'Set date'}</span>
-        {value && column.editable && (
-          <X
-            className="w-3 h-3 hover:text-red-400 transition-colors"
-            onClick={handleClearDate}
-          />
-        )}
-      </button>
+        <span className={dateInfo?.className || 'text-gray-500'}>
+          {dateInfo?.formatted || 'No date'}
+        </span>
+      </div>
+    );
+  }
 
-      {isOpen && column.editable && (
-        <>
-          {/* Backdrop */}
-          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+  return (
+    <div className="relative h-full">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            disabled={isLoading}
+            variant={'clean'}
+            className={`
+              h-full w-full flex items-center justify-center gap-2 px-2 py-1 rounded text-sm
+              transition-all duration-200 min-w-[100px]
+              hover:bg-[#333333] cursor-pointer
+              ${isLoading ? 'opacity-50' : ''}
+              ${!value ? 'text-gray-500' : dateInfo?.className || 'text-gray-300'}
+            `}
+          >
+            <Calendar className="w-4 h-4" />
+            <span>{dateInfo?.formatted || 'Set date'}</span>
+            {value && (
+              <X
+                className="w-3 h-3 hover:text-red-400 transition-colors"
+                onClick={handleClearDate}
+              />
+            )}
+          </Button>
+        </DropdownMenuTrigger>
 
-          {/* Date Picker */}
-          <div className="absolute top-full left-0 mt-1 bg-[#333333] border border-gray-600 rounded-md shadow-lg z-20 p-3">
-            <input
-              type="date"
-              value={
-                selectedDate ? new Date(selectedDate).toISOString().split('T')[0] : ''
-              }
-              onChange={(e) => {
-                const newDate = e.target.value;
-                if (newDate) {
-                  handleDateChange(new Date(newDate).toISOString());
-                }
-              }}
-              className="bg-[#2a2a2a] border border-gray-600 rounded px-2 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
-            />
+        <DropdownMenuContent align="start" className="dialog-dropdown" sideOffset={4}>
+          <div className="flex">
+            {/* Quick Select Buttons */}
+            <div className="flex flex-col gap-1 px-2 border-r border-gray-500 min-w-[120px]">
+              <Button
+                variant="ghost"
+                onClick={() => handleQuickSelect(0)}
+                size="default"
+                disabled={isLoading}
+                className="justify-start text-white hover:bg-[#404040] h-8"
+              >
+                Today
+              </Button>
 
-            {/* Quick date options */}
-            <div className="mt-2 space-y-1">
-              {[
-                { label: 'Today', value: new Date().toISOString() },
-                {
-                  label: 'Tomorrow',
-                  value: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-                },
-                {
-                  label: 'Next week',
-                  value: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-                }
-              ].map(({ label, value: dateValue }) => (
-                <button
-                  key={label}
-                  onClick={() => handleDateChange(dateValue)}
-                  className="w-full text-left px-2 py-1 text-sm text-gray-300 hover:bg-[#404040] rounded transition-colors"
-                >
-                  {label}
-                </button>
-              ))}
+              <Button
+                variant="ghost"
+                onClick={() => handleQuickSelect(1)}
+                size="default"
+                disabled={isLoading}
+                className="justify-start text-white hover:bg-[#404040] h-8"
+              >
+                Tomorrow
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="default"
+                onClick={() => handleQuickSelect(7)}
+                disabled={isLoading}
+                className="justify-start text-white hover:bg-[#404040] h-8"
+              >
+                Next week
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="default"
+                onClick={() => handleQuickSelect(30)}
+                disabled={isLoading}
+                className="justify-start text-white hover:bg-[#404040] h-8"
+              >
+                Next month
+              </Button>
+
+              {value && (
+                <>
+                  <div className="border-t border-gray-500 my-2" />
+                  <Button
+                    variant="ghost"
+                    size="default"
+                    onClick={() => handleDateChange(null)}
+                    disabled={isLoading}
+                    className="justify-start text-red-400 hover:bg-red-900/20 h-8"
+                  >
+                    <X className="w-4 h-4" />
+                    Clear date
+                  </Button>
+                </>
+              )}
+            </div>
+
+            <div className="p-3">
+              <CalendarComponent
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && handleDateChange(date)}
+                disabled={isLoading}
+                className="rounded-md"
+                captionLayout="dropdown"
+                classNames={{
+                  months_dropdown: 'text-black',
+                  years_dropdown: 'text-black'
+                }}
+              />
             </div>
           </div>
-        </>
-      )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 };

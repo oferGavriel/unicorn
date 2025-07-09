@@ -1,53 +1,97 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { type Row } from '@tanstack/react-table';
-import { GripVertical } from 'lucide-react';
-import React, { type PropsWithChildren } from 'react';
+import { flexRender, type Row } from '@tanstack/react-table';
+import React from 'react';
 
+import { CellTypeEnum } from '../../types';
 import { IRow } from '../../types/row.interface';
+import { RowMenuDialog } from '../RowMenuDialog';
 
-interface DraggableRowProps extends PropsWithChildren {
+interface DraggableRowProps {
   row: Row<IRow>;
   tableId: string;
+  boardId: string;
+  onDuplicate: (rowId: string) => void;
+  onDelete: (rowId: string, rowName: string) => void;
+  isDeleting?: boolean;
 }
 
-const DraggableRow: React.FC<DraggableRowProps> = ({ row, tableId, children }) => {
+const DraggableRow: React.FC<DraggableRowProps> = ({
+  row,
+  tableId,
+  boardId,
+  onDuplicate,
+  onDelete,
+  isDeleting = false
+}) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({
       id: row.id,
       data: {
         type: 'row',
         row: row.original,
-        tableId
+        tableId,
+        boardId
       }
     });
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition
+    transition,
+    zIndex: isDragging ? 1000 : 1
   };
 
   return (
-    <tr
+    <div
       ref={setNodeRef}
       style={style}
       className={`
-        transition-colors hover:bg-[#2a2a2a] group
-        ${isDragging ? 'opacity-50 bg-[#2a2a2a]' : ''}
+        flex transition-colors hover:bg-[#2a2a2a] group/row min-h-[36px] items-center relative
+        cursor-grab active:cursor-grabbing
+        ${isDragging ? 'opacity-50 bg-[#2a2a2a] shadow-lg scale-105 cursor-grabbing' : ''}
       `}
+      {...listeners}
       {...attributes}
     >
-      {/* Drag Handle */}
-      <td className="w-8 px-2 py-3">
-        <div
-          className="flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
-          {...listeners}
-        >
-          <GripVertical className="w-4 h-4 text-gray-500" />
-        </div>
-      </td>
-      {children}
-    </tr>
+      {/* Row Menu */}
+      <div
+        className="absolute -left-10 group-hover/row:opacity-100 opacity-0 transition-opacity duration-200 cursor-pointer"
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+        }}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+        }}
+      >
+        <RowMenuDialog
+          onDuplicate={() => onDuplicate(row.original.id)}
+          onDelete={() => onDelete(row.original.id, row.original.name || 'this row')}
+          isDeleting={isDeleting}
+        />
+      </div>
+
+      {/* Row Cells */}
+      {row.getVisibleCells().map((cell) => {
+        const isIndicator = cell.column.id === CellTypeEnum.INDICATOR;
+        const isSpacer = cell.column.id === CellTypeEnum.SPACER;
+
+        return (
+          <div
+            key={cell.id}
+            className={`board-table-body-cell h-9 ${isSpacer ? 'flex-1' : ''}`}
+            style={{
+              width: isIndicator ? '6px' : `${cell.column.getSize()}px`
+            }}
+          >
+            <div className={'h-full w-full'}>
+              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 };
 

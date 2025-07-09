@@ -24,6 +24,13 @@ export const authApi = api.injectEndpoints({
       },
       invalidatesTags: ['Auth']
     }),
+    logout: build.mutation<void, void>({
+      query: () => ({
+        url: '/auth/logout',
+        method: 'POST'
+      }),
+      invalidatesTags: ['Auth', 'User']
+    }),
     checkCurrentUser: build.query<IAuthUser, void>({
       query: () => '/users/me',
       providesTags: ['User']
@@ -38,6 +45,7 @@ export const authApi = api.injectEndpoints({
 export const {
   useSignUpMutation,
   useSignInMutation,
+  useLogoutMutation,
   useCheckCurrentUserQuery,
   useGetUsersQuery
 } = authApi;

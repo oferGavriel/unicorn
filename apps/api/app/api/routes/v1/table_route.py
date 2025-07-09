@@ -2,7 +2,7 @@ from uuid import UUID
 from typing import List
 from fastapi import APIRouter, status
 from fastapi.responses import Response
-from app.api.models.table_model import TableCreate, TableRead, TableUpdate
+from app.api.models.table_model import TableCreate, TableRead, TableUpdate, UpdateTablePositionRequest
 from app.api.services.table_service import TableServiceDep
 from app.DI.current_user import CurrentUserDep
 from app.database_models.user import User
@@ -73,3 +73,14 @@ async def duplicate_table(
     current_user: User = CurrentUserDep,
 ) -> TableRead:
     return await table_service.duplicate_table(table_id, board_id, current_user.id)
+
+
+@router.patch("/{table_id}/position", response_model=TableRead, description="Update table position")
+async def update_table_position(
+    board_id: UUID,
+    table_id: UUID,
+    request: UpdateTablePositionRequest,
+    table_service: TableServiceDep,
+    current_user: User = CurrentUserDep,
+) -> TableRead:
+    return await table_service.update_table_position(table_id, board_id, current_user.id, request.new_position)

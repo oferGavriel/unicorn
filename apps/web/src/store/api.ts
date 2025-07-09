@@ -129,7 +129,7 @@ const handleTokenRefresh = async (
   }
 };
 
-const logoutAndRedirectToLogin = (): void => {
+export const logoutAndRedirectToLogin = (): void => {
   clearLoggedInUser();
   window.location.href = '/login';
 };

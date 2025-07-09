@@ -1,13 +1,10 @@
 import {
   closestCenter,
   DndContext,
-  DragEndEvent,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors
+  DraggableAttributes,
+  DragOverlay
 } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -17,22 +14,15 @@ import {
   SortingState,
   useReactTable
 } from '@tanstack/react-table';
-import { Copy, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components';
-import { Button } from '@/components/ui/button';
-import { IAuthUser } from '@/features/auth';
 import { UI_IDS } from '@/pages/board-page/BoardPage.consts';
+import { ColorPicker } from '@/shared/components/ColorPicker';
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
 import { EditableText } from '@/shared/components/EditableText';
 
+import { useRowDragAndDrop } from '../../hooks/useRowDragAndDrop';
 import {
   useDeleteTableMutation,
   useDuplicateTableMutation,
@@ -41,26 +31,29 @@ import {
 } from '../../services/board.service';
 import { IRow } from '../../types/row.interface';
 import { ITable, TABLE_COLUMNS, TableColor } from '../../types/table.interface';
-import { ColorPicker } from '../table/ColorPicker';
 import { createTableColumns } from '../table/columns';
 import TableBody from '../table/TableBody';
 import TableHeader from '../table/TableHeader';
-import { IndicatorCell } from './cells';
+import { TableMenuDialog } from '../TableMenuDialog';
+import TableFooter from './TableFooter';
 
 interface BoardTableProps {
   table: ITable;
   boardId: string;
   onAddRow: (tableId: string, taskName: string) => Promise<void>;
-  onRowMove?: (
-    rowId: string,
-    fromTableId: string,
-    toTableId: string,
-    newPosition: number
-  ) => void;
-  boardMembers: IAuthUser[];
+  dragAttributes?: DraggableAttributes;
+  dragListeners?: SyntheticListenerMap | undefined;
+  isDragging?: boolean;
 }
 
-const BoardTable: React.FC<BoardTableProps> = ({ table, boardId, onAddRow }) => {
+const BoardTable: React.FC<BoardTableProps> = ({
+  table,
+  boardId,
+  onAddRow,
+  dragAttributes,
+  dragListeners,
+  isDragging = false
+}) => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [isAddingTask, setIsAddingTask] = useState<boolean>(false);
@@ -71,14 +64,20 @@ const BoardTable: React.FC<BoardTableProps> = ({ table, boardId, onAddRow }) => 
   const [deleteTable, { isLoading: isDeletingTable }] = useDeleteTableMutation();
   const [duplicateTable] = useDuplicateTableMutation();
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8
-      }
-    }),
-    useSensor(KeyboardSensor)
-  );
+  const sortedTableData = useMemo(() => {
+    return [...(table.rows || [])].sort((a, b) => a.position - b.position);
+  }, [table.rows]);
+
+  const {
+    sensors: rowSensors,
+    activeRow,
+    handleDragStart: handleRowDragStart,
+    handleDragEnd: handleRowDragEnd
+  } = useRowDragAndDrop({
+    boardId,
+    tableId: table.id,
+    rows: sortedTableData
+  });
 
   const columns = useMemo<ColumnDef<IRow>[]>(
     () => createTableColumns(boardId, TABLE_COLUMNS, table.color, updateRow),
@@ -86,7 +85,7 @@ const BoardTable: React.FC<BoardTableProps> = ({ table, boardId, onAddRow }) => 
   );
 
   const tableInstance = useReactTable({
-    data: table.rows || [],
+    data: sortedTableData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -138,88 +137,59 @@ const BoardTable: React.FC<BoardTableProps> = ({ table, boardId, onAddRow }) => 
     }
   };
 
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (!over || active.id === over.id) {
-      return;
-    }
-
-    const activeRow = table.rows?.find((row) => row.id === active.id);
-    const overRow = table.rows?.find((row) => row.id === over.id);
-
-    if (!activeRow || !overRow) {
-      return;
-    }
-
-    const newPosition = overRow.position;
-
-    try {
-      await updateRow({
-        tableId: table.id,
-        rowId: activeRow.id,
-        position: newPosition,
-        boardId
-      });
-    } catch (error) {
-      console.error('Failed to update row position:', error);
-    }
-  };
-
-  const confirmDelete = async () => {
+  const confirmDelete = useCallback(async () => {
     try {
       await deleteTable({
         boardId: table.boardId,
         tableId: table.id
       }).unwrap();
-
-      toast.success(`Table "${table.name}" deleted successfully`);
     } catch (error) {
       toast.error('Failed to delete table');
       console.error('Failed to delete table:', error);
     } finally {
       setShowDeleteDialog(false);
     }
-  };
+  }, [deleteTable, table.boardId, table.id]);
 
-  const rowIds = useMemo(() => (table.rows || []).map((row) => row.id), [table.rows]);
+  const handleDuplicateTable = useCallback(async () => {
+    duplicateTable({
+      boardId: table.boardId,
+      tableId: table.id
+    })
+      .unwrap()
+      .then(() => {
+        toast.success(`Table "${table.name}" duplicated successfully`);
+      })
+      .catch((error) => {
+        toast.error('Failed to duplicate table');
+        console.error('Failed to duplicate table:', error);
+      });
+  }, [duplicateTable, table.boardId, table.id, table.name]);
+
+  const handleDeleteTable = useCallback(() => {
+    setShowDeleteDialog(true);
+  }, []);
 
   return (
     <div className="shadow-sm mt-2">
-      <div className="group flex items-center gap-2 mx-2 relative">
-        <div className="absolute -left-12 group-hover:opacity-100 opacity-0 cursor-pointer p-1">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="p-2 h-auto hover:bg-accent rounded-lg"
-                disabled={isDeletingTable}
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48 menu-dialog">
-              <DropdownMenuItem
-                onClick={() =>
-                  duplicateTable({ boardId: table.boardId, tableId: table.id })
-                }
-                disabled={isDeletingTable}
-                className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 cursor-pointer"
-              >
-                <Copy className="mr-2 h-4 w-4" />
-                Duplicate Table
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setShowDeleteDialog(true)}
-                disabled={isDeletingTable}
-                className="text-red-400 hover:text-red-300 hover:bg-red-400/10 cursor-pointer"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete Table
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+      {/* Table Header */}
+      <div
+        className={`group flex items-center gap-2 mx-2 relative cursor-grab active:cursor-grabbing
+        ${isDragging ? 'cursor-grabbing' : ''} rounded-lg p-2 transition-colors`}
+        {...dragAttributes}
+        {...dragListeners}
+        title="Drag to reorder table"
+      >
+        <div
+          className="absolute -left-12 group-hover:opacity-100 opacity-0 cursor-pointer p-1"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <TableMenuDialog
+            onDuplicate={handleDuplicateTable}
+            onDelete={handleDeleteTable}
+            isDeleting={isDeletingTable}
+          />
         </div>
 
         <ColorPicker selectedColor={table.color} onColorChange={handleTableColorChange} />
@@ -239,53 +209,33 @@ const BoardTable: React.FC<BoardTableProps> = ({ table, boardId, onAddRow }) => 
         )}
       </div>
 
-      <div className="my-2 border-gray-600 bg-board-table-color">
+      <div className="my-2">
         <DndContext
-          sensors={sensors}
+          sensors={rowSensors}
           collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
+          onDragStart={handleRowDragStart}
+          onDragEnd={handleRowDragEnd}
         >
           <div className="min-w-full text-sm text-center board-table">
             <TableHeader table={tableInstance} />
-            <SortableContext items={rowIds} strategy={verticalListSortingStrategy}>
-              <TableBody table={tableInstance} />
-            </SortableContext>
+            <TableBody table={tableInstance} boardId={boardId} tableId={table.id} />
+            <TableFooter
+              table={table}
+              isAddingTask={isAddingTask}
+              setIsAddingTask={setIsAddingTask}
+              onAddTask={handleAddTask}
+            />
           </div>
-        </DndContext>
 
-        <div className="flex h-9">
-          <div className="w-[6px] flex-shrink-0">
-            <IndicatorCell tableColor={table.color} position="add-row" />{' '}
-          </div>
-          <div className="w-full border-b border-gray-600 flex items-center">
-            <div className="mx-[6px]">
-              {isAddingTask ? (
-                <div className="flex items-center gap-2 w-full  h-full">
-                  <EditableText
-                    value=""
-                    onSave={handleAddTask}
-                    className="text-gray-400 w-full max-w-80 py-2 h-full"
-                    inputClassName="text-gray-400 bg-transparent outline-none max-w-72"
-                    placeholder="Enter task name..."
-                    validateEmpty={true}
-                    autoEdit={true}
-                    onCancel={() => setIsAddingTask(false)}
-                  />
-                </div>
-              ) : (
-                <Button
-                  variant="ghost"
-                  className="flex justify-start w-64 h-6 gap-1 ml-6 text-gray-400 outline-1 hover:text-white hover:outline"
-                  size="sm"
-                  onClick={() => setIsAddingTask(true)}
-                >
-                  <Plus size={12} />
-                  Add task
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
+          <DragOverlay dropAnimation={null}>
+            {activeRow && (
+              <div className="opacity-90 shadow-xl border border-blue-400 rounded bg-[#2a2a2a] min-h-[36px] flex items-center px-4">
+                <span className="text-white font-medium">{activeRow.name}</span>
+                <span className="ml-2 text-gray-400 text-sm">Moving row...</span>
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
       </div>
 
       <ConfirmDialog

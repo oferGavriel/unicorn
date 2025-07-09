@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
-import { TABLE_COLORS, TableColor } from '../../types/table.interface';
+import { TABLE_COLORS, TableColor } from '../../features/board/types/table.interface';
 
 interface ColorPickerProps {
   selectedColor: TableColor;

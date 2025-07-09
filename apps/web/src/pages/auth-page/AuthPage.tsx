@@ -11,7 +11,7 @@ import {
   loginUserSchema,
   RegisterForm,
   RegisterFormValues,
-  setAuthUser,
+  setUser,
   signUpUserSchema,
   useSignInMutation,
   useSignUpMutation
@@ -65,7 +65,7 @@ const AuthPage: React.FC<AuthPageProps> = (): ReactElement => {
         result = await signUp(data as RegisterFormValues).unwrap();
       }
 
-      dispatch(setAuthUser(result));
+      dispatch(setUser(result));
       console.log('before navigate', result);
       navigate('/boards', { replace: true });
       reset();

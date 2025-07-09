@@ -12,13 +12,12 @@ class TableCreate(BaseSchema):
     name: str = Field(..., min_length=1, max_length=50)
     description: Optional[str] = Field(None, min_length=1, max_length=1000)
     color: Optional[str] = Field(default=DEFAULT_TABLE_COLOR)
-    position: Optional[int] = Field(default=0, ge=0)
 
 
 class TableUpdate(BaseSchema):
     name: Optional[str] = Field(None, min_length=1, max_length=50)
     description: Optional[str] = Field(None, min_length=1, max_length=1000)
-    position: Optional[int] = Field(None, ge=0)
+    position: Optional[int] = Field(None, ge=1, le=10)
     color: Optional[str] = Field(None)
 
 
@@ -32,3 +31,7 @@ class TableRead(BaseSchema):
     created_at: datetime = Field(description="Table creation date")
     updated_at: datetime = Field(description="Table update date")
     rows: List[RowRead] = Field(description="List of rows in the table")
+
+
+class UpdateTablePositionRequest(BaseSchema):
+    new_position: int = Field(..., ge=1, le=10, description="New position for the table in the board")

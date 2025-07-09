@@ -5,7 +5,7 @@ import { Spinner } from '@/shared/components/Spinner';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { clearLoggedInUser } from '@/utils/utils.service';
 
-import { clearAuthUser, setAuthUser } from './features/auth/reducers/auth.reducer';
+import { clearUser, setUser } from './features/auth/reducers/auth.reducer';
 import { useCheckCurrentUserQuery } from './features/auth/services/auth.service';
 
 export interface IProtectedRouteProps {
@@ -28,9 +28,9 @@ const ProtectedRoute: React.FC<IProtectedRouteProps> = ({ children }): ReactElem
 
   useEffect(() => {
     if (fetchedUser) {
-      dispatch(setAuthUser(fetchedUser));
+      dispatch(setUser(fetchedUser));
     } else if (isError) {
-      dispatch(clearAuthUser());
+      dispatch(clearUser());
       clearLoggedInUser();
     }
   }, [fetchedUser, isError, dispatch]);

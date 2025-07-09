@@ -3,6 +3,7 @@ import React, { ReactElement, useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@/components';
+import { IAuthUser } from '@/features/auth';
 import {
   CreateBoardDialog,
   getRandomTableColor,
@@ -14,7 +15,10 @@ import {
 } from '@/features/board';
 import { BoardSidebar } from '@/features/board/components/BoardSidebar';
 import { CreateTableDialog } from '@/features/board/components/CreateTableDialog';
+import { UserMenuDialog } from '@/features/board/components/UserMenuDialog';
+import { useLogout } from '@/hooks/useLogout';
 import { Spinner } from '@/shared/components/Spinner';
+import { useAppSelector } from '@/store';
 
 import { UI_IDS, UI_TITLES } from './BoardPage.consts';
 
@@ -24,7 +28,7 @@ const EmptyBoardsView: React.FC<{
   onShowCreateBoardDialog: () => void;
 }> = ({ onShowCreateBoardDialog }) => {
   return (
-    <div className="board-page flex w-screen h-screen justify-center items-center bg-[#212121]">
+    <div className="flex h-full justify-center items-center bg-[#212121]">
       <div className="text-center">
         <h2
           className="text-3xl font-bold text-white mb-4"
@@ -54,12 +58,14 @@ const EmptyBoardsView: React.FC<{
 
 const BoardPage: React.FC<BoardPageProps> = (): ReactElement => {
   const { data: boards = [], isLoading: isLoadingBoards } = useGetBoardsQuery();
+  const loggedInUser = useAppSelector((s) => s.authUser.user) as IAuthUser;
 
   const [showCreateBoardDialog, setShowCreateBoardDialog] = useState<boolean>(false);
   const [showCreateTableDialog, setShowCreateTableDialog] = useState<boolean>(false);
 
   const [createBoard, { isLoading: isCreatingBoard }] = useCreateBoardMutation();
   const [createTable, { isLoading: isCreatingTable }] = useCreateTableMutation();
+  const { logout } = useLogout();
 
   const navigate = useNavigate();
   const { boardId } = useParams<{ boardId?: string }>();
@@ -109,27 +115,50 @@ const BoardPage: React.FC<BoardPageProps> = (): ReactElement => {
     [boardId, createTable]
   );
 
-  return (
-    <>
-      {isLoadingBoards ? (
-        <Spinner />
-      ) : boards.length === 0 ? (
-        <EmptyBoardsView onShowCreateBoardDialog={() => setShowCreateBoardDialog(true)} />
-      ) : (
-        <div className="board-page flex w-screen h-screen justify-between bg-[#212121] p-3 gap-3">
-          <BoardSidebar
-            boards={boards}
-            boardId={boardId}
-            isLoadingBoards={isLoadingBoards}
-            onSelectBoard={onSelectBoard}
-            setShowCreateBoardDialog={setShowCreateBoardDialog}
-          />
+  const handleLogout = useCallback(async () => {
+    logout();
+  }, [logout]);
 
-          <main className="bg-[#111111] border-gray-700 rounded-xl flex-1 overflow-y-hidden primary-shadow">
-            <SelectedBoard showCreateTableDialog={() => setShowCreateTableDialog(true)} />
-          </main>
+  return (
+    <div className="bg-[#212121] h-screen flex flex-col p-2 pt-1 gap-1">
+      <header className="flex items-center justify-between pl-1 pr-3">
+        <div className="p-2 rounded-sm cursor-pointer hover:bg-accent">
+          <img src="/full_logo.png" alt="" className="w-24" />
         </div>
-      )}
+
+        <UserMenuDialog
+          user={loggedInUser}
+          onLogout={handleLogout}
+          onSettings={() => navigate('/settings')}
+          onProfile={() => navigate(`/profile/${loggedInUser.id}`)}
+        />
+      </header>
+
+      <div className="flex-1 flex flex-col">
+        {isLoadingBoards ? (
+          <Spinner />
+        ) : boards.length === 0 ? (
+          <EmptyBoardsView
+            onShowCreateBoardDialog={() => setShowCreateBoardDialog(true)}
+          />
+        ) : (
+          <div className="flex justify-between gap-3 h-full">
+            <BoardSidebar
+              boards={boards}
+              boardId={boardId}
+              isLoadingBoards={isLoadingBoards}
+              onSelectBoard={onSelectBoard}
+              setShowCreateBoardDialog={setShowCreateBoardDialog}
+            />
+
+            <main className="bg-[#111111] border-gray-700 rounded-xl flex-1 overflow-y-hidden primary-shadow">
+              <SelectedBoard
+                showCreateTableDialog={() => setShowCreateTableDialog(true)}
+              />
+            </main>
+          </div>
+        )}
+      </div>
 
       <CreateBoardDialog
         isOpen={showCreateBoardDialog}
@@ -144,7 +173,7 @@ const BoardPage: React.FC<BoardPageProps> = (): ReactElement => {
         onCreateTable={handleCreateTable}
         isCreatingTable={isCreatingTable}
       />
-    </>
+    </div>
   );
 };
 

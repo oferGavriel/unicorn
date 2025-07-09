@@ -43,7 +43,7 @@ async def refresh_token(response: Response, auth_service: AuthServiceDep, refres
     return user
 
 
-@router.get("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
     response: Response,
     auth_service: AuthServiceDep,

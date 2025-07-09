@@ -16,7 +16,6 @@ class RowOwnerRead(BaseSchema):
 
 class RowCreate(BaseSchema):
     name: str = Field(..., min_length=1, max_length=255)
-    position: int = Field(default=0, ge=0)
 
 
 class RowUpdate(BaseSchema):
@@ -25,7 +24,7 @@ class RowUpdate(BaseSchema):
     status: Optional[StatusEnum] = Field(None)
     priority: Optional[PriorityEnum] = Field(None)
     due_date: Optional[datetime] = Field(None)
-    position: Optional[int] = Field(None)
+    position: Optional[int] = Field(None, ge=1, le=30)
 
 
 class RowRead(BaseSchema):
@@ -39,3 +38,8 @@ class RowRead(BaseSchema):
     position: int
     created_at: datetime
     updated_at: datetime
+
+
+class UpdateRowPositionRequest(BaseSchema):
+    new_position: int = Field(..., ge=1, le=30, description="New position for the row in the table")
+    target_table_id: Optional[str] = Field(None, description="ID of the target table if moving to a different table")

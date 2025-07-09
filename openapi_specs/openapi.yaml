@@ -199,11 +199,6 @@ components:
           minLength: 1
           title: Name
           type: string
-        position:
-          default: 0
-          minimum: 0.0
-          title: Position
-          type: integer
       required:
       - name
       title: RowCreate
@@ -312,7 +307,9 @@ components:
           title: Owners
         position:
           anyOf:
-          - type: integer
+          - maximum: 30.0
+            minimum: 1.0
+            type: integer
           - type: 'null'
           title: Position
         priority:
@@ -353,13 +350,6 @@ components:
           minLength: 1
           title: Name
           type: string
-        position:
-          anyOf:
-          - minimum: 0.0
-            type: integer
-          - type: 'null'
-          default: 0
-          title: Position
       required:
       - name
       title: TableCreate
@@ -445,11 +435,42 @@ components:
           title: Name
         position:
           anyOf:
-          - minimum: 0.0
+          - maximum: 10.0
+            minimum: 1.0
             type: integer
           - type: 'null'
           title: Position
       title: TableUpdate
+      type: object
+    UpdateRowPositionRequest:
+      properties:
+        newPosition:
+          description: New position for the row in the table
+          maximum: 30.0
+          minimum: 1.0
+          title: Newposition
+          type: integer
+        targetTableId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: ID of the target table if moving to a different table
+          title: Targettableid
+      required:
+      - newPosition
+      title: UpdateRowPositionRequest
+      type: object
+    UpdateTablePositionRequest:
+      properties:
+        newPosition:
+          description: New position for the table in the board
+          maximum: 10.0
+          minimum: 1.0
+          title: Newposition
+          type: integer
+      required:
+      - newPosition
+      title: UpdateTablePositionRequest
       type: object
     UserCreate:
       properties:
@@ -595,7 +616,7 @@ paths:
       tags:
       - auth
   /api/v1/auth/logout:
-    get:
+    post:
       operationId: logout
       parameters:
       - in: cookie
@@ -1211,6 +1232,57 @@ paths:
       summary: Duplicate Table
       tags:
       - table
+  /api/v1/boards/{board_id}/tables/{table_id}/position:
+    patch:
+      description: Update table position
+      operationId: update_table_position
+      parameters:
+      - in: path
+        name: board_id
+        required: true
+        schema:
+          format: uuid
+          title: Board Id
+          type: string
+      - in: path
+        name: table_id
+        required: true
+        schema:
+          format: uuid
+          title: Table Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTablePositionRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TableRead'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              example:
+                error:
+                  code: INTERNAL_SERVER_ERROR
+                  message: An unexpected error occurred. Please try again later.
+              schema:
+                $ref: '#/components/schemas/ErrorResponseModel'
+          description: Internal Server Error
+      summary: Update Table Position
+      tags:
+      - table
   /api/v1/boards/{board_id}/tables/{table_id}/rows/:
     post:
       operationId: create_row
@@ -1483,6 +1555,57 @@ paths:
                 $ref: '#/components/schemas/ErrorResponseModel'
           description: Internal Server Error
       summary: Add Owner
+      tags:
+      - row
+  /api/v1/boards/{board_id}/tables/{table_id}/rows/{row_id}/position:
+    patch:
+      description: Update the position of a row
+      operationId: update_row_position
+      parameters:
+      - in: path
+        name: table_id
+        required: true
+        schema:
+          format: uuid
+          title: Table Id
+          type: string
+      - in: path
+        name: row_id
+        required: true
+        schema:
+          format: uuid
+          title: Row Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRowPositionRequest'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RowRead'
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              example:
+                error:
+                  code: INTERNAL_SERVER_ERROR
+                  message: An unexpected error occurred. Please try again later.
+              schema:
+                $ref: '#/components/schemas/ErrorResponseModel'
+          description: Internal Server Error
+      summary: Update Row Position
       tags:
       - row
   /api/v1/health:

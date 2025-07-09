@@ -1,0 +1,100 @@
+2025-07-09 00:25:56 | ERROR | app | Unhandled error occurred
+Traceback (most recent call last):
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\middleware\errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\middleware\cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\middleware\cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\middleware\exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\fastapi\routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\fastapi\routing.py", line 212, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\app\api\routes\v1\row_route.py", line 18, in create_row
+    return await row_service.create_row(table_id, current_user.id, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\app\api\services\row_service.py", line 46, in create_row
+    existing_rows = await self.row_repository.get_all(table_id=table_id)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: BaseRepository.get_all() got an unexpected keyword argument 'table_id'
+2025-07-09 00:27:51 | WARNING | app | [401] AccessTokenExpiredError: Expired token
+2025-07-09 00:27:51 | ERROR | app | Unhandled error occurred
+Traceback (most recent call last):
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\middleware\errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\middleware\cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\middleware\cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\middleware\exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\starlette\routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\fastapi\routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\.venv\Lib\site-packages\fastapi\routing.py", line 212, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\app\api\routes\v1\row_route.py", line 18, in create_row
+    return await row_service.create_row(table_id, current_user.id, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\oferg\Desktop\dev\monday-lite\apps\api\app\api\services\row_service.py", line 51, in create_row
+    new_row = Row(
+              ^^^^
+TypeError: app.database_models.row.Row() got multiple values for keyword argument 'name'
+2025-07-09 00:43:49 | WARNING | app | [401] AccessTokenExpiredError: Expired token
+2025-07-09 01:01:34 | WARNING | app | [401] AccessTokenExpiredError: Expired token
+2025-07-09 14:48:59 | INFO | app | Server started successfully
+2025-07-09 14:52:22 | WARNING | app | [401] AccessTokenExpiredError: Expired token
+2025-07-09 15:08:36 | WARNING | app | [401] AccessTokenExpiredError: Expired token
+2025-07-09 15:38:17 | WARNING | app | [401] AccessTokenExpiredError: Expired token
+2025-07-09 15:57:48 | WARNING | app | [401] AccessTokenExpiredError: Expired token
+2025-07-09 16:49:15 | WARNING | app | [401] AccessTokenExpiredError: Expired token
+2025-07-09 17:07:28 | WARNING | app | [401] AccessTokenExpiredError: Expired token
+2025-07-09 17:25:13 | WARNING | app | [401] AccessTokenExpiredError: Expired token
+2025-07-09 18:35:17 | WARNING | app | [401] AccessTokenExpiredError: Expired token
+2025-07-09 19:45:48 | WARNING | app | [401] AccessTokenExpiredError: Expired token
+2025-07-09 23:19:42 | INFO | app | Server started successfully
+2025-07-09 23:20:21 | WARNING | app | [401] AccessTokenExpiredError: Expired token
+2025-07-09 23:45:59 | WARNING | app | [401] AccessTokenExpiredError: Expired token

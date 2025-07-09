@@ -1,11 +1,19 @@
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { ChevronDown, Plus } from 'lucide-react';
-import React, { ReactElement } from 'react';
+import React, { ReactElement, useCallback, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { Button } from '@/components';
 
-import { useCreateRowMutation, useGetBoardByIdQuery } from '../services/board.service';
+import {
+  useCreateRowMutation,
+  useGetBoardByIdQuery,
+  useUpdateTablePositionMutation
+} from '../services/board.service';
+import { ITable } from '../types';
 import BoardTable from './table/BoardTable';
+import DraggableTable from './table/DraggableTable';
 
 export interface SelectedBoardProps {
   showCreateTableDialog: () => void;
@@ -38,6 +46,72 @@ export const SelectedBoard: React.FC<SelectedBoardProps> = ({
   });
 
   const [createRow] = useCreateRowMutation();
+  const [updateTablePosition] = useUpdateTablePositionMutation();
+  const [activeTable, setActiveTable] = useState<ITable | null>(null);
+
+  const sortedTables = useMemo(() => {
+    return board?.tables?.slice().sort((a, b) => a.position - b.position) || [];
+  }, [board?.tables]);
+
+  const tableIds = useMemo(() => sortedTables.map((table) => table.id), [sortedTables]);
+
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      const { active } = event;
+      if (active.data.current?.type === 'table') {
+        const draggedTable = sortedTables.find((table) => table.id === active.id);
+        setActiveTable(draggedTable || null);
+      }
+    },
+    [sortedTables]
+  );
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event;
+      setActiveTable(null);
+
+      if (!over || active.id === over.id) {
+        return;
+      }
+      if (active.data.current?.type !== 'table' || over.data.current?.type !== 'table') {
+        return;
+      }
+
+      const targetIndex = sortedTables.findIndex((table) => table.id === over.id);
+      const newPosition = targetIndex + 1;
+
+      try {
+        await updateTablePosition({
+          boardId: boardId!,
+          tableId: active.id as string,
+          newPosition
+        }).unwrap();
+      } catch (error) {
+        console.error('Failed to update table position:', error);
+      }
+    },
+    [boardId, sortedTables, updateTablePosition]
+  );
+
+  const handleAddRow = useCallback(
+    async (tableId: string, taskName: string = 'New Task') => {
+      if (!boardId) {
+        return;
+      }
+
+      try {
+        await createRow({
+          tableId,
+          boardId,
+          name: taskName
+        }).unwrap();
+      } catch (error) {
+        console.error('Failed to create row:', error);
+      }
+    },
+    [boardId, createRow]
+  );
 
   if (!boardId || !board) {
     return (
@@ -55,22 +129,9 @@ export const SelectedBoard: React.FC<SelectedBoardProps> = ({
     );
   }
 
-  const handleAddRow = async (tableId: string, taskName: string = 'New Task') => {
-    try {
-      await createRow({
-        tableId,
-        boardId,
-        name: taskName,
-        position: board.tables?.find((t) => t.id === tableId)?.rows?.length || 0
-      }).unwrap();
-    } catch (error) {
-      console.error('Failed to create row:', error);
-    }
-  };
-
   return (
-    <div className="flex flex-col gap-6 p-2 h-screen">
-      {!board.tables || board.tables.length === 0 ? (
+    <div className="flex flex-1 flex-col gap-6 p-2 h-full">
+      {sortedTables.length === 0 ? (
         <EmptyTablesView showCreateTableDialog={showCreateTableDialog} />
       ) : (
         <>
@@ -82,27 +143,42 @@ export const SelectedBoard: React.FC<SelectedBoardProps> = ({
           </div>
 
           <div className="flex-1 overflow-y-auto pl-10">
-            <div className="flex flex-col gap-4">
-              {board.tables.map((table) => (
-                <BoardTable
-                  key={table.id}
-                  table={table}
-                  boardId={board.id}
-                  onAddRow={handleAddRow}
-                  boardMembers={board.members}
-                />
-              ))}
+            <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+              <SortableContext items={tableIds} strategy={verticalListSortingStrategy}>
+                <div className="flex flex-col gap-4">
+                  {sortedTables.map((table) => (
+                    <DraggableTable
+                      key={table.id}
+                      table={table}
+                      boardId={board.id}
+                      onAddRow={handleAddRow}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
 
-              <div className="flex justify-start pt-4 pb-6">
-                <Button
-                  onClick={showCreateTableDialog}
-                  variant={'outline'}
-                  className="px-4 py-2 h-auto leading-3"
-                >
-                  <Plus size={26} className="w-6 h-auto" />
-                  Add new table
-                </Button>
-              </div>
+              <DragOverlay dropAnimation={null}>
+                {activeTable && (
+                  <div className="opacity-90 rotate-1 scale-105 shadow-2xl border-2 border-blue-400 rounded-lg">
+                    <BoardTable
+                      table={activeTable}
+                      boardId={board.id}
+                      onAddRow={handleAddRow}
+                    />
+                  </div>
+                )}
+              </DragOverlay>
+            </DndContext>
+
+            <div className="flex justify-start pt-4 pb-6">
+              <Button
+                onClick={showCreateTableDialog}
+                variant={'outline'}
+                className="px-4 py-2 h-auto leading-3"
+              >
+                <Plus size={26} className="w-6 h-auto" />
+                Add new table
+              </Button>
             </div>
           </div>
         </>

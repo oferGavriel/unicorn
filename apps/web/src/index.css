@@ -35,7 +35,7 @@
     --workspace-bg: #503131;
     --board-list-bg: #202020;
     --board-list-hover-bg: #2a2a2a;
-    --border: #636363;
+    --table-border: #636363;
     --board-table-color: #2c2c2c;
     --dialog-bg: #111111;
     --input-border-color: #8d8d8d;
@@ -116,13 +116,16 @@
 
 @layer base {
   body {
-    @apply border-border font-sans;
+    @apply font-sans;
     @apply h-full w-full overflow-auto bg-[#212121] text-white;
   }
 }
 
 .dialog {
   @apply bg-dialog-bg border-none p-8 rounded-2xl primary-shadow;
+}
+.dialog-dropdown {
+  @apply bg-[#2C2C2C] border-none p-2 rounded-lg dialog-shadow;
 }
 .menu-dialog {
   @apply bg-secondary border-0 rounded-lg shadow-[0px_6px_20px_#000000];
@@ -157,10 +160,20 @@
 .primary-shadow {
   @apply shadow-[0_25px_50px_-15px_rgba(0,0,0,0.7)];
 }
+.dialog-shadow {
+  @apply shadow-[0px_6px_20px_#000000];
+}
 .overlay-bottom {
   @apply absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none z-20;
 }
 
 .board-list-menu-item {
   @apply flex items-center gap-2 cursor-pointer;
+}
+
+.board-table > * {
+  @apply select-none;
+}
+.summary-box {
+  @apply h-full flex items-center justify-center text-xs text-white font-medium hover:h-8 transition-all duration-200 ease-in-out hover:rounded-md hover:duration-0;
 }

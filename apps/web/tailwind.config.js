@@ -23,6 +23,7 @@ export default {
         'dialog-bg': 'var(--dialog-bg)',
         'input-border-color': 'var(--input-border-color)',
         'selected-board-bg': 'var(--selected-board-bg)',
+        'table-border': 'var(--table-border)',
 
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',

@@ -1,6 +1,14 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useEffect } from 'react';
 
 import { Button } from '@/components';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
 
 export interface ConfirmDialogProps {
   isOpen: boolean;
@@ -26,76 +34,33 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onCancel,
   confirmBtnDataTestId,
   cancelBtnDataTestId
-}): React.ReactElement | null => {
-  const handleKeydown = useCallback(
-    (e: KeyboardEvent) => {
-      if (!isOpen) {
-        return;
-      }
-
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onCancel();
-      }
-
-      if (e.key === 'Enter') {
-        e.preventDefault();
+}) => {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Enter' && isOpen) {
+        event.preventDefault();
         onConfirm();
       }
-    },
-    [isOpen, onConfirm, onCancel]
-  );
-
-  const handleBackdropClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (e.target === e.currentTarget) {
-        onCancel();
-      }
-    },
-    [onCancel]
-  );
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    document.addEventListener('keydown', handleKeydown);
-    return () => document.removeEventListener('keydown', handleKeydown);
-  }, [isOpen, handleKeydown]);
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-
-    return () => {
-      document.body.style.overflow = '';
     };
-  }, [isOpen]);
 
-  if (!isOpen) {
-    return null;
-  }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onConfirm]);
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      onClick={handleBackdropClick}
-    >
-      <div className="dialog " onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
-          {title}
-        </h3>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent className="dialog">
+        <DialogHeader>
+          <DialogTitle className="text-gray-900 dark:text-gray-100">{title}</DialogTitle>
+          <DialogDescription
+            className="text-gray-600 dark:text-gray-300"
+            dangerouslySetInnerHTML={{ __html: message }}
+          />
+        </DialogHeader>
 
-        <div
-          className="text-gray-600 dark:text-gray-300 mb-6 whitespace-pre-line"
-          dangerouslySetInnerHTML={{ __html: message }}
-        />
-
-        <div className="flex gap-2 justify-end">
+        <DialogFooter className="gap-2">
           <Button
             variant="ghost"
             onClick={onCancel}
@@ -107,7 +72,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           </Button>
 
           <Button
-            variant="primary"
+            variant="destructive"
             onClick={onConfirm}
             disabled={isLoading}
             className="min-w-16"
@@ -115,8 +80,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           >
             {isLoading ? 'Loading...' : confirmText}
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

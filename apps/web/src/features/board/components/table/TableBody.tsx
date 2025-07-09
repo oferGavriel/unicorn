@@ -1,48 +1,67 @@
-import { flexRender, type Table as TanStackTable } from '@tanstack/react-table';
-import React from 'react';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { type Table as TanStackTable } from '@tanstack/react-table';
+import React, { useMemo } from 'react';
 
-import { CellTypeEnum } from '../../types';
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
+
+import { useRowOperations } from '../../hooks/useRowOperations';
 import { IRow } from '../../types/row.interface';
-// import DraggableRow from './DraggableRow';
+import DraggableRow from './DraggableRow';
 
 interface TableBodyProps {
   table: TanStackTable<IRow>;
+  boardId: string;
+  tableId: string;
 }
 
-const TableBody: React.FC<TableBodyProps> = ({ table }) => {
+const TableBody: React.FC<TableBodyProps> = ({ table, boardId, tableId }) => {
+  const {
+    deleteRowData,
+    isDeletingRow,
+    handleDuplicateRow,
+    handleDeleteRow,
+    confirmDeleteRow,
+    cancelDeleteRow
+  } = useRowOperations({ boardId, tableId });
+
   const rows = table.getRowModel().rows;
+  const rowIds = useMemo(() => rows.map((row) => row.id), [rows]);
+
   if (rows.length === 0) {
-    return <div></div>;
+    return <div className="board-table-body bg-board-table-color"></div>;
   }
 
   return (
-    <div className="board-table-body">
-      {rows.map((row) => (
-        <div
-          key={row.id}
-          className="flex transition-colors hover:bg-[#2a2a2a] group min-h-[36px] items-center"
-        >
-          {row.getVisibleCells().map((cell) => {
-            const isIndicator = cell.column.id === CellTypeEnum.INDICATOR;
-            const isSpacer = cell.column.id === CellTypeEnum.SPACER;
+    <>
+      <div className="board-table-body bg-board-table-color">
+        <SortableContext items={rowIds} strategy={verticalListSortingStrategy}>
+          {rows.map((row) => (
+            <DraggableRow
+              key={row.id}
+              row={row}
+              tableId={tableId}
+              boardId={boardId}
+              onDuplicate={handleDuplicateRow}
+              onDelete={handleDeleteRow}
+              isDeleting={isDeletingRow}
+            />
+          ))}
+        </SortableContext>
+      </div>
 
-            return (
-              <div
-                key={cell.id}
-                className={`board-table-body-cell h-9 ${isSpacer ? 'flex-1' : ''}`}
-                style={{
-                  width: isIndicator ? '6px' : `${cell.column.getSize()}px`
-                }}
-              >
-                <div className={'h-full w-full'}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ))}
-    </div>
+      <ConfirmDialog
+        isOpen={!!deleteRowData}
+        title="Delete Row"
+        message={`Are you sure you want to delete "${deleteRowData?.rowName}"?`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isLoading={isDeletingRow}
+        onConfirm={confirmDeleteRow}
+        onCancel={cancelDeleteRow}
+        confirmBtnDataTestId="delete-row-confirm-btn"
+        cancelBtnDataTestId="delete-row-cancel-btn"
+      />
+    </>
   );
 };
 

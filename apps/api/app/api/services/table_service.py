@@ -34,11 +34,15 @@ class TableService(BaseService[Table, TableRead]):
     async def create_table(self, board_id: UUID, user_id: UUID, data: TableCreate) -> TableRead:
         await self._check_if_board_exists(board_id, user_id)
 
+        existing_tables = await self.table_repository.list_by_board(board_id)
+        next_position = len(existing_tables) + 1 if existing_tables else 1
+
         table_data = data.model_dump(exclude_none=True)
 
         payload = Table(
             id=uuid4(),
             board_id=board_id,
+            position=next_position,
             **table_data,
         )
         result = await self.table_repository.create(payload)
@@ -72,8 +76,6 @@ class TableService(BaseService[Table, TableRead]):
 
         source_table = await self._get_table_entity(table_id, board_id)
 
-        print("source_table:", source_table)
-
         if not source_table:
             raise NotFoundError(message=f"Table with ID {table_id} not found")
 
@@ -93,6 +95,36 @@ class TableService(BaseService[Table, TableRead]):
 
         return self.convert_to_model(new_table)
 
+    async def update_table_position(self, table_id: UUID, board_id: UUID, user_id: UUID, new_position: int) -> TableRead:
+        await self._check_if_board_exists(board_id, user_id)
+
+        table = await self._get_table_entity(table_id, board_id)
+        all_tables = await self._get_normalized_table_positions(board_id)
+
+        old_position = table.position
+
+        if new_position < 1 or new_position > len(all_tables):
+            raise ValueError(f"New position {new_position} is out of bounds for the current table list.")
+
+        if old_position == new_position:
+            return self.convert_to_model(table)
+
+        if old_position < new_position:
+            # moving down: shift tables between old_position+1 and new_position up by 1
+            for t in all_tables:
+                if old_position < t.position <= new_position:
+                    await self.table_repository.update(t, {'position': t.position - 1})
+        else:
+            # moving up: shift tables between new_position and old_position-1 down by 1
+            for t in all_tables:
+                if new_position <= t.position < old_position:
+                    await self.table_repository.update(t, {'position': t.position + 1})
+
+        await self.table_repository.update(table, {'position': new_position})
+
+        updated_table = await self._get_table_entity(table_id, board_id)
+        return self.convert_to_model(updated_table)
+
     async def _check_if_board_exists(self, board_id: UUID, user_id: UUID) -> None:
         await self.board_service.get_board_entity(board_id, user_id)
 
@@ -101,6 +133,13 @@ class TableService(BaseService[Table, TableRead]):
         if not table:
             raise NotFoundError(message=f"Table with ID {table_id} not found")
         return table
+
+    async def _get_normalized_table_positions(self, board_id: UUID) -> List[Table]:
+        tables = await self.table_repository.list_by_board(board_id)
+        for index, table in enumerate(tables, start=1):
+            if table.position != index:
+                await self.table_repository.update(table, {'position': index})
+        return tables
 
 
 TableServiceDep = Annotated[TableService, Depends(TableService)]

@@ -1,6 +1,6 @@
 from uuid import UUID
 from fastapi import APIRouter, status
-from app.api.models.row_model import RowCreate, RowRead, RowUpdate, RowOwnerRead
+from app.api.models.row_model import RowCreate, RowRead, RowUpdate, RowOwnerRead, UpdateRowPositionRequest
 from app.api.services.row_service import RowServiceDep
 from app.DI.current_user import CurrentUserDep
 from app.database_models.user import User
@@ -71,3 +71,19 @@ async def duplicate_row(
     current_user: User = CurrentUserDep,
 ) -> RowRead:
     return await row_service.duplicate_row(row_id, table_id, current_user.id)
+
+
+@router.patch(
+    "/{row_id}/position",
+    response_model=RowRead,
+    status_code=status.HTTP_200_OK,
+    description="Update the position of a row",
+)
+async def update_row_position(
+    table_id: UUID,
+    row_id: UUID,
+    data: UpdateRowPositionRequest,
+    row_service: RowServiceDep,
+    current_user: User = CurrentUserDep,
+) -> RowRead:
+    return await row_service.update_row_position(row_id, table_id, current_user.id, data.new_position, data.target_table_id)

@@ -29,7 +29,7 @@ export const createAuthenticatedStore = (user = mockUser) => {
 
   // Dispatch login action to set authenticated state
   store.dispatch({
-    type: 'authUser/setAuthUser',
+    type: 'authUser/setUser',
     payload: user
   });
 
