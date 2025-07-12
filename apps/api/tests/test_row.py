@@ -22,7 +22,7 @@ async def test_create_row() -> None:
     assert data["name"] == "Task 1"
     assert data["tableId"] == table_id
     assert data["id"] is not None
-    assert data["position"] == 0
+    assert data["position"] == 1
 
 
 @pytest.mark.anyio

@@ -452,7 +452,8 @@ components:
           type: integer
         targetTableId:
           anyOf:
-          - type: string
+          - format: uuid
+            type: string
           - type: 'null'
           description: ID of the target table if moving to a different table
           title: Targettableid

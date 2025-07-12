@@ -73,7 +73,7 @@ async def test_logout(async_client: AsyncClient):
     refresh_token = register_resp.cookies.get("refresh_token")
     async_client.cookies.set("refresh_token", refresh_token)
 
-    logout_resp = await async_client.get("/api/v1/auth/logout")
+    logout_resp = await async_client.post("/api/v1/auth/logout")
     assert logout_resp.status_code == HTTPStatus.NO_CONTENT
 
 

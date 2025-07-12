@@ -42,4 +42,4 @@ class RowRead(BaseSchema):
 
 class UpdateRowPositionRequest(BaseSchema):
     new_position: int = Field(..., ge=1, le=30, description="New position for the row in the table")
-    target_table_id: Optional[str] = Field(None, description="ID of the target table if moving to a different table")
+    target_table_id: Optional[UUID] = Field(None, description="ID of the target table if moving to a different table")

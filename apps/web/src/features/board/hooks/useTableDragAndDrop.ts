@@ -1,7 +1,7 @@
 import {
-  DragStartEvent,
-  DragOverEvent,
   DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
   PointerSensor,
   useSensor,
   useSensors
@@ -9,10 +9,10 @@ import {
 import { useCallback, useState } from 'react';
 
 import {
-  useUpdateTablePositionMutation,
-  useUpdateRowPositionMutation
+  useUpdateRowPositionMutation,
+  useUpdateTablePositionMutation
 } from '../services/board.service';
-import { ITable, IRow } from '../types';
+import { IRow, ITable } from '../types';
 
 interface Props {
   boardId: string;
@@ -44,7 +44,9 @@ export const useBoardDragAndDrop = ({ boardId, tables }: Props) => {
   const handleDragStart = useCallback(
     (e: DragStartEvent) => {
       const data = e.active.data.current;
-      if (!data) return;
+      if (!data) {
+        return;
+      }
 
       if (data.type === 'table') {
         setDragState({
@@ -94,12 +96,17 @@ export const useBoardDragAndDrop = ({ boardId, tables }: Props) => {
 
       setDragState({ activeTable: null, activeRow: null, dropTargetTable: null });
 
-      if (!over || active.id === over.id || !activeData) return;
+      if (!over || active.id === over.id || !activeData) {
+        return;
+      }
 
       /* table ⇄ table */
       if (activeData.type === 'table' && overData?.type === 'table') {
         const newIdx = tables.findIndex((t) => t.id === overData.tableId);
-        if (newIdx === -1) return;
+        if (newIdx === -1) {
+          return;
+        }
+
         try {
           await updateTablePosition({
             boardId,

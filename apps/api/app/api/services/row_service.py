@@ -1,4 +1,4 @@
-from typing import Annotated, List
+from typing import Annotated, List, Optional
 from uuid import uuid4, UUID
 from fastapi import Depends
 from app.api.dal.row_repository import RowRepositoryDep
@@ -105,42 +105,14 @@ class RowService(BaseService[Row, RowRead]):
         return self.row_to_read(new_row)
 
     async def update_row_position(  # noqa: PLR0913
-        self, row_id: UUID, source_table_id: UUID, user_id: UUID, new_position: int, target_table_id: UUID
+        self, row_id: UUID, source_table_id: UUID, user_id: UUID, new_position: int, target_table_id: Optional[UUID]
     ) -> RowRead:
         await self._check_if_table_exists(source_table_id, user_id)
 
-        if self._is_moving_between_tables(source_table_id, target_table_id):
-            await self._check_if_table_exists(target_table_id, user_id)
+        if target_table_id is not None and source_table_id != target_table_id:
             return await self._move_row_between_tables(row_id, source_table_id, target_table_id, new_position)
         else:
             return await self._reorder_row_within_table(row_id, source_table_id, new_position)
-
-        # row = await self._get_row_entity(row_id, source_table_id)
-        # all_rows = await self._get_normalized_row_positions(source_table_id)
-
-        # old_position = row.position
-
-        # if new_position < 1 or new_position > len(all_rows):
-        #     raise ValueError(f"New position {new_position} is out of bounds for the current row list.")
-
-        # if old_position == new_position:
-        #     return self.row_to_read(row)
-
-        # if old_position < new_position:
-        #     # moving down: shift rows between old_position+1 and new_position up by 1
-        #     for r in all_rows:
-        #         if old_position < r.position <= new_position:
-        #             await self.row_repository.update(r, {'position': r.position - 1})
-        # else:
-        #     # moving up: shift rows between new_position and old_position-1 down by 1
-        #     for r in all_rows:
-        #         if new_position <= r.position < old_position:
-        #             await self.row_repository.update(r, {'position': r.position + 1})
-
-        # await self.row_repository.update(row, {'position': new_position})
-
-        # updated_row = await self._get_row_entity(row_id, source_table_id)
-        # return self.row_to_read(updated_row)
 
     def row_to_read(self, row: Row) -> RowRead:
         owners = [
@@ -148,9 +120,6 @@ class RowService(BaseService[Row, RowRead]):
             for u in row.owner_users
         ]
         return convert_to_model(row, RowRead, custom_mapping={"owners": owners})
-
-    def _is_moving_between_tables(self, source_table_id: UUID, target_table_id: UUID = None) -> bool:
-        return target_table_id and source_table_id != target_table_id
 
     async def _move_row_between_tables(
         self, row_id: UUID, source_table_id: UUID, target_table_id: UUID, new_position: int
