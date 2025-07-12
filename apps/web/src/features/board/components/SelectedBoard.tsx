@@ -131,58 +131,60 @@ export const SelectedBoard: React.FC<SelectedBoardProps> = ({
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-2 h-full">
-      {sortedTables.length === 0 ? (
-        <EmptyTablesView showCreateTableDialog={showCreateTableDialog} />
-      ) : (
-        <>
-          <div className="py-4 pl-4 pr-2">
-            <div className="flex items-center gap-2 cursor-pointer rounded-sm py-1 px-2 -mt-1 w-fit hover:bg-accent">
-              <h2 className="text-2xl font-bold text-[#eeeeee]">{board.name}</h2>
-              <ChevronDown size={25} className="text-[#aaaaaa]" />
+      <div className="h-full overflow-y-auto">
+        {sortedTables.length === 0 ? (
+          <EmptyTablesView showCreateTableDialog={showCreateTableDialog} />
+        ) : (
+          <>
+            <div className="py-4 pl-4 pr-2 sticky top-0 bg-selected-board-bg z-10">
+              <div className="flex items-center gap-2 cursor-pointer rounded-sm py-1 px-2 -mt-1 w-fit hover:bg-accent">
+                <h2 className="text-2xl font-bold text-[#eeeeee]">{board.name}</h2>
+                <ChevronDown size={25} className="text-[#aaaaaa]" />
+              </div>
             </div>
-          </div>
 
-          <div className="flex-1 overflow-y-auto pl-10">
-            <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-              <SortableContext items={tableIds} strategy={verticalListSortingStrategy}>
-                <div className="flex flex-col gap-4">
-                  {sortedTables.map((table) => (
-                    <DraggableTable
-                      key={table.id}
-                      table={table}
-                      boardId={board.id}
-                      onAddRow={handleAddRow}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-
-              <DragOverlay dropAnimation={null}>
-                {activeTable && (
-                  <div className="opacity-90 rotate-1 scale-105 shadow-2xl border-2 border-blue-400 rounded-lg">
-                    <BoardTable
-                      table={activeTable}
-                      boardId={board.id}
-                      onAddRow={handleAddRow}
-                    />
+            <div className="flex-1 pl-10">
+              <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                <SortableContext items={tableIds} strategy={verticalListSortingStrategy}>
+                  <div className="flex flex-col gap-4">
+                    {sortedTables.map((table) => (
+                      <DraggableTable
+                        key={table.id}
+                        table={table}
+                        boardId={board.id}
+                        onAddRow={handleAddRow}
+                      />
+                    ))}
                   </div>
-                )}
-              </DragOverlay>
-            </DndContext>
+                </SortableContext>
 
-            <div className="flex justify-start pt-4 pb-6">
-              <Button
-                onClick={showCreateTableDialog}
-                variant={'outline'}
-                className="px-4 py-2 h-auto leading-3"
-              >
-                <Plus size={26} className="w-6 h-auto" />
-                Add new table
-              </Button>
+                <DragOverlay dropAnimation={null}>
+                  {activeTable && (
+                    <div className="opacity-90 rotate-1 scale-105 shadow-2xl border-2 border-blue-400 rounded-lg">
+                      <BoardTable
+                        table={activeTable}
+                        boardId={board.id}
+                        onAddRow={handleAddRow}
+                      />
+                    </div>
+                  )}
+                </DragOverlay>
+              </DndContext>
+
+              <div className="flex justify-start pt-4 pb-6">
+                <Button
+                  onClick={showCreateTableDialog}
+                  variant={'outline'}
+                  className="px-4 py-2 h-auto leading-3"
+                >
+                  <Plus size={26} className="w-6 h-auto" />
+                  Add new table
+                </Button>
+              </div>
             </div>
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 };

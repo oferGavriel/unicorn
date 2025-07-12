@@ -50,7 +50,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
 
   if (isEditing || autoEdit) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2" data-editable-text>
         <input
           ref={inputRef}
           type="text"
@@ -74,6 +74,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
       style={style}
       onClick={startEditing}
       title={title}
+      data-editable-text
     >
       {value}
     </span>

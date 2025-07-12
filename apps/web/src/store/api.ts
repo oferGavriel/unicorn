@@ -6,9 +6,8 @@ import {
   fetchBaseQuery,
   FetchBaseQueryError
 } from '@reduxjs/toolkit/query/react';
-import { toast } from 'sonner';
 
-import { ApiErrorResponse, ErrorCodes } from '@/shared/shared.interface';
+import { ApiErrorResponse, ErrorCodes } from '@/store/errorHandler';
 import { clearLoggedInUser } from '@/utils/utils.service';
 
 const BASE_ENDPOINT = import.meta.env.VITE_API_URL;
@@ -36,23 +35,24 @@ const baseQuery = fetchBaseQuery({
     headers.set('Content-Type', 'application/json');
     return headers;
   },
-  credentials: 'include'
+  credentials: 'include',
+  timeout: 10000
 });
 
-const handleApiError = (error: FetchBaseQueryError): void => {
-  let message: string = 'An unexpected error occurred';
+// const handleApiError = (error: FetchBaseQueryError): void => {
+//   let message: string = 'An unexpected error occurred';
 
-  if (isApiErrorResponse(error.data)) {
-    message = error.data.message;
-  } else if (typeof error.data === 'string') {
-    message = error.data;
-  }
+//   if (isApiErrorResponse(error.data)) {
+//     message = error.data.message;
+//   } else if (typeof error.data === 'string') {
+//     message = error.data;
+//   }
 
-  toast.error(message, {
-    id: `api-error-${Date.now()}`,
-    dismissible: true
-  });
-};
+//   toast.error(message, {
+//     id: `api-error-${Date.now()}`,
+//     dismissible: true
+//   });
+// };
 
 const baseQueryWithReAuth: BaseQueryFn<
   string | FetchArgs,
@@ -68,7 +68,6 @@ const baseQueryWithReAuth: BaseQueryFn<
       switch (errorCode) {
         case ErrorCodes.ACCESS_TOKEN_EXPIRED: {
           console.log('Access token expired, attempting to refresh...');
-
           const refreshResult = await handleTokenRefresh(api, extraOptions);
           if (refreshResult.success) {
             console.log('Token refreshed successfully, retrying original request...');
@@ -86,13 +85,10 @@ const baseQueryWithReAuth: BaseQueryFn<
           break;
         }
         default: {
-          handleApiError(result.error);
-          console.error(`default error: ${errorCode}`);
+          console.error(`API error: ${errorCode}: ${result.error}`);
           break;
         }
       }
-    } else {
-      handleApiError(result.error);
     }
   }
 
@@ -138,7 +134,8 @@ export const api = createApi({
   reducerPath: 'clientApi',
   baseQuery: baseQueryWithReAuth,
   endpoints: () => ({}),
-  tagTypes: ['Auth', 'User', 'Board', 'Task', 'Table', 'Row']
+  tagTypes: ['Auth', 'User', 'Board', 'Task', 'Table', 'Row'],
+  refetchOnReconnect: true
 });
 
 // utility functions for error handling

@@ -10,7 +10,7 @@ interface TableHeaderProps {
 
 const TableHeader: React.FC<TableHeaderProps> = ({ table }) => {
   return (
-    <div className="bg-board-table-color text-gray-400">
+    <div className="bg-board-table-color text-gray-400 sticky top-0 z-20">
       {table.getHeaderGroups().map((headerGroup) => (
         <div key={headerGroup.id} className="flex">
           {headerGroup.headers.map((header) => {

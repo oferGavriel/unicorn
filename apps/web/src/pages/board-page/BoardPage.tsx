@@ -120,7 +120,7 @@ const BoardPage: React.FC<BoardPageProps> = (): ReactElement => {
   }, [logout]);
 
   return (
-    <div className="bg-[#212121] h-screen flex flex-col p-2 pt-1 gap-1">
+    <div className="bg-[#212121] h-screen flex flex-col p-2 pt-1 gap-1 ">
       <header className="flex items-center justify-between pl-1 pr-3">
         <div className="p-2 rounded-sm cursor-pointer hover:bg-accent">
           <img src="/full_logo.png" alt="" className="w-24" />
@@ -134,7 +134,7 @@ const BoardPage: React.FC<BoardPageProps> = (): ReactElement => {
         />
       </header>
 
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-0">
         {isLoadingBoards ? (
           <Spinner />
         ) : boards.length === 0 ? (
@@ -151,7 +151,7 @@ const BoardPage: React.FC<BoardPageProps> = (): ReactElement => {
               setShowCreateBoardDialog={setShowCreateBoardDialog}
             />
 
-            <main className="bg-[#111111] border-gray-700 rounded-xl flex-1 overflow-y-hidden primary-shadow">
+            <main className="bg-selected-board-bg border-gray-700 rounded-xl flex-1 primary-shadow">
               <SelectedBoard
                 showCreateTableDialog={() => setShowCreateTableDialog(true)}
               />

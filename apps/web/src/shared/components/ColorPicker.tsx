@@ -26,7 +26,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
   };
 
   return (
-    <div className={className}>
+    <div className={className} data-color-picker>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button

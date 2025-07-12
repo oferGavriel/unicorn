@@ -68,6 +68,31 @@ const BoardTable: React.FC<BoardTableProps> = ({
     return [...(table.rows || [])].sort((a, b) => a.position - b.position);
   }, [table.rows]);
 
+  const filteredDragListeners = useMemo(() => {
+    if (!dragListeners) {
+      return undefined;
+    }
+
+    return {
+      ...dragListeners,
+      onPointerDown: (event: React.PointerEvent) => {
+        const target = event.target as Element;
+        const isInteractiveElement =
+          target.closest('[role="dialog"]') ||
+          target.closest('[role="menu"]') ||
+          target.closest('[data-editable-text]') ||
+          target.closest('[data-color-picker]');
+
+        if (isInteractiveElement) {
+          event.stopPropagation();
+          return;
+        }
+
+        dragListeners.onPointerDown?.(event);
+      }
+    };
+  }, [dragListeners]);
+
   const {
     sensors: rowSensors,
     activeRow,
@@ -177,7 +202,7 @@ const BoardTable: React.FC<BoardTableProps> = ({
         className={`group flex items-center gap-2 mx-2 relative cursor-grab active:cursor-grabbing
         ${isDragging ? 'cursor-grabbing' : ''} rounded-lg p-2 transition-colors`}
         {...dragAttributes}
-        {...dragListeners}
+        {...filteredDragListeners}
         title="Drag to reorder table"
       >
         <div
@@ -209,7 +234,7 @@ const BoardTable: React.FC<BoardTableProps> = ({
         )}
       </div>
 
-      <div className="my-2">
+      <div className="my-2 relative">
         <DndContext
           sensors={rowSensors}
           collisionDetection={closestCenter}
