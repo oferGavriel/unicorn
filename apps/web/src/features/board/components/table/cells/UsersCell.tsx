@@ -11,8 +11,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { IAuthUser } from '@/features/auth';
-import { useGetUsersQuery } from '@/features/auth/services/auth.service';
-import { boardApi } from '@/features/board/services';
+import { boardApi, useGetBoardMembersQuery } from '@/features/board/services';
 import { IRow, TableColumn } from '@/features/board/types';
 
 type UsersCellProps = {
@@ -34,9 +33,15 @@ export const UsersCell: React.FC<UsersCellProps> = ({
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
 
-  const { data: allUsers = [], isLoading: isUsersLoading } = useGetUsersQuery(undefined, {
-    skip: !column.editable || !isDropdownOpen
-  });
+  // const { data: allUsers = [], isLoading: isUsersLoading } = useGetUsersQuery(undefined, {
+  //   skip: !column.editable || !isDropdownOpen
+  // });
+  const { data: allUsers = [], isLoading: isUsersLoading } = useGetBoardMembersQuery(
+    boardId,
+    {
+      skip: !column.editable || !isDropdownOpen
+    }
+  );
 
   const [addOwnerMutation] = boardApi.useAddRowOwnerMutation();
   const [removeOwnerMutation] = boardApi.useRemoveRowOwnerMutation();

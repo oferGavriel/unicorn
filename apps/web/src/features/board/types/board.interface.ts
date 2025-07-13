@@ -1,12 +1,10 @@
-import { IAuthUser } from '@/features/auth/types/auth.interface';
-
 import { ITable } from './table.interface';
 
 export interface IBoard {
   id: string;
   name: string;
   description?: string;
-  members: IAuthUser[];
+  memberIds: string[];
   tables?: ITable[];
   order: number;
   ownerId: string;
@@ -19,7 +17,7 @@ export interface IBoardList {
   name: string;
   description?: string;
   ownerId: string;
-  members: string[];
+  memberIds: string[];
   createdAt: string;
   updatedAt: string;
 }

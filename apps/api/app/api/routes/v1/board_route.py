@@ -1,10 +1,17 @@
 from uuid import UUID
 from typing import List
 from fastapi import APIRouter, status
-from app.api.models.board_model import BoardCreate, BoardRead, BoardUpdate, BoardDetailRead
+from app.api.models.board_model import (
+    AddBoardMemberRequest,
+    BoardCreate,
+    BoardRead,
+    BoardUpdate,
+    BoardDetailRead,
+)
 from app.api.services.board_service import BoardServiceDep
 from app.DI.current_user import CurrentUserDep
 from app.database_models.user import User
+from app.api.models.user_model import UserRead
 
 router = APIRouter()
 
@@ -54,16 +61,14 @@ async def delete_board(
     await board_service.delete_board(board_id, current_user.id)
 
 
-@router.post("/{board_id}/members/{user_id}", status_code=status.HTTP_201_CREATED)
+@router.post("/{board_id}/members", status_code=status.HTTP_201_CREATED)
 async def add_member(
     board_id: UUID,
-    user_id: UUID,
+    data: AddBoardMemberRequest,
     board_service: BoardServiceDep,
     current_user: User = CurrentUserDep,
 ) -> UUID:
-    resp = await board_service.add_member(board_id, current_user.id, user_id)
-    print("Add member response:", resp)
-    return resp
+    return await board_service.add_member(board_id, current_user.id, data.user_id)
 
 
 @router.delete("/{board_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -83,3 +88,12 @@ async def duplicate_board(
     current_user: User = CurrentUserDep,
 ) -> BoardRead:
     return await board_service.duplicate_board(board_id, current_user.id)
+
+
+@router.get("/{board_id}/members", response_model=List[UserRead])
+async def get_board_members(
+    board_id: UUID,
+    board_service: BoardServiceDep,
+    current_user: User = CurrentUserDep,
+) -> List[UserRead]:
+    return await board_service.get_board_members(board_id, current_user.id)

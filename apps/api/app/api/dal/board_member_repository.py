@@ -18,6 +18,14 @@ class BoardMemberRepository(BaseRepository[BoardMember]):
         result = await self.session.execute(q)
         return list(result.scalars().all())
 
+    async def get_by_user_id(self, board_id: UUID, user_id: UUID) -> BoardMember | None:
+        q = select(BoardMember).where(
+            BoardMember.board_id == board_id,
+            BoardMember.user_id == user_id,
+        )
+        result = await self.session.execute(q)
+        return result.scalar_one_or_none()
+
     async def add(self, board_id: UUID, user_id: UUID, role: RoleEnum = RoleEnum.member) -> BoardMember:
         bm = BoardMember(board_id=board_id, user_id=user_id, role=role)
         self.session.add(bm)

@@ -34,7 +34,7 @@ export const TableMenuDialog: React.FC<TableMenuDialogProps> = ({
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="start" className="w-48 menu-dialog z-50">
+      <DropdownMenuContent align="start" className="w-48 menu-dialog">
         <DropdownMenuItem
           onClick={onDuplicate}
           disabled={isDeleting}

@@ -46,6 +46,6 @@ build-backend = "poetry.core.masonry.api"
 reportMissingTypeStubs = false
 
 [tool.black]
-line-length = 125
+line-length = 95
 target-version = ["py312"]
 skip-string-normalization = true

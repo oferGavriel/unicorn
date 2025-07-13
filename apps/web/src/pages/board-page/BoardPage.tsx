@@ -136,7 +136,7 @@ const BoardPage: React.FC<BoardPageProps> = (): ReactElement => {
 
       <div className="flex-1 flex flex-col min-h-0">
         {isLoadingBoards ? (
-          <Spinner />
+          <Spinner size="lg" text="Loading boards..." />
         ) : boards.length === 0 ? (
           <EmptyBoardsView
             onShowCreateBoardDialog={() => setShowCreateBoardDialog(true)}

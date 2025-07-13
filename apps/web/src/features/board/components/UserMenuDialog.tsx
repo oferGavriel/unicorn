@@ -34,7 +34,7 @@ export const UserMenuDialog: React.FC<UserMenuDialogProps> = ({
         </div>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-56 bg-[#2D2D30] border-gray-600">
+      <DropdownMenuContent align="end" className="w-56 menu-dialog">
         <div className="px-3 py-2">
           <p className="text-sm font-medium text-white">
             {user.firstName} {user.lastName}

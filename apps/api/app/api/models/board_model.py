@@ -31,3 +31,7 @@ class BoardRead(BaseSchema):
 
 class BoardDetailRead(BoardRead):
     tables: List[TableRead] = []
+
+
+class AddBoardMemberRequest(BaseSchema):
+    user_id: UUID = Field(..., description="ID of the user to add as a member")

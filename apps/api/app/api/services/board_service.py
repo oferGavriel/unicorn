@@ -1,4 +1,5 @@
 from uuid import uuid4, UUID
+from app.api.models.user_model import UserRead
 from fastapi import Depends
 from typing import List, Annotated
 
@@ -75,25 +76,47 @@ class BoardService(BaseService[Board, BoardRead]):
         await self.get_board_entity(board_id, user_id)
         await self.board_repository.delete(board_id, user_id)
 
+    async def get_board_members(self, board_id: UUID, user_id: UUID) -> List[UserRead]:
+        board_with_members = await self.board_repository.get_for_user(board_id, user_id)
+        if not board_with_members:
+            raise NotFoundError(f"Board with ID {board_id} not found")
+
+        return [
+            convert_to_model(member.user, UserRead)
+            for member in board_with_members.members
+            if member.user is not None
+        ]
+
     async def add_member(self, board_id: UUID, current_user_id: UUID, user_id_to_add: UUID) -> UUID:
         await self.get_board_entity(board_id, current_user_id)
+        if user_id_to_add == current_user_id:
+            raise PermissionDeniedError("You cannot add yourself as a member")
+
+        existing_member = await self.member_repository.get_by_user_id(board_id, user_id_to_add)
+        if existing_member:
+            return existing_member.id
+
         board_member = await self.member_repository.add(board_id, user_id_to_add)
         return board_member.id
 
-    async def remove_member(self, board_id: UUID, current_user_id: UUID, user_to_remove_id: UUID) -> None:
+    async def remove_member(
+        self, board_id: UUID, current_user_id: UUID, user_to_remove_id: UUID
+    ) -> None:
         await self.get_board_entity(board_id, current_user_id)
         await self.member_repository.remove(board_id, user_to_remove_id)
 
     async def duplicate_board(self, board_id: UUID, user_id: UUID) -> BoardRead:
         await self.get_board_entity(board_id, user_id)
 
-        duplication_service = DuplicationServiceFactory.create_board_service(self.board_repository.session)
+        duplication_service = DuplicationServiceFactory.create_board_service(
+            self.board_repository.session
+        )
         duplicated_board = await duplication_service.duplicate(
             source_id=board_id,
             context={
-                'user_id': user_id,
-                'include_tables': True,
-                'include_members': True,
+                "user_id": user_id,
+                "include_tables": True,
+                "include_members": True,
             },
         )
 

@@ -93,9 +93,12 @@ export const boardApi = api.injectEndpoints({
           const { data: newBoard } = await queryFulfilled;
           dispatch(
             boardApi.util.updateQueryData('getBoards', undefined, (draft) => {
+              if (!draft) {
+                draft = [];
+              }
+
               draft.push({
-                ...newBoard,
-                members: newBoard.members.map((user: IAuthUser) => user.id)
+                ...newBoard
               });
             })
           );
@@ -193,22 +196,95 @@ export const boardApi = api.injectEndpoints({
       }
     }),
 
-    addBoardMember: build.mutation<void, { boardId: string; userId: string }>({
+    addBoardMember: build.mutation<string, { boardId: string; userId: string }>({
       query: ({ boardId, userId }) => ({
         url: `/boards/${boardId}/members`,
         method: 'POST',
         body: { userId }
       }),
-      async onQueryStarted(args, { dispatch, queryFulfilled }) {
+      invalidatesTags: (_result, _error, { boardId }) => [
+        { type: 'Board', id: boardId },
+        { type: 'BoardMembers', id: boardId }
+      ],
+      async onQueryStarted({ boardId, userId }, { dispatch, queryFulfilled }) {
         try {
           await queryFulfilled;
+
+          dispatch(
+            boardApi.util.updateQueryData('getBoardById', boardId, (draft) => {
+              if (!draft.memberIds) {
+                draft.memberIds = [];
+              }
+              if (!draft.memberIds.includes(userId)) {
+                draft.memberIds.push(userId);
+              }
+            })
+          );
+
+          ErrorHandler.handleSuccess('add board member', 'Member added successfully');
         } catch (error) {
           const retryFn = () =>
-            dispatch(boardApi.endpoints.addBoardMember.initiate(args));
+            dispatch(boardApi.endpoints.addBoardMember.initiate({ boardId, userId }));
           await ErrorHandler.handleMutationError(error, {
             operation: 'add board member',
             retry: retryFn
           });
+        }
+      }
+    }),
+
+    removeBoardMember: build.mutation<void, { boardId: string; userId: string }>({
+      query: ({ boardId, userId }) => ({
+        url: `/boards/${boardId}/members/${userId}`,
+        method: 'DELETE'
+      }),
+      invalidatesTags: (_result, _error, { boardId }) => [
+        { type: 'Board', id: boardId },
+        { type: 'BoardMembers', id: boardId }
+      ],
+      async onQueryStarted({ boardId, userId }, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          boardApi.util.updateQueryData('getBoardById', boardId, (draft) => {
+            if (draft.memberIds) {
+              draft.memberIds = draft.memberIds.filter((id) => id !== userId);
+            }
+          })
+        );
+
+        try {
+          await queryFulfilled;
+          ErrorHandler.handleSuccess(
+            'remove board member',
+            'Member removed successfully'
+          );
+        } catch (error) {
+          patchResult.undo();
+          const retryFn = () =>
+            dispatch(boardApi.endpoints.removeBoardMember.initiate({ boardId, userId }));
+          await ErrorHandler.handleMutationError(error, {
+            operation: 'remove board member',
+            retry: retryFn
+          });
+        }
+      }
+    }),
+
+    getBoardMembers: build.query<IAuthUser[], string>({
+      query: (boardId) => `/boards/${boardId}/members`,
+      providesTags: (_result, _error, boardId) => [
+        { type: 'Board', id: boardId },
+        { type: 'BoardMembers', id: boardId }
+      ],
+      async onQueryStarted(boardId, { dispatch, queryFulfilled }) {
+        try {
+          const { data: members } = await queryFulfilled;
+          dispatch(
+            boardApi.util.updateQueryData('getBoardById', boardId, (draft) => {
+              draft.memberIds = members.map((user: IAuthUser) => user.id);
+            })
+          );
+        } catch (error) {
+          console.log('Failed to fetch board members:', error);
         }
       }
     }),
@@ -358,6 +434,7 @@ export const boardApi = api.injectEndpoints({
         }
       }
     }),
+
     updateTablePosition: build.mutation<
       ITable,
       { boardId: string; tableId: string; newPosition: number }
@@ -762,6 +839,8 @@ export const {
   useDeleteBoardMutation,
   useDuplicateBoardMutation,
   useAddBoardMemberMutation,
+  useRemoveBoardMemberMutation,
+  useGetBoardMembersQuery,
   useCreateTableMutation,
   useUpdateTableMutation,
   useDeleteTableMutation,

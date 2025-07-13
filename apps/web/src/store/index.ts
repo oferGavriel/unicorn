@@ -43,7 +43,7 @@ export const rootReducers: Reducer<RootState> = (state, action) => {
 const persistedReducer = persistReducer(persistConfig, rootReducers);
 
 export const store = configureStore({
-  devTools: true,
+  devTools: import.meta.env.DEV,
   reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

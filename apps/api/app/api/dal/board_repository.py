@@ -64,7 +64,8 @@ class BoardRepository(BaseRepository[Board]):
                 ),
             )
             .options(
-                selectinload(Board.members),
+                selectinload(Board.members).selectinload(BoardMember.user),
+                selectinload(Board.owner),
             )
         )
         res = await self.session.execute(q)

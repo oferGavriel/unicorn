@@ -39,21 +39,6 @@ const baseQuery = fetchBaseQuery({
   timeout: 10000
 });
 
-// const handleApiError = (error: FetchBaseQueryError): void => {
-//   let message: string = 'An unexpected error occurred';
-
-//   if (isApiErrorResponse(error.data)) {
-//     message = error.data.message;
-//   } else if (typeof error.data === 'string') {
-//     message = error.data;
-//   }
-
-//   toast.error(message, {
-//     id: `api-error-${Date.now()}`,
-//     dismissible: true
-//   });
-// };
-
 const baseQueryWithReAuth: BaseQueryFn<
   string | FetchArgs,
   unknown,
@@ -134,7 +119,7 @@ export const api = createApi({
   reducerPath: 'clientApi',
   baseQuery: baseQueryWithReAuth,
   endpoints: () => ({}),
-  tagTypes: ['Auth', 'User', 'Board', 'Task', 'Table', 'Row'],
+  tagTypes: ['Auth', 'User', 'Board', 'Task', 'Table', 'Row', 'BoardMembers'],
   refetchOnReconnect: true
 });
 

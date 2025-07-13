@@ -9,9 +9,11 @@ import { Button } from '@/components';
 import {
   useCreateRowMutation,
   useGetBoardByIdQuery,
+  useUpdateBoardMutation,
   useUpdateTablePositionMutation
 } from '../services/board.service';
 import { ITable } from '../types';
+import { BoardHeaderDialog } from './BoardHeaderDialog';
 import BoardTable from './table/BoardTable';
 import DraggableTable from './table/DraggableTable';
 
@@ -47,6 +49,7 @@ export const SelectedBoard: React.FC<SelectedBoardProps> = ({
 
   const [createRow] = useCreateRowMutation();
   const [updateTablePosition] = useUpdateTablePositionMutation();
+  const [updateBoard] = useUpdateBoardMutation();
   const [activeTable, setActiveTable] = useState<ITable | null>(null);
 
   const sortedTables = useMemo(() => {
@@ -113,6 +116,24 @@ export const SelectedBoard: React.FC<SelectedBoardProps> = ({
     [boardId, createRow]
   );
 
+  const handleUpdateBoard = useCallback(
+    async (name: string, description?: string) => {
+      if (!boardId) {
+        return;
+      }
+      try {
+        await updateBoard({
+          id: boardId,
+          name,
+          description
+        }).unwrap();
+      } catch (error) {
+        console.error('Failed to update board:', error);
+      }
+    },
+    [boardId, updateBoard]
+  );
+
   if (!boardId || !board) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -137,10 +158,17 @@ export const SelectedBoard: React.FC<SelectedBoardProps> = ({
         ) : (
           <>
             <div className="py-4 pl-4 pr-2 sticky top-0 bg-selected-board-bg z-10">
-              <div className="flex items-center gap-2 cursor-pointer rounded-sm py-1 px-2 -mt-1 w-fit hover:bg-accent">
-                <h2 className="text-2xl font-bold text-[#eeeeee]">{board.name}</h2>
-                <ChevronDown size={25} className="text-[#aaaaaa]" />
-              </div>
+              <BoardHeaderDialog
+                board={board}
+                onUpdateBoard={handleUpdateBoard}
+                onBoardSettings={() => {}}
+                onManageMembers={() => {}}
+              >
+                <div className="flex items-center gap-2 cursor-pointer rounded-sm py-1 px-2 -mt-1 w-fit hover:bg-accent transition-colors">
+                  <h2 className="text-2xl font-bold text-[#eeeeee]">{board.name}</h2>
+                  <ChevronDown size={25} className="text-[#aaaaaa]" />
+                </div>
+              </BoardHeaderDialog>
             </div>
 
             <div className="flex-1 pl-10">

@@ -161,7 +161,7 @@ async def test_duplicate_board() -> None:
 
 @pytest.mark.anyio
 async def test_add_member_to_board() -> None:
-    client_a, user_id_a, board_id = await create_board_with_authenticated_user()
+    client_a, _, board_id = await create_board_with_authenticated_user()
 
     client_b, user_id_b = await get_authenticated_client(email="userB@example.com")
     await client_a.post(f"/api/v1/boards/{board_id}/members/{user_id_b}")
@@ -173,6 +173,20 @@ async def test_add_member_to_board() -> None:
     board = next((b for b in boards_data if b["id"] == board_id), None)
     assert board is not None
     assert user_id_b in board["memberIds"]
+
+
+@pytest.mark.anyio
+async def test_get_board_members() -> None:
+    client_a, _, board_id = await create_board_with_authenticated_user()
+
+    client_b, user_id_b = await get_authenticated_client(email="user_b@example.com")
+    await client_a.post(f"/api/v1/boards/{board_id}/members/{user_id_b}")
+    get_members_resp = await client_a.get(f"/api/v1/boards/{board_id}/members")
+    assert get_members_resp.status_code == HTTPStatus.OK
+    members_data = get_members_resp.json()
+    print("Members Data:", members_data)
+    assert isinstance(members_data, list)
+    assert any(member["id"] == user_id_b for member in members_data)
 
 
 @pytest.mark.anyio

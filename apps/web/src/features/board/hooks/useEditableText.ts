@@ -13,9 +13,11 @@ interface UseEditableTextReturn {
   isEditing: boolean;
   editedValue: string;
   isUpdating: boolean;
-  inputRef: React.RefObject<HTMLInputElement | null>;
+  inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement>;
   startEditing: () => void;
-  handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleInputChange: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => void;
   handleKeyDown: (e: React.KeyboardEvent) => void;
   handleInputBlur: () => void;
   cancelEditing: () => void;
@@ -33,7 +35,7 @@ export const useEditableText = ({
   const [isEditing, setIsEditing] = useState<boolean>(autoEdit);
   const [editedValue, setEditedValue] = useState<string>(initialValue);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (!isEditing && !autoEdit) {
@@ -69,7 +71,6 @@ export const useEditableText = ({
       return;
     }
 
-    // Validate input
     if (!autoEdit && validateEmpty && trimmedValue === '') {
       cancelEditing();
       return;
@@ -105,13 +106,16 @@ export const useEditableText = ({
     onCancel
   ]);
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditedValue(e.target.value);
-  }, []);
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setEditedValue(e.target.value);
+    },
+    []
+  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         submitEdit();
       } else if (e.key === 'Escape') {

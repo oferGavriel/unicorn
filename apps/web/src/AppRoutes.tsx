@@ -15,7 +15,7 @@ const AppRoutes: React.FC = () => {
     {
       path: '/login',
       element: (
-        <Suspense fallback={<Spinner />}>
+        <Suspense fallback={<Spinner fullScreen text="Loading..." size="xl" />}>
           <AuthPage />
         </Suspense>
       )
@@ -23,7 +23,7 @@ const AppRoutes: React.FC = () => {
     {
       path: '/boards',
       element: (
-        <Suspense fallback={<Spinner />}>
+        <Suspense fallback={<Spinner fullScreen text="Loading..." size="xl" />}>
           <ProtectedRoute>
             <BoardPage />
           </ProtectedRoute>
@@ -33,7 +33,7 @@ const AppRoutes: React.FC = () => {
     {
       path: '/boards/:boardId',
       element: (
-        <Suspense fallback={<Spinner />}>
+        <Suspense fallback={<Spinner fullScreen text="Loading..." size="xl" />}>
           <ProtectedRoute>
             <BoardPage />
           </ProtectedRoute>
@@ -43,7 +43,7 @@ const AppRoutes: React.FC = () => {
     {
       path: '/',
       element: (
-        <Suspense fallback={<Spinner />}>
+        <Suspense fallback={<Spinner fullScreen text="Loading..." size="xl" />}>
           <HomePage />
         </Suspense>
       )
@@ -51,7 +51,7 @@ const AppRoutes: React.FC = () => {
     {
       path: '*',
       element: (
-        <Suspense fallback={<Spinner />}>
+        <Suspense fallback={<Spinner fullScreen text="Loading..." size="xl" />}>
           <NotFoundPage />
         </Suspense>
       )

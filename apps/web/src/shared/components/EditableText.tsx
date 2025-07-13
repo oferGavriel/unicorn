@@ -11,6 +11,8 @@ interface EditableTextProps {
   maxLength?: number;
   validateEmpty?: boolean;
   placeholder?: string;
+  disabled?: boolean;
+  multiline?: boolean;
   title?: string;
   autoEdit?: boolean;
   onCancel?: () => void;
@@ -25,6 +27,8 @@ export const EditableText: React.FC<EditableTextProps> = ({
   maxLength = 50,
   validateEmpty = true,
   placeholder,
+  disabled = false,
+  multiline = false,
   title = 'Click to edit',
   autoEdit = false,
   onCancel
@@ -48,22 +52,43 @@ export const EditableText: React.FC<EditableTextProps> = ({
     onCancel
   });
 
+  const baseInputClassName = `bg-transparent border rounded px-2 border-blue-500 outline-none min-w-0 ${inputClassName}`;
+
   if (isEditing || autoEdit) {
     return (
-      <div className="flex items-center gap-2" data-editable-text>
-        <input
-          ref={inputRef}
-          type="text"
-          value={editedValue}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          onBlur={handleInputBlur}
-          disabled={isUpdating}
-          className={`bg-transparent border rounded w-[500px] px-2 border-blue-500 outline-none min-w-0 ${inputClassName}`}
-          style={style}
-          maxLength={hookMaxLength}
-          placeholder={placeholder}
-        />
+      <div className={className} data-editable-text>
+        {multiline ? (
+          <textarea
+            ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+            value={editedValue}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            onBlur={handleInputBlur}
+            disabled={isUpdating}
+            className={`${baseInputClassName} w-full resize-none`}
+            style={style}
+            maxLength={hookMaxLength}
+            placeholder={placeholder}
+            rows={3}
+            aria-disabled={disabled}
+          />
+        ) : (
+          <input
+            ref={inputRef as React.RefObject<HTMLInputElement>}
+            type="text"
+            value={editedValue}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            onBlur={handleInputBlur}
+            disabled={isUpdating}
+            className={`${baseInputClassName} w-[500px]`}
+            style={style}
+            maxLength={hookMaxLength}
+            placeholder={placeholder}
+            aria-disabled={disabled}
+            title={title}
+          />
+        )}
       </div>
     );
   }
@@ -76,7 +101,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
       title={title}
       data-editable-text
     >
-      {value}
+      {value || <span className="text-gray-500 italic">{placeholder}</span>}
     </span>
   );
 };

@@ -128,7 +128,7 @@
   @apply bg-[#2C2C2C] border-none p-2 rounded-lg dialog-shadow;
 }
 .menu-dialog {
-  @apply bg-secondary border-0 rounded-lg shadow-[0px_6px_20px_#000000];
+  @apply bg-secondary border-0 rounded-lg shadow-[0px_6px_20px_#000000] z-50;
 }
 
 .board-table-header-cell:not(:first-child):not(:last-child) {

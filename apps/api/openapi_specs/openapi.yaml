@@ -1,5 +1,16 @@
 components:
   schemas:
+    AddBoardMemberRequest:
+      properties:
+        userId:
+          description: ID of the user to add as a member
+          format: uuid
+          title: Userid
+          type: string
+      required:
+      - userId
+      title: AddBoardMemberRequest
+      type: object
     BoardCreate:
       properties:
         description:
@@ -927,6 +938,91 @@ paths:
       summary: Duplicate Board
       tags:
       - board
+  /api/v1/boards/{board_id}/members:
+    get:
+      operationId: get_board_members
+      parameters:
+      - in: path
+        name: board_id
+        required: true
+        schema:
+          format: uuid
+          title: Board Id
+          type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/UserRead'
+                title: Response Get Board Members Api V1 Boards  Board Id  Members
+                  Get
+                type: array
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              example:
+                error:
+                  code: INTERNAL_SERVER_ERROR
+                  message: An unexpected error occurred. Please try again later.
+              schema:
+                $ref: '#/components/schemas/ErrorResponseModel'
+          description: Internal Server Error
+      summary: Get Board Members
+      tags:
+      - board
+    post:
+      operationId: add_member
+      parameters:
+      - in: path
+        name: board_id
+        required: true
+        schema:
+          format: uuid
+          title: Board Id
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddBoardMemberRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                format: uuid
+                title: Response Add Member Api V1 Boards  Board Id  Members Post
+                type: string
+          description: Successful Response
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+          description: Validation Error
+        '500':
+          content:
+            application/json:
+              example:
+                error:
+                  code: INTERNAL_SERVER_ERROR
+                  message: An unexpected error occurred. Please try again later.
+              schema:
+                $ref: '#/components/schemas/ErrorResponseModel'
+          description: Internal Server Error
+      summary: Add Member
+      tags:
+      - board
   /api/v1/boards/{board_id}/members/{user_id}:
     delete:
       operationId: remove_member
@@ -965,52 +1061,6 @@ paths:
                 $ref: '#/components/schemas/ErrorResponseModel'
           description: Internal Server Error
       summary: Remove Member
-      tags:
-      - board
-    post:
-      operationId: add_member
-      parameters:
-      - in: path
-        name: board_id
-        required: true
-        schema:
-          format: uuid
-          title: Board Id
-          type: string
-      - in: path
-        name: user_id
-        required: true
-        schema:
-          format: uuid
-          title: User Id
-          type: string
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                format: uuid
-                title: Response Add Member Api V1 Boards  Board Id  Members  User
-                  Id  Post
-                type: string
-          description: Successful Response
-        '422':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-          description: Validation Error
-        '500':
-          content:
-            application/json:
-              example:
-                error:
-                  code: INTERNAL_SERVER_ERROR
-                  message: An unexpected error occurred. Please try again later.
-              schema:
-                $ref: '#/components/schemas/ErrorResponseModel'
-          description: Internal Server Error
-      summary: Add Member
       tags:
       - board
   /api/v1/boards/{board_id}/tables/:
