@@ -164,7 +164,7 @@ async def test_add_member_to_board() -> None:
     client_a, _, board_id = await create_board_with_authenticated_user()
 
     client_b, user_id_b = await get_authenticated_client(email="userB@example.com")
-    await client_a.post(f"/api/v1/boards/{board_id}/members/{user_id_b}")
+    await client_a.post(f"/api/v1/boards/{board_id}/members", json={"userId": user_id_b})
     get_boards_list = await client_b.get("/api/v1/boards/")
 
     assert get_boards_list.status_code == HTTPStatus.OK
@@ -179,12 +179,11 @@ async def test_add_member_to_board() -> None:
 async def test_get_board_members() -> None:
     client_a, _, board_id = await create_board_with_authenticated_user()
 
-    client_b, user_id_b = await get_authenticated_client(email="user_b@example.com")
-    await client_a.post(f"/api/v1/boards/{board_id}/members/{user_id_b}")
+    _, user_id_b = await get_authenticated_client(email="user_b@example.com")
+    await client_a.post(f"/api/v1/boards/{board_id}/members", json={"userId": user_id_b})
     get_members_resp = await client_a.get(f"/api/v1/boards/{board_id}/members")
     assert get_members_resp.status_code == HTTPStatus.OK
     members_data = get_members_resp.json()
-    print("Members Data:", members_data)
     assert isinstance(members_data, list)
     assert any(member["id"] == user_id_b for member in members_data)
 
@@ -218,7 +217,8 @@ async def test_full_board_flow() -> None:
 
     client_b, user_id_b = await get_authenticated_client(email="user_b@example.com")
     add_member_resp = await client_a.post(
-        f"/api/v1/boards/{board_id}/members/{user_id_b}"
+        f"/api/v1/boards/{board_id}/members",
+        json={"userId": user_id_b},
     )
     assert add_member_resp.status_code == HTTPStatus.CREATED
 
