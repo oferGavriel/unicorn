@@ -14,10 +14,14 @@ class RowOwnerRepository(BaseRepository[Row]):
         self.session = session
 
     async def add(self, row_id: UUID, user_id: UUID) -> None:
-        await self.session.execute(insert(RowOwner).values(row_id=row_id, user_id=user_id))
+        await self.session.execute(
+            insert(RowOwner).values(row_id=row_id, user_id=user_id)
+        )
 
     async def remove(self, row_id: UUID, user_id: UUID) -> None:
-        await self.session.execute(delete(RowOwner).where(RowOwner.row_id == row_id, RowOwner.user_id == user_id))
+        await self.session.execute(
+            delete(RowOwner).where(RowOwner.row_id == row_id, RowOwner.user_id == user_id)
+        )
 
 
 RowOwnerRepositoryDep = Annotated[RowOwnerRepository, Depends(RowOwnerRepository)]

@@ -13,7 +13,9 @@ router = APIRouter()
     response_model=UserRead,
     status_code=status.HTTP_201_CREATED,
 )
-async def register(data: UserCreate, response: Response, auth_service: AuthServiceDep) -> UserRead:
+async def register(
+    data: UserCreate, response: Response, auth_service: AuthServiceDep
+) -> UserRead:
     user, access_token, refresh_token = await auth_service.register(data)
     set_auth_cookies(response, access_token, refresh_token)
     return user
@@ -24,8 +26,12 @@ async def register(data: UserCreate, response: Response, auth_service: AuthServi
     response_model=UserRead,
     status_code=status.HTTP_200_OK,
 )
-async def login(data: UserLogin, response: Response, auth_service: AuthServiceDep) -> UserRead:
-    user, access_token, refresh_token = await auth_service.authenticate(data.email, data.password)
+async def login(
+    data: UserLogin, response: Response, auth_service: AuthServiceDep
+) -> UserRead:
+    user, access_token, refresh_token = await auth_service.authenticate(
+        data.email, data.password
+    )
     set_auth_cookies(response, access_token, refresh_token)
     return user
 
@@ -35,7 +41,9 @@ async def login(data: UserLogin, response: Response, auth_service: AuthServiceDe
     response_model=UserRead,
     status_code=status.HTTP_200_OK,
 )
-async def refresh_token(response: Response, auth_service: AuthServiceDep, refresh_token: str = Cookie(None)) -> UserRead:
+async def refresh_token(
+    response: Response, auth_service: AuthServiceDep, refresh_token: str = Cookie(None)
+) -> UserRead:
     if not refresh_token:
         raise ValueError("Missing refresh token")
     user, access_token, refresh_token = await auth_service.refresh(refresh_token)

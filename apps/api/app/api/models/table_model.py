@@ -34,4 +34,6 @@ class TableRead(BaseSchema):
 
 
 class UpdateTablePositionRequest(BaseSchema):
-    new_position: int = Field(..., ge=1, le=10, description="New position for the table in the board")
+    new_position: int = Field(
+        ..., ge=1, le=10, description="New position for the table in the board"
+    )

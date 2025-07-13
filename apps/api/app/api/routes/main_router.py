@@ -47,7 +47,9 @@ routes = {
     "auth": [RouteConfig(auth_router, "/auth", ["auth"])],
     "user": [RouteConfig(user_router, "/users", ["user"], protected=True)],
     "board": [RouteConfig(board_router, "/boards", ["board"], protected=True)],
-    "table": [RouteConfig(table_router, "/boards/{board_id}/tables", ["table"], protected=True)],
+    "table": [
+        RouteConfig(table_router, "/boards/{board_id}/tables", ["table"], protected=True)
+    ],
     "row": [
         RouteConfig(
             row_router,
@@ -64,7 +66,6 @@ def add_routes(app: FastAPI) -> None:
 
     for group in routes.values():
         for controller in group:
-
             for route in controller.router.routes:
                 if isinstance(route, APIRoute):
                     route.responses.setdefault(500, internal_server_error)

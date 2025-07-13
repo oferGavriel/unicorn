@@ -9,9 +9,8 @@ from .base_duplication_service import BaseDuplicationService
 
 
 class RowDuplicationService(BaseDuplicationService[Row]):
-
     async def duplicate(self, source_id: UUID, context: Dict[str, Any]) -> Row:
-        target_table_id = context.get('target_table_id')
+        target_table_id = context.get("target_table_id")
         # user_id = context['user_id']
 
         source_row = await self._get_source_row(source_id)
@@ -21,10 +20,15 @@ class RowDuplicationService(BaseDuplicationService[Row]):
 
         if is_same_table:
             new_position = await self._get_next_position_with_shift(
-                model_class=Row, owner_field_name='table_id', owner_id=final_table_id, source_position=source_row.position
+                model_class=Row,
+                owner_field_name="table_id",
+                owner_id=final_table_id,
+                source_position=source_row.position,
             )
         else:
-            new_position = await self._get_max_position(Row, 'table_id', final_table_id) + 1
+            new_position = (
+                await self._get_max_position(Row, "table_id", final_table_id) + 1
+            )
 
         new_row = Row(
             id=uuid4(),
@@ -44,7 +48,12 @@ class RowDuplicationService(BaseDuplicationService[Row]):
         return new_row
 
     async def _get_source_row(self, row_id: UUID) -> Row:
-        stmt = select(Row).where(Row.id == row_id).options(selectinload(Row.owner_users)).order_by(Row.position)
+        stmt = (
+            select(Row)
+            .where(Row.id == row_id)
+            .options(selectinload(Row.owner_users))
+            .order_by(Row.position)
+        )
         result = await self.session.execute(stmt)
         row = result.scalar_one_or_none()
 
@@ -57,6 +66,9 @@ class RowDuplicationService(BaseDuplicationService[Row]):
         if not source_row.owner_users:
             return
 
-        owner_records = [RowOwner(row_id=new_row_id, user_id=owner.id) for owner in source_row.owner_users]
+        owner_records = [
+            RowOwner(row_id=new_row_id, user_id=owner.id)
+            for owner in source_row.owner_users
+        ]
 
         self.session.add_all(owner_records)

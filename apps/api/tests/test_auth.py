@@ -7,7 +7,12 @@ from uuid import uuid4
 @pytest.mark.anyio
 async def test_register_and_login(async_client: AsyncClient) -> None:
     email = f"user+{uuid4().hex}@example.com"
-    payload = {"first_name": "Alice", "last_name": "Smith", "email": email, "password": "secret123"}
+    payload = {
+        "first_name": "Alice",
+        "last_name": "Smith",
+        "email": email,
+        "password": "secret123",
+    }
 
     # Register
     register_resp = await async_client.post("/api/v1/auth/register", json=payload)
@@ -26,7 +31,12 @@ async def test_register_and_login(async_client: AsyncClient) -> None:
 @pytest.mark.anyio
 async def test_register_duplicate_email(async_client: AsyncClient) -> None:
     email = f"user+{uuid4().hex}@example.com"
-    payload = {"first_name": "Alice", "last_name": "Smith", "email": email, "password": "123456"}
+    payload = {
+        "first_name": "Alice",
+        "last_name": "Smith",
+        "email": email,
+        "password": "123456",
+    }
 
     await async_client.post("/api/v1/auth/register", json=payload)
     second_register_resp = await async_client.post("/api/v1/auth/register", json=payload)
@@ -48,7 +58,12 @@ async def test_login_invalid_credentials(async_client: AsyncClient):
 @pytest.mark.anyio
 async def test_refresh_token_success_and_failure(async_client: AsyncClient):
     email = f"user+{uuid4().hex}@example.com"
-    payload = {"first_name": "Alice", "last_name": "Smith", "email": email, "password": "test123"}
+    payload = {
+        "first_name": "Alice",
+        "last_name": "Smith",
+        "email": email,
+        "password": "test123",
+    }
 
     register_resp = await async_client.post("/api/v1/auth/register", json=payload)
     refresh_token = register_resp.cookies.get("refresh_token")
@@ -67,7 +82,12 @@ async def test_refresh_token_success_and_failure(async_client: AsyncClient):
 @pytest.mark.anyio
 async def test_logout(async_client: AsyncClient):
     email = f"user+{uuid4().hex}@example.com"
-    payload = {"first_name": "Alice", "last_name": "Smith", "email": email, "password": "test123"}
+    payload = {
+        "first_name": "Alice",
+        "last_name": "Smith",
+        "email": email,
+        "password": "test123",
+    }
 
     register_resp = await async_client.post("/api/v1/auth/register", json=payload)
     refresh_token = register_resp.cookies.get("refresh_token")
@@ -80,7 +100,12 @@ async def test_logout(async_client: AsyncClient):
 @pytest.mark.anyio
 async def test_register_with_invalid_chars_raise_error(async_client: AsyncClient) -> None:
     email = f"user+{uuid4().hex}@example.com"
-    payload = {"first_name": "J0hn$", "last_name": "Sm1th@", "email": email, "password": "test123"}
+    payload = {
+        "first_name": "J0hn$",
+        "last_name": "Sm1th@",
+        "email": email,
+        "password": "test123",
+    }
 
     resp = await async_client.post("/api/v1/auth/register", json=payload)
     json_resp = resp.json()
@@ -89,8 +114,12 @@ async def test_register_with_invalid_chars_raise_error(async_client: AsyncClient
 
     errors = json_resp["detail"]
 
-    first_name_error = next((err for err in errors if "first_name" in str(err.get("loc", []))), None)
-    last_name_error = next((err for err in errors if "last_name" in str(err.get("loc", []))), None)
+    first_name_error = next(
+        (err for err in errors if "first_name" in str(err.get("loc", []))), None
+    )
+    last_name_error = next(
+        (err for err in errors if "last_name" in str(err.get("loc", []))), None
+    )
 
     assert first_name_error is not None
     assert last_name_error is not None

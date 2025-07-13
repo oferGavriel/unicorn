@@ -1,6 +1,12 @@
 from uuid import UUID
 from fastapi import APIRouter, status
-from app.api.models.row_model import RowCreate, RowRead, RowUpdate, RowOwnerRead, UpdateRowPositionRequest
+from app.api.models.row_model import (
+    RowCreate,
+    RowRead,
+    RowUpdate,
+    RowOwnerRead,
+    UpdateRowPositionRequest,
+)
 from app.api.services.row_service import RowServiceDep
 from app.DI.current_user import CurrentUserDep
 from app.database_models.user import User
@@ -38,7 +44,11 @@ async def delete_row(
     await row_service.delete_row(row_id, table_id)
 
 
-@router.post("/{row_id}/owners/{owner_id}", response_model=RowOwnerRead, status_code=status.HTTP_200_OK)
+@router.post(
+    "/{row_id}/owners/{owner_id}",
+    response_model=RowOwnerRead,
+    status_code=status.HTTP_200_OK,
+)
 async def add_owner(
     table_id: UUID,
     row_id: UUID,
@@ -86,4 +96,6 @@ async def update_row_position(
     row_service: RowServiceDep,
     current_user: User = CurrentUserDep,
 ) -> RowRead:
-    return await row_service.update_row_position(row_id, table_id, current_user.id, data.new_position, data.target_table_id)
+    return await row_service.update_row_position(
+        row_id, table_id, current_user.id, data.new_position, data.target_table_id
+    )

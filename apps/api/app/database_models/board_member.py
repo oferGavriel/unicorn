@@ -15,9 +15,15 @@ if TYPE_CHECKING:
 
 class BoardMember(TimestampMixin, Base):
     id: Mapped[UuidPk]
-    board_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("boards.id"), nullable=False)
-    user_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    role: Mapped[RoleEnum] = mapped_column(SQLEnum(RoleEnum), default=RoleEnum.member, nullable=False)
+    board_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("boards.id"), nullable=False
+    )
+    user_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
+    role: Mapped[RoleEnum] = mapped_column(
+        SQLEnum(RoleEnum), default=RoleEnum.member, nullable=False
+    )
 
     board: Mapped["Board"] = relationship("Board", back_populates="members")
     user: Mapped["User"] = relationship("User", back_populates="board_memberships")

@@ -44,4 +44,6 @@ def avatar_url(first: str, last: str, user_id: UUID, size: int = 128) -> str:
     text_layer = f"l_text:Arial_{font_size}:{text},co_rgb:ffffff,g_center"
     opts = f"w_{size},h_{size},c_fill,r_max,b_rgb:{bg}/{text_layer}"
 
-    return f"https://res.cloudinary.com/{CLOUD}/image/upload/" f"{opts}/{FOLDER}/{BASE_IMG}"
+    return (
+        f"https://res.cloudinary.com/{CLOUD}/image/upload/" f"{opts}/{FOLDER}/{BASE_IMG}"
+    )

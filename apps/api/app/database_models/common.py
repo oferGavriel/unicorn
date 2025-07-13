@@ -21,10 +21,14 @@ class TimestampMixin:
 
 
 class SoftDeleteMixin:
-    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, doc="Soft-delete flag")
+    is_deleted: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, doc="Soft-delete flag"
+    )
 
 
-UuidPk = Annotated[UUID, mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)]
+UuidPk = Annotated[
+    UUID, mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+]
 IntPk = Annotated[int, mapped_column(INTEGER, primary_key=True, autoincrement=True)]
 
 StrLen10 = Annotated[str, mapped_column(String(10))]

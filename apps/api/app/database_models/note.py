@@ -13,8 +13,12 @@ if TYPE_CHECKING:
 
 class Note(TimestampMixin, Base):
     id: Mapped[UuidPk]
-    row_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("rows.id"), nullable=False)
-    user_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    row_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("rows.id"), nullable=False
+    )
+    user_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
     content: Mapped[StrLen1K] = mapped_column(nullable=False)
 
     row: Mapped["Row"] = relationship("Row", back_populates="notes")

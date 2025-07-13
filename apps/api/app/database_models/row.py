@@ -17,16 +17,29 @@ if TYPE_CHECKING:
 
 class Row(TimestampMixin, SoftDeleteMixin, Base):
     id: Mapped[UuidPk]
-    table_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("tables.id"), nullable=False)
+    table_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("tables.id"), nullable=False
+    )
 
     name: Mapped[StrLen255] = mapped_column(nullable=False)
     status: Mapped[StatusEnum] = mapped_column(
-        Enum(StatusEnum, name='statusenum', create_constraint=True, validate_strings=True), default=StatusEnum.NOT_STARTED
+        Enum(
+            StatusEnum, name="statusenum", create_constraint=True, validate_strings=True
+        ),
+        default=StatusEnum.NOT_STARTED,
     )
     priority: Mapped[PriorityEnum] = mapped_column(
-        Enum(PriorityEnum, name='priorityenum', create_constraint=True, validate_strings=True), default=PriorityEnum.MEDIUM
+        Enum(
+            PriorityEnum,
+            name="priorityenum",
+            create_constraint=True,
+            validate_strings=True,
+        ),
+        default=PriorityEnum.MEDIUM,
     )
-    due_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    due_date: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     position: Mapped[int] = mapped_column(Integer, default=0)
 
     # relationships

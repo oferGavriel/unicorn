@@ -16,7 +16,9 @@ M = TypeVar("M", bound=BaseSchema)
 
 class Repository(Generic[T], ABC):
     @abc.abstractmethod
-    async def get_paged(self, skip: int, limit: int) -> Tuple[int, List[T], Optional[int]]:
+    async def get_paged(
+        self, skip: int, limit: int
+    ) -> Tuple[int, List[T], Optional[int]]:
         pass
 
     @abc.abstractmethod
@@ -24,7 +26,9 @@ class Repository(Generic[T], ABC):
         pass
 
     @abc.abstractmethod
-    async def get_by_id(self, primary_key: UUID, *options: ExecutableOption) -> Optional[T]:
+    async def get_by_id(
+        self, primary_key: UUID, *options: ExecutableOption
+    ) -> Optional[T]:
         pass
 
     @abc.abstractmethod
@@ -90,13 +94,26 @@ class BaseRepository(Repository[T]):
     async def get_by_id(self, entity_id: UUID, *options: ExecutableOption) -> Optional[T]:
         return await self.get_single(self.primary_key_column == entity_id, *options)
 
-    async def get_by_ids(self, entity_ids: List[UUID], *options: ExecutableOption) -> Sequence[T]:
-        stmt = select(self.model).where(self.primary_key_column.in_(entity_ids)).options(*options)
+    async def get_by_ids(
+        self, entity_ids: List[UUID], *options: ExecutableOption
+    ) -> Sequence[T]:
+        stmt = (
+            select(self.model)
+            .where(self.primary_key_column.in_(entity_ids))
+            .options(*options)
+        )
         result = await self._session.execute(stmt)
         return result.scalars().all()
 
-    async def get_paged(self, skip: int, limit: int) -> Tuple[int, List[T], Optional[int]]:
-        stmt = select(self.model).offset(skip).limit(limit + 1).order_by(self.primary_key_column)
+    async def get_paged(
+        self, skip: int, limit: int
+    ) -> Tuple[int, List[T], Optional[int]]:
+        stmt = (
+            select(self.model)
+            .offset(skip)
+            .limit(limit + 1)
+            .order_by(self.primary_key_column)
+        )
         count_stmt = select(func.count()).select_from(self.model)
         return await self._get_paged_using_stmt(count_stmt, limit, stmt)
 
@@ -104,7 +121,7 @@ class BaseRepository(Repository[T]):
         entity = await self.get_by_id(kwargs[self.primary_key_column_name])
         if entity is None:
             raise NotFoundError(
-                message=f"Entity with {self.primary_key_column_name}={kwargs[self.primary_key_column_name]} not found"
+                message=f"Entity with {self.primary_key_column_name}={kwargs[self.primary_key_column_name]} not found"  # noqa: E501
             )
         for key, value in kwargs.items():
             setattr(entity, key, value)
@@ -142,7 +159,11 @@ class BaseRepository(Repository[T]):
         result = await self._session.execute(stmt)
         total_count = await self._session.scalar(count_stmt)
         result_array = list(result.scalars().all())
-        next_id = self.get_primary_key(result_array[limit]) if len(result_array) > limit else None
+        next_id = (
+            self.get_primary_key(result_array[limit])
+            if len(result_array) > limit
+            else None
+        )
         return int(total_count), result_array[:limit], next_id
 
     async def get_all(self) -> Sequence[T]:

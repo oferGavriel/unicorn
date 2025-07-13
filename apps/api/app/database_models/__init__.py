@@ -8,4 +8,14 @@ from .refresh_token import RefreshToken  # noqa: F401
 from .notification import Notification  # noqa: F401
 from .board_member import BoardMember  # noqa: F401
 
-__all__ = ["User", "Board", "Table", "Row", "RowOwner", "BoardMember", "Note", "RefreshToken", "Notification"]
+__all__ = [
+    "User",
+    "Board",
+    "Table",
+    "Row",
+    "RowOwner",
+    "BoardMember",
+    "Note",
+    "RefreshToken",
+    "Notification",
+]

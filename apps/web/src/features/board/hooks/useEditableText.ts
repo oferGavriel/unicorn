@@ -13,7 +13,7 @@ interface UseEditableTextReturn {
   isEditing: boolean;
   editedValue: string;
   isUpdating: boolean;
-  inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement>;
+  inputRef: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>;
   startEditing: () => void;
   handleInputChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -35,7 +35,7 @@ export const useEditableText = ({
   const [isEditing, setIsEditing] = useState<boolean>(autoEdit);
   const [editedValue, setEditedValue] = useState<string>(initialValue);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     if (!isEditing && !autoEdit) {

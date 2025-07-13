@@ -13,10 +13,18 @@ if TYPE_CHECKING:
 
 class RefreshToken(TimestampMixin, SoftDeleteMixin, Base):
     id: Mapped[UuidPk]
-    user_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    token: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False, doc="Refresh token string")
-    revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, doc="Revoked flag")
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, doc="Expiration timestamp")
+    user_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=False
+    )
+    token: Mapped[str] = mapped_column(
+        String, unique=True, index=True, nullable=False, doc="Refresh token string"
+    )
+    revoked: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, doc="Revoked flag"
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, doc="Expiration timestamp"
+    )
 
     user: Mapped["User"] = relationship("User", back_populates="refresh_tokens")
 

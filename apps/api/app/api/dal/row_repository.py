@@ -15,7 +15,10 @@ class RowRepository(BaseRepository[Row]):
 
     async def list_by_table(self, table_id: UUID) -> List[Row]:
         stmt = (
-            select(Row).options(selectinload(Row.owner_users)).where(Row.table_id == table_id).order_by(Row.position.asc())
+            select(Row)
+            .options(selectinload(Row.owner_users))
+            .where(Row.table_id == table_id)
+            .order_by(Row.position.asc())
         )
         res = await self.session.execute(stmt)
         return list(res.unique().scalars().all())
@@ -32,7 +35,9 @@ class RowRepository(BaseRepository[Row]):
     async def create(self, row: Row) -> Row:
         if row.position > 0:
             max_position = (
-                await self.session.execute(select(func.max(Row.position)).where(Row.table_id == row.table_id))
+                await self.session.execute(
+                    select(func.max(Row.position)).where(Row.table_id == row.table_id)
+                )
             ).scalar_one() or 0
             row.position = max_position + 1
         else:
@@ -50,7 +55,6 @@ class RowRepository(BaseRepository[Row]):
         return result.scalar_one()
 
     async def update(self, row: Row, data: dict) -> Row:
-
         return await self.update_entity(row, **data)
 
     async def delete(self, row_id: UUID, table_id: UUID) -> None:

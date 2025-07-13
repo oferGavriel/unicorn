@@ -26,7 +26,9 @@ class BoardMemberRepository(BaseRepository[BoardMember]):
         result = await self.session.execute(q)
         return result.scalar_one_or_none()
 
-    async def add(self, board_id: UUID, user_id: UUID, role: RoleEnum = RoleEnum.member) -> BoardMember:
+    async def add(
+        self, board_id: UUID, user_id: UUID, role: RoleEnum = RoleEnum.member
+    ) -> BoardMember:
         bm = BoardMember(board_id=board_id, user_id=user_id, role=role)
         self.session.add(bm)
         await self.session.commit()
@@ -42,4 +44,6 @@ class BoardMemberRepository(BaseRepository[BoardMember]):
         await self.session.commit()
 
 
-BoardMemberRepositoryDep = Annotated[BoardMemberRepository, Depends(BoardMemberRepository)]
+BoardMemberRepositoryDep = Annotated[
+    BoardMemberRepository, Depends(BoardMemberRepository)
+]

@@ -217,7 +217,9 @@ async def test_full_board_flow() -> None:
     row_id = row_data["id"]
 
     client_b, user_id_b = await get_authenticated_client(email="user_b@example.com")
-    add_member_resp = await client_a.post(f"/api/v1/boards/{board_id}/members/{user_id_b}")
+    add_member_resp = await client_a.post(
+        f"/api/v1/boards/{board_id}/members/{user_id_b}"
+    )
     assert add_member_resp.status_code == HTTPStatus.CREATED
 
     get_board_resp = await client_a.get(f"/api/v1/boards/{board_id}")

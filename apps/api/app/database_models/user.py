@@ -22,8 +22,12 @@ class User(TimestampMixin, SoftDeleteMixin, Base):
     avatar_url: Mapped[Optional[str]] = mapped_column(String, nullable=True, default=None)
 
     # relationships
-    boards: Mapped[List["Board"]] = relationship("Board", back_populates="owner", cascade="all, delete-orphan")
-    notes: Mapped[List["Note"]] = relationship("Note", back_populates="user", cascade="all, delete-orphan")
+    boards: Mapped[List["Board"]] = relationship(
+        "Board", back_populates="owner", cascade="all, delete-orphan"
+    )
+    notes: Mapped[List["Note"]] = relationship(
+        "Note", back_populates="user", cascade="all, delete-orphan"
+    )
     refresh_tokens: Mapped[List["RefreshToken"]] = relationship(
         "RefreshToken", back_populates="user", cascade="all, delete-orphan"
     )

@@ -10,7 +10,12 @@ from app.api.services.duplicate.duplication_factory import DuplicationServiceFac
 
 from app.database_models import Board
 
-from app.api.models.board_model import BoardCreate, BoardUpdate, BoardRead, BoardDetailRead
+from app.api.models.board_model import (
+    BoardCreate,
+    BoardUpdate,
+    BoardRead,
+    BoardDetailRead,
+)
 from app.api.models.table_model import TableRead
 from app.api.models.board_member_model import RoleEnum
 
@@ -59,14 +64,20 @@ class BoardService(BaseService[Board, BoardRead]):
                 data.member_ids.remove(user_id)
 
             for uid in data.member_ids:
-                await self.member_repository.add(created_board.id, uid, role=RoleEnum.member)
+                await self.member_repository.add(
+                    created_board.id, uid, role=RoleEnum.member
+                )
 
         return self._to_board_with_members(created_board)
 
-    async def update_board(self, board_id: UUID, user_id: UUID, data: BoardUpdate) -> BoardRead:
+    async def update_board(
+        self, board_id: UUID, user_id: UUID, data: BoardUpdate
+    ) -> BoardRead:
         board = await self.get_board_entity(board_id, user_id)
 
-        payload = data.model_dump(exclude_none=True, include={"name", "description", "position"})
+        payload = data.model_dump(
+            exclude_none=True, include={"name", "description", "position"}
+        )
         await self.board_repository.update(board, payload)
         board_with_members = await self.get_board_entity(board_id, user_id)
 
@@ -87,12 +98,16 @@ class BoardService(BaseService[Board, BoardRead]):
             if member.user is not None
         ]
 
-    async def add_member(self, board_id: UUID, current_user_id: UUID, user_id_to_add: UUID) -> UUID:
+    async def add_member(
+        self, board_id: UUID, current_user_id: UUID, user_id_to_add: UUID
+    ) -> UUID:
         await self.get_board_entity(board_id, current_user_id)
         if user_id_to_add == current_user_id:
             raise PermissionDeniedError("You cannot add yourself as a member")
 
-        existing_member = await self.member_repository.get_by_user_id(board_id, user_id_to_add)
+        existing_member = await self.member_repository.get_by_user_id(
+            board_id, user_id_to_add
+        )
         if existing_member:
             return existing_member.id
 
@@ -131,7 +146,9 @@ class BoardService(BaseService[Board, BoardRead]):
             raise NotFoundError(f"Board with ID {board_id} not found")
         board = await self.board_repository.get_for_user(board_id, user_id)
         if not board:
-            raise PermissionDeniedError(f"You do not have permission to access board with ID {board_id}")
+            raise PermissionDeniedError(
+                f"You do not have permission to access board with ID {board_id}"
+            )
 
         return board
 
@@ -155,7 +172,9 @@ class BoardService(BaseService[Board, BoardRead]):
                         table,
                         TableRead,
                         custom_mapping={
-                            "rows": [self.row_service.row_to_read(row) for row in table.rows],
+                            "rows": [
+                                self.row_service.row_to_read(row) for row in table.rows
+                            ],
                         },
                     )
                     for table in board.tables

@@ -7,8 +7,12 @@ from sqlalchemy import select, delete
 from sqlalchemy.orm import joinedload
 from app.db.database import DBSessionDep
 from app.database_models.user import User
-from app.database_models.refresh_token import RefreshToken
-from app.core.security import create_refresh_token as refresh_token_generator
+from app.database_models.refresh_token import (
+    RefreshToken,
+)
+from app.core.security import (
+    create_refresh_token as refresh_token_generator,
+)
 from app.common.repository import BaseRepository
 from app.common.errors.exceptions import NotFoundError
 
@@ -57,12 +61,15 @@ class AuthRepository(BaseRepository[User]):
     async def cleanup_old_tokens(self, user_id: UUID) -> None:
         await self.session.execute(
             delete(RefreshToken).where(
-                (RefreshToken.user_id == user_id) & (RefreshToken.expires_at < datetime.now(timezone.utc))
+                (RefreshToken.user_id == user_id)
+                & (RefreshToken.expires_at < datetime.now(timezone.utc))
             )
         )
         await self.session.commit()
 
-    async def get_valid_refresh_token_for_user(self, user_id: UUID) -> Optional[RefreshToken]:
+    async def get_valid_refresh_token_for_user(
+        self, user_id: UUID
+    ) -> Optional[RefreshToken]:
         stmt = (
             select(RefreshToken)
             .where(

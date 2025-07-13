@@ -12,22 +12,28 @@ from .table_duplication_service import TableDuplicationService
 
 
 class BoardDuplicationService(BaseDuplicationService[Board]):
-
-    def __init__(self, session: AsyncSession, table_duplication_service: TableDuplicationService):
+    def __init__(
+        self, session: AsyncSession, table_duplication_service: TableDuplicationService
+    ):
         super().__init__(session)
         self.table_duplication_service = table_duplication_service
 
     async def duplicate(self, source_id: UUID, context: Dict[str, Any]) -> Board:
-        user_id = context['user_id']
-        include_tables = context.get('include_tables', True)
-        include_members = context.get('include_members', True)
+        user_id = context["user_id"]
+        include_tables = context.get("include_tables", True)
+        include_members = context.get("include_members", True)
 
         source_board = await self._get_source_board(source_id, user_id)
 
-        new_board_name = await self._generate_unique_board_name(source_board.name, user_id)
+        new_board_name = await self._generate_unique_board_name(
+            source_board.name, user_id
+        )
 
         new_position = await self._get_next_position_with_shift(
-            model_class=Board, owner_field_name='owner_id', owner_id=user_id, source_position=source_board.position
+            model_class=Board,
+            owner_field_name="owner_id",
+            owner_id=user_id,
+            source_position=source_board.position,
         )
 
         new_board = Board(
@@ -65,7 +71,9 @@ class BoardDuplicationService(BaseDuplicationService[Board]):
             )
             .options(
                 selectinload(Board.members),
-                selectinload(Board.tables).selectinload(Table.rows).selectinload(Row.owner_users),
+                selectinload(Board.tables)
+                .selectinload(Table.rows)
+                .selectinload(Row.owner_users),
             )
         )
         result = await self.session.execute(stmt)
@@ -77,10 +85,14 @@ class BoardDuplicationService(BaseDuplicationService[Board]):
         return board
 
     async def _add_owner_as_member(self, board_id: UUID, user_id: UUID) -> None:
-        owner_member = BoardMember(board_id=board_id, user_id=user_id, role=RoleEnum.owner)
+        owner_member = BoardMember(
+            board_id=board_id, user_id=user_id, role=RoleEnum.owner
+        )
         self.session.add(owner_member)
 
-    async def _duplicate_members(self, source_board: Board, new_board_id: UUID, owner_id: UUID) -> None:
+    async def _duplicate_members(
+        self, source_board: Board, new_board_id: UUID, owner_id: UUID
+    ) -> None:
         members_to_add = []
 
         for member in source_board.members:
@@ -97,7 +109,9 @@ class BoardDuplicationService(BaseDuplicationService[Board]):
         if members_to_add:
             self.session.add_all(members_to_add)
 
-    async def _duplicate_tables(self, source_board: Board, new_board_id: UUID, user_id: UUID) -> None:
+    async def _duplicate_tables(
+        self, source_board: Board, new_board_id: UUID, user_id: UUID
+    ) -> None:
         for table in sorted(source_board.tables, key=lambda t: t.position):
             if table.is_deleted:
                 continue
@@ -105,29 +119,33 @@ class BoardDuplicationService(BaseDuplicationService[Board]):
             await self.table_duplication_service.duplicate(
                 source_id=table.id,
                 context={
-                    'user_id': user_id,
-                    'target_board_id': new_board_id,
-                    'include_rows': True,
+                    "user_id": user_id,
+                    "target_board_id": new_board_id,
+                    "include_rows": True,
                 },
             )
 
-    async def _generate_unique_board_name(self, original_name: str, owner_id: UUID) -> str:
+    async def _generate_unique_board_name(
+        self, original_name: str, owner_id: UUID
+    ) -> str:
         base_name = original_name
-        if original_name.endswith(')') and ' (' in original_name:
-            last_paren_index = original_name.rfind(' (')
+        if original_name.endswith(")") and " (" in original_name:
+            last_paren_index = original_name.rfind(" (")
             potential_number = original_name[last_paren_index + 2 : -1]
             if potential_number.isdigit():
                 base_name = original_name[:last_paren_index]
 
         pattern = f"{base_name} ("
 
-        stmt = select(Board.name).where(Board.owner_id == owner_id, Board.name.like(f"{pattern}%"))
+        stmt = select(Board.name).where(
+            Board.owner_id == owner_id, Board.name.like(f"{pattern}%")
+        )
         result = await self.session.execute(stmt)
         existing_names = result.scalars().all()
 
         existing_numbers = set()
         for name in existing_names:
-            if name.startswith(pattern) and name.endswith(')'):
+            if name.startswith(pattern) and name.endswith(")"):
                 suffix = name[len(pattern) : -1]
                 if suffix.isdigit():
                     existing_numbers.add(int(suffix))

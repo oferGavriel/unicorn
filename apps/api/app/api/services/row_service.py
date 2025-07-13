@@ -57,7 +57,9 @@ class RowService(BaseService[Row, RowRead]):
         created = await self.row_repository.create(new_row)
         return self.row_to_read(created)
 
-    async def update_row(self, row_id: UUID, table_id: UUID, user_id: UUID, data: RowUpdate) -> RowRead:
+    async def update_row(
+        self, row_id: UUID, table_id: UUID, user_id: UUID, data: RowUpdate
+    ) -> RowRead:
         await self._check_if_table_exists(table_id, user_id)
 
         row = await self._get_row_entity(row_id, table_id)
@@ -70,11 +72,15 @@ class RowService(BaseService[Row, RowRead]):
         await self._get_row_entity(row_id, table_id)
         await self.row_repository.delete(row_id, table_id)
 
-    async def add_owner(self, row_id: UUID, table_id: UUID, new_owner_id: UUID) -> RowOwnerRead:
+    async def add_owner(
+        self, row_id: UUID, table_id: UUID, new_owner_id: UUID
+    ) -> RowOwnerRead:
         row = await self._get_row_entity(row_id, table_id)
 
         if any(u.id == new_owner_id for u in row.owner_users):
-            raise ConflictError(message=f"User with ID {new_owner_id} is already an owner of this row")
+            raise ConflictError(
+                message=f"User with ID {new_owner_id} is already an owner of this row"
+            )
 
         await self.row_owner_repository.add(row_id, new_owner_id)
         await self.row_owner_repository.session.commit()
@@ -84,7 +90,11 @@ class RowService(BaseService[Row, RowRead]):
             raise NotFoundError(message=f"User with ID {new_owner_id} not found")
 
         return RowOwnerRead(
-            id=user.id, first_name=user.first_name, last_name=user.last_name, email=user.email, avatar_url=user.avatar_url
+            id=user.id,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            email=user.email,
+            avatar_url=user.avatar_url,
         )
 
     async def remove_owner(self, row_id: UUID, table_id: UUID, owner_id: UUID) -> None:
@@ -95,8 +105,12 @@ class RowService(BaseService[Row, RowRead]):
     async def duplicate_row(self, row_id: UUID, table_id: UUID, user_id: UUID) -> RowRead:
         await self._check_if_table_exists(table_id, user_id)
 
-        duplication_service = DuplicationServiceFactory.create_row_service(self.row_repository.session)
-        new_row = await duplication_service.duplicate(source_id=row_id, context={'user_id': user_id})
+        duplication_service = DuplicationServiceFactory.create_row_service(
+            self.row_repository.session
+        )
+        new_row = await duplication_service.duplicate(
+            source_id=row_id, context={"user_id": user_id}
+        )
 
         await self.row_repository.session.commit()
 
@@ -105,26 +119,44 @@ class RowService(BaseService[Row, RowRead]):
         return self.row_to_read(new_row)
 
     async def update_row_position(  # noqa: PLR0913
-        self, row_id: UUID, source_table_id: UUID, user_id: UUID, new_position: int, target_table_id: Optional[UUID]
+        self,
+        row_id: UUID,
+        source_table_id: UUID,
+        user_id: UUID,
+        new_position: int,
+        target_table_id: Optional[UUID],
     ) -> RowRead:
         await self._check_if_table_exists(source_table_id, user_id)
 
         if target_table_id is not None and source_table_id != target_table_id:
-            return await self._move_row_between_tables(row_id, source_table_id, target_table_id, new_position)
+            return await self._move_row_between_tables(
+                row_id, source_table_id, target_table_id, new_position
+            )
         else:
-            return await self._reorder_row_within_table(row_id, source_table_id, new_position)
+            return await self._reorder_row_within_table(
+                row_id, source_table_id, new_position
+            )
 
     def row_to_read(self, row: Row) -> RowRead:
         owners = [
-            RowOwnerRead(id=u.id, first_name=u.first_name, last_name=u.last_name, email=u.email, avatar_url=u.avatar_url)
+            RowOwnerRead(
+                id=u.id,
+                first_name=u.first_name,
+                last_name=u.last_name,
+                email=u.email,
+                avatar_url=u.avatar_url,
+            )
             for u in row.owner_users
         ]
         return convert_to_model(row, RowRead, custom_mapping={"owners": owners})
 
     async def _move_row_between_tables(
-        self, row_id: UUID, source_table_id: UUID, target_table_id: UUID, new_position: int
+        self,
+        row_id: UUID,
+        source_table_id: UUID,
+        target_table_id: UUID,
+        new_position: int,
     ) -> RowRead:
-
         row = await self._get_row_entity(row_id, source_table_id)
 
         target_rows = await self.row_repository.list_by_table(target_table_id)
@@ -135,16 +167,22 @@ class RowService(BaseService[Row, RowRead]):
 
         for target_row in target_rows:
             if target_row.position >= new_position:
-                await self.row_repository.update(target_row, {'position': target_row.position + 1})
+                await self.row_repository.update(
+                    target_row, {"position": target_row.position + 1}
+                )
 
-        await self.row_repository.update(row, {'table_id': target_table_id, 'position': new_position})
+        await self.row_repository.update(
+            row, {"table_id": target_table_id, "position": new_position}
+        )
 
         await self._get_normalized_row_positions(source_table_id)
 
         updated_row = await self._get_row_entity(row_id, target_table_id)
         return self.row_to_read(updated_row)
 
-    async def _reorder_row_within_table(self, row_id: UUID, table_id: UUID, new_position: int) -> RowRead:
+    async def _reorder_row_within_table(
+        self, row_id: UUID, table_id: UUID, new_position: int
+    ) -> RowRead:
         row = await self._get_row_entity(row_id, table_id)
         all_rows = await self._get_normalized_row_positions(table_id)
 
@@ -159,13 +197,13 @@ class RowService(BaseService[Row, RowRead]):
         if old_position < new_position:
             for r in all_rows:
                 if old_position < r.position <= new_position:
-                    await self.row_repository.update(r, {'position': r.position - 1})
+                    await self.row_repository.update(r, {"position": r.position - 1})
         else:
             for r in all_rows:
                 if new_position <= r.position < old_position:
-                    await self.row_repository.update(r, {'position': r.position + 1})
+                    await self.row_repository.update(r, {"position": r.position + 1})
 
-        await self.row_repository.update(row, {'position': new_position})
+        await self.row_repository.update(row, {"position": new_position})
 
         updated_row = await self._get_row_entity(row_id, table_id)
         return self.row_to_read(updated_row)
@@ -178,14 +216,16 @@ class RowService(BaseService[Row, RowRead]):
     async def _get_row_entity(self, row_id: UUID, table_id: UUID) -> Row:
         row = await self.row_repository.get(row_id, table_id)
         if not row:
-            raise NotFoundError(message=f"Row with ID {row_id} not found in table {table_id}")
+            raise NotFoundError(
+                message=f"Row with ID {row_id} not found in table {table_id}"
+            )
         return row
 
     async def _get_normalized_row_positions(self, table_id: UUID) -> List[Row]:
         rows = await self.row_repository.list_by_table(table_id)
         for index, row in enumerate(rows, start=1):
             if row.position != index:
-                await self.row_repository.update(row, {'position': index})
+                await self.row_repository.update(row, {"position": index})
         return rows
 
 

@@ -111,7 +111,10 @@ async def test_table_access_from_other_user():
         json={"name": "Hacked"},
     )
     assert resp.status_code == HTTPStatus.FORBIDDEN
-    assert resp.json()["message"] == f"You do not have permission to access board with ID {board_id}"
+    assert (
+        resp.json()["message"]
+        == f"You do not have permission to access board with ID {board_id}"
+    )
 
 
 @pytest.mark.anyio
@@ -137,7 +140,7 @@ async def test_duplicate_table() -> None:
     )
     assert duplicate_resp.status_code == HTTPStatus.CREATED
     duplicated_table = duplicate_resp.json()
-    assert duplicated_table["name"] == original_table['name']
+    assert duplicated_table["name"] == original_table["name"]
     assert duplicated_table["description"] == original_table["description"]
     assert duplicated_table["boardId"] == board_id
     assert duplicated_table["id"] != original_table_id
@@ -145,7 +148,9 @@ async def test_duplicate_table() -> None:
     table_list_resp = await client.get(f"/api/v1/boards/{board_id}/tables/")
     assert table_list_resp.status_code == HTTPStatus.OK
     tables = table_list_resp.json()
-    duplicated_table = next((t for t in tables if t["id"] == duplicated_table["id"]), None)
+    duplicated_table = next(
+        (t for t in tables if t["id"] == duplicated_table["id"]), None
+    )
     assert duplicated_table is not None
     assert len(duplicated_table["rows"]) == 1
     assert duplicated_table["rows"][0]["name"] == "Original Row"

@@ -81,7 +81,9 @@ async def remove_member(
     await board_service.remove_member(board_id, current_user.id, user_id)
 
 
-@router.post("/{board_id}/duplicate", response_model=BoardRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{board_id}/duplicate", response_model=BoardRead, status_code=status.HTTP_201_CREATED
+)
 async def duplicate_board(
     board_id: UUID,
     board_service: BoardServiceDep,

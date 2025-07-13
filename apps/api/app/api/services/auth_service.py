@@ -72,7 +72,9 @@ class AuthService(BaseService[User, UserRead]):
     async def _issue_tokens(self, user: User) -> Tuple[str, str]:
         user.access_token = TokenService.create_access_token(str(user.id))
 
-        existing_token = await self.auth_repository.get_valid_refresh_token_for_user(user.id)
+        existing_token = await self.auth_repository.get_valid_refresh_token_for_user(
+            user.id
+        )
         if existing_token:
             user.refresh_token = existing_token.token
         else:

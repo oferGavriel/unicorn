@@ -29,7 +29,12 @@ async def register_and_login_user(
 
     register_resp = await async_client.post(
         "/api/v1/auth/register",
-        json={"firstName": first_name, "lastName": last_name, "email": email, "password": password},
+        json={
+            "firstName": first_name,
+            "lastName": last_name,
+            "email": email,
+            "password": password,
+        },
     )
     assert register_resp.status_code == HTTPStatus.CREATED
     user_data = register_resp.json()

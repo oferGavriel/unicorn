@@ -23,7 +23,6 @@ class BaseSchema(BaseModel):
         from_attributes=True,
         protected_namespaces=(),
         arbitrary_types_allowed=True,
-        # json_encoders={datetime: lambda v: v.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")},
         validate_assignment=True,
         str_strip_whitespace=True,
         validate_default=True,
