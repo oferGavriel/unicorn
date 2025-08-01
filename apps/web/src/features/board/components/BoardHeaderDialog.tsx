@@ -104,11 +104,8 @@ export const BoardHeaderDialog: React.FC<BoardHeaderDialogProps> = ({
     return new Set(board.memberIds || []);
   }, [board.memberIds]);
 
-  console.log('board', board);
-
   const renderMainView = () => (
     <>
-      {/* Board Info Section */}
       <div className="p-4 border-b border-gray-600">
         <div className="space-y-3">
           <div className="flex flex-col w-full">

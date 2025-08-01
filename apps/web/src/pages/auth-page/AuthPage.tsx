@@ -16,8 +16,6 @@ import {
   useSignInMutation,
   useSignUpMutation
 } from '@/features/auth';
-import { useApiError } from '@/hooks/useApiError';
-import ErrorMessage from '@/shared/components/ErrorMessage';
 import { useAppDispatch } from '@/store';
 
 import { UI_IDS, UI_TITLES } from './AuthPage.consts';
@@ -33,12 +31,10 @@ export type AuthPageProps = object;
 
 const AuthPage: React.FC<AuthPageProps> = (): ReactElement => {
   const [authMode, setAuthMode] = useState<AuthMode>(AuthMode.Login);
-  const [alertMessage, setAlertMessage] = useState<string>('');
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [signIn, { isLoading: isSignInLoading }] = useSignInMutation();
   const [signUp, { isLoading: isSignUpLoading }] = useSignUpMutation();
-  const handleApiError = useApiError(setAlertMessage);
 
   const isLoading = authMode === AuthMode.Login ? isSignInLoading : isSignUpLoading;
   const schema = useMemo(
@@ -56,24 +52,17 @@ const AuthPage: React.FC<AuthPageProps> = (): ReactElement => {
   });
 
   const onSubmit: SubmitHandler<FormValues> = async (data: FormValues) => {
-    try {
-      let result: IAuthUser | undefined;
+    let result: IAuthUser | undefined;
 
-      if (authMode === AuthMode.Login) {
-        result = await signIn(data as LoginFormValues).unwrap();
-      } else {
-        result = await signUp(data as RegisterFormValues).unwrap();
-      }
-
-      dispatch(setUser(result));
-      console.log('before navigate', result);
-      navigate('/boards', { replace: true });
-      reset();
-    } catch (err) {
-      console.error('Authentication error:', err);
-
-      handleApiError(err);
+    if (authMode === AuthMode.Login) {
+      result = await signIn(data as LoginFormValues).unwrap();
+    } else {
+      result = await signUp(data as RegisterFormValues).unwrap();
     }
+
+    dispatch(setUser(result));
+    navigate('/boards', { replace: true });
+    reset();
   };
 
   return (
@@ -121,13 +110,6 @@ const AuthPage: React.FC<AuthPageProps> = (): ReactElement => {
               </Button>
             )}
           </form>
-          {alertMessage && (
-            <ErrorMessage
-              type="error"
-              message={alertMessage}
-              data-testid={UI_IDS.ERROR_MESSAGE}
-            />
-          )}
 
           <button
             type="button"

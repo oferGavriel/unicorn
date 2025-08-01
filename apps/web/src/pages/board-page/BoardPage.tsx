@@ -98,19 +98,15 @@ const BoardPage: React.FC<BoardPageProps> = (): ReactElement => {
         return;
       }
 
-      try {
-        const randomColor = getRandomTableColor();
+      const randomColor = getRandomTableColor();
 
-        await createTable({
-          boardId,
-          name: tableName.trim(),
-          color: randomColor
-        }).unwrap();
+      await createTable({
+        boardId,
+        name: tableName.trim(),
+        color: randomColor
+      }).unwrap();
 
-        setShowCreateTableDialog(false);
-      } catch (error) {
-        console.error('Failed to create table:', error);
-      }
+      setShowCreateTableDialog(false);
     },
     [boardId, createTable]
   );

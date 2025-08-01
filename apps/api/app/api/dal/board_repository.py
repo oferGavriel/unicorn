@@ -35,7 +35,7 @@ class BoardRepository(BaseRepository[Board]):
     async def get_full_tree(self, board_id: UUID, user_id: UUID) -> Optional[Board]:
         q = (
             select(Board)
-            .outerjoin(BoardMember)
+            .outerjoin(BoardMember, BoardMember.board_id == Board.id)
             .where(
                 Board.id == board_id,
                 or_(
@@ -46,7 +46,9 @@ class BoardRepository(BaseRepository[Board]):
             .options(
                 selectinload(Board.members).selectinload(BoardMember.user),
                 selectinload(Board.owner),
-                selectinload(Board.tables).selectinload(Table.rows).selectinload(Row.owner_users),
+                selectinload(Board.tables)
+                .selectinload(Table.rows)
+                .selectinload(Row.owner_users),
             )
         )
         res = await self.session.execute(q)

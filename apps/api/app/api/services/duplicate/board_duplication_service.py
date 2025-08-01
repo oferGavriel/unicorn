@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database_models import Board, Table, Row, BoardMember
 from app.api.models.board_member_model import RoleEnum
-from app.common.errors.exceptions import NotFoundError
+from app.common.errors.exceptions import NotFoundError, PermissionDeniedError
 from .base_duplication_service import BaseDuplicationService
 from .table_duplication_service import TableDuplicationService
 
@@ -58,17 +58,28 @@ class BoardDuplicationService(BaseDuplicationService[Board]):
         return new_board
 
     async def _get_source_board(self, board_id: UUID, user_id: UUID) -> Board:
-        stmt = (
-            select(Board)
+        access_stmt = (
+            select(Board.id)
             .outerjoin(BoardMember, BoardMember.board_id == Board.id)
             .where(
                 Board.id == board_id,
-                ~Board.is_deleted,
                 or_(
                     Board.owner_id == user_id,
                     BoardMember.user_id == user_id,
                 ),
             )
+            .limit(1)
+        )
+
+        access_result = await self.session.execute(access_stmt)
+        if not access_result.scalar_one_or_none():
+            raise PermissionDeniedError(
+                f"You do not have permission to access board with ID {board_id}"
+            )
+
+        board_stmt = (
+            select(Board)
+            .where(Board.id == board_id)
             .options(
                 selectinload(Board.members),
                 selectinload(Board.tables)
@@ -76,8 +87,9 @@ class BoardDuplicationService(BaseDuplicationService[Board]):
                 .selectinload(Row.owner_users),
             )
         )
-        result = await self.session.execute(stmt)
-        board = result.scalar_one_or_none()
+
+        board_result = await self.session.execute(board_stmt)
+        board = board_result.scalar_one_or_none()
 
         if not board:
             raise NotFoundError(f"Board with ID {board_id} not found")

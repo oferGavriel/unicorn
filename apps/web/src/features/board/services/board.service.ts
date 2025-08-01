@@ -1,9 +1,7 @@
-import { toast } from 'sonner';
-
 import { IAuthUser } from '@/features/auth';
 import { PriorityEnum, StatusEnum } from '@/shared/shared.enum';
 import { api } from '@/store/api';
-import { ErrorHandler } from '@/store/errorHandler';
+import { showErrorToast, showSuccessToast } from '@/store/errorHandler';
 
 import {
   IBoard,
@@ -28,19 +26,6 @@ import {
 } from '../types/table.interface';
 import { generateTempId } from '../utils/board.utils';
 
-// Helper function for consistent error handling
-const handleMutationError = async (
-  error: unknown,
-  operation: string,
-  retry?: () => void
-) => {
-  await ErrorHandler.handleMutationError(error, {
-    operation,
-    retry
-  });
-};
-
-// Helper function to update array positions
 const updatePositions = <T extends { position: number }>(items: T[]): T[] => {
   return items.map((item, index) => ({
     ...item,
@@ -48,7 +33,6 @@ const updatePositions = <T extends { position: number }>(items: T[]): T[] => {
   }));
 };
 
-// Helper function to reorder items
 const reorderItems = <T extends { id: string; position: number }>(
   items: T[],
   draggedId: string,
@@ -102,9 +86,9 @@ export const boardApi = api.injectEndpoints({
               });
             })
           );
+          showSuccessToast(`Board "${newBoard.name}" created successfully`);
         } catch (error) {
-          const retryFn = () => dispatch(boardApi.endpoints.createBoard.initiate(_arg));
-          await handleMutationError(error, 'create board', retryFn);
+          showErrorToast(error, 'create board');
         }
       }
     }),
@@ -134,15 +118,10 @@ export const boardApi = api.injectEndpoints({
 
         try {
           await queryFulfilled;
+          showSuccessToast('Board updated successfully');
         } catch (error) {
           patchResults.forEach((result) => result.undo());
-          const retryFn = () =>
-            dispatch(boardApi.endpoints.updateBoard.initiate({ id, ...patch }));
-          await ErrorHandler.handleMutationError(error, {
-            operation: 'update board',
-            retry: retryFn,
-            showToast: true
-          });
+          showErrorToast(error, 'update board');
         }
       }
     }),
@@ -161,14 +140,10 @@ export const boardApi = api.injectEndpoints({
 
         try {
           await queryFulfilled;
-          toast.success('Board deleted successfully');
+          showSuccessToast('Board deleted successfully');
         } catch (error) {
           patchResult.undo();
-          const retryFn = () => dispatch(boardApi.endpoints.deleteBoard.initiate(id));
-          await ErrorHandler.handleMutationError(error, {
-            operation: 'delete board',
-            retry: retryFn
-          });
+          showErrorToast(error, 'delete board');
         }
       }
     }),
@@ -178,7 +153,7 @@ export const boardApi = api.injectEndpoints({
         url: `/boards/${id}/duplicate`,
         method: 'POST'
       }),
-      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
         try {
           const { data: newBoard } = await queryFulfilled;
           dispatch(
@@ -186,12 +161,9 @@ export const boardApi = api.injectEndpoints({
               draft.push(newBoard);
             })
           );
+          showSuccessToast('Board duplicated successfully');
         } catch (error) {
-          const retryFn = () => dispatch(boardApi.endpoints.duplicateBoard.initiate(id));
-          await ErrorHandler.handleMutationError(error, {
-            operation: 'duplicate board',
-            retry: retryFn
-          });
+          showErrorToast(error, 'duplicate board');
         }
       }
     }),
@@ -221,14 +193,9 @@ export const boardApi = api.injectEndpoints({
             })
           );
 
-          ErrorHandler.handleSuccess('add board member', 'Member added successfully');
+          showSuccessToast('Member added successfully');
         } catch (error) {
-          const retryFn = () =>
-            dispatch(boardApi.endpoints.addBoardMember.initiate({ boardId, userId }));
-          await ErrorHandler.handleMutationError(error, {
-            operation: 'add board member',
-            retry: retryFn
-          });
+          showErrorToast(error, 'add board member');
         }
       }
     }),
@@ -253,18 +220,10 @@ export const boardApi = api.injectEndpoints({
 
         try {
           await queryFulfilled;
-          ErrorHandler.handleSuccess(
-            'remove board member',
-            'Member removed successfully'
-          );
+          showSuccessToast('Member removed successfully');
         } catch (error) {
           patchResult.undo();
-          const retryFn = () =>
-            dispatch(boardApi.endpoints.removeBoardMember.initiate({ boardId, userId }));
-          await ErrorHandler.handleMutationError(error, {
-            operation: 'remove board member',
-            retry: retryFn
-          });
+          showErrorToast(error, 'remove board member');
         }
       }
     }),
@@ -324,20 +283,24 @@ export const boardApi = api.injectEndpoints({
           const { data: newTable } = await queryFulfilled;
           dispatch(
             boardApi.util.updateQueryData('getBoardById', boardId, (draft) => {
-              const tempIndex = draft.tables?.findIndex((t) => t.id === tempId) || -1;
-              if (draft.tables && tempIndex !== -1) {
+              if (!draft.tables) {
+                return;
+              }
+
+              const tempIndex = draft.tables.findIndex((t) => t.id === tempId);
+
+              if (tempIndex !== -1) {
                 draft.tables[tempIndex] = newTable;
+              } else {
+                console.warn('temp table not found, adding real table');
+                draft.tables.push(newTable);
               }
             })
           );
+          showSuccessToast('Table created successfully');
         } catch (error) {
           patchResult.undo();
-          const retryFn = () =>
-            dispatch(boardApi.endpoints.createTable.initiate({ boardId, ...tableData }));
-          await ErrorHandler.handleMutationError(error, {
-            operation: 'create table',
-            retry: retryFn
-          });
+          showErrorToast(error, 'create table');
         }
       }
     }),
@@ -362,14 +325,7 @@ export const boardApi = api.injectEndpoints({
           await queryFulfilled;
         } catch (error) {
           patchResult.undo();
-          const retryFn = () =>
-            dispatch(
-              boardApi.endpoints.updateTable.initiate({ boardId, tableId, ...patch })
-            );
-          await ErrorHandler.handleMutationError(error, {
-            operation: 'update table',
-            retry: retryFn
-          });
+          showErrorToast(error, 'update table');
         }
       }
     }),
@@ -390,15 +346,10 @@ export const boardApi = api.injectEndpoints({
 
         try {
           await queryFulfilled;
-          ErrorHandler.handleSuccess('delete table', 'Table deleted successfully');
+          showSuccessToast('Table deleted successfully');
         } catch (error) {
           patchResult.undo();
-          const retryFn = () =>
-            dispatch(boardApi.endpoints.deleteTable.initiate({ boardId, tableId }));
-          await ErrorHandler.handleMutationError(error, {
-            operation: 'delete table',
-            retry: retryFn
-          });
+          showErrorToast(error, 'delete table');
         }
       }
     }),
@@ -408,7 +359,7 @@ export const boardApi = api.injectEndpoints({
         url: `/boards/${boardId}/tables/${tableId}/duplicate`,
         method: 'POST'
       }),
-      async onQueryStarted({ boardId, tableId }, { dispatch, queryFulfilled }) {
+      async onQueryStarted({ boardId }, { dispatch, queryFulfilled }) {
         try {
           const { data: newTable } = await queryFulfilled;
 
@@ -423,14 +374,9 @@ export const boardApi = api.injectEndpoints({
             })
           );
 
-          ErrorHandler.handleSuccess('duplicate table', 'Table duplicated successfully');
+          showSuccessToast('Table duplicated successfully');
         } catch (error) {
-          const retryFn = () =>
-            dispatch(boardApi.endpoints.duplicateTable.initiate({ boardId, tableId }));
-          await ErrorHandler.handleMutationError(error, {
-            operation: 'duplicate table',
-            retry: retryFn
-          });
+          showErrorToast(error, 'duplicate table');
         }
       }
     }),
@@ -460,18 +406,7 @@ export const boardApi = api.injectEndpoints({
           await queryFulfilled;
         } catch (error) {
           patchResult.undo();
-          const retryFn = () =>
-            dispatch(
-              boardApi.endpoints.updateTablePosition.initiate({
-                boardId,
-                tableId,
-                newPosition
-              })
-            );
-          await ErrorHandler.handleMutationError(error, {
-            operation: 'reorder table',
-            retry: retryFn
-          });
+          showErrorToast(error, 'reorder table');
         }
       }
     }),
@@ -530,15 +465,7 @@ export const boardApi = api.injectEndpoints({
           );
         } catch (error) {
           patchResult.undo();
-          const retryFn = () =>
-            dispatch(
-              boardApi.endpoints.createRow.initiate({ boardId, tableId, ...rowData })
-            );
-          await ErrorHandler.handleMutationError(error, {
-            operation: 'create row',
-            retry: retryFn
-          });
-          throw error;
+          showErrorToast(error, 'create row');
         }
       }
     }),
@@ -574,11 +501,7 @@ export const boardApi = api.injectEndpoints({
           );
         } catch (error) {
           patchResult.undo();
-          const retryFn = () => dispatch(boardApi.endpoints.updateRow.initiate(args));
-          await ErrorHandler.handleMutationError(error, {
-            operation: 'update row',
-            retry: retryFn
-          });
+          showErrorToast(error, 'update row');
         }
       }
     }),
@@ -600,15 +523,9 @@ export const boardApi = api.injectEndpoints({
 
         try {
           await queryFulfilled;
-          ErrorHandler.handleSuccess('delete row', 'Row deleted successfully');
         } catch (error) {
           patchResult.undo();
-          const retryFn = () =>
-            dispatch(boardApi.endpoints.deleteRow.initiate({ boardId, tableId, rowId }));
-          await ErrorHandler.handleMutationError(error, {
-            operation: 'delete row',
-            retry: retryFn
-          });
+          showErrorToast(error, 'delete row');
         }
       }
     }),
@@ -633,41 +550,28 @@ export const boardApi = api.injectEndpoints({
                   table.rows = [];
                 }
 
-                // Find the original row position
                 const originalRow = table.rows.find((r) => r.id === rowId);
                 const originalPosition = originalRow?.position || table.rows.length;
 
-                // Insert the duplicated row at position + 1
                 const insertIndex = table.rows.findIndex(
                   (r) => r.position > originalPosition
                 );
 
                 if (insertIndex === -1) {
-                  // Insert at the end
                   table.rows.push(newRow);
                 } else {
-                  // Insert at the correct position
                   table.rows.splice(insertIndex, 0, newRow);
                 }
 
-                // Update positions for all rows after the insertion point
                 table.rows.forEach((row, index) => {
                   row.position = index + 1;
                 });
               }
             })
           );
-
-          ErrorHandler.handleSuccess('duplicate row', 'Row duplicated successfully');
+          showSuccessToast('Row duplicated successfully');
         } catch (error) {
-          const retryFn = () =>
-            dispatch(
-              boardApi.endpoints.duplicateRow.initiate({ boardId, tableId, rowId })
-            );
-          await ErrorHandler.handleMutationError(error, {
-            operation: 'duplicate row',
-            retry: retryFn
-          });
+          showErrorToast(error, 'duplicate row');
         }
       }
     }),
@@ -697,7 +601,6 @@ export const boardApi = api.injectEndpoints({
         const patchResult = dispatch(
           boardApi.util.updateQueryData('getBoardById', boardId, (draft) => {
             if (isMovingBetweenTables) {
-              // Cross-table move
               const sourceTable = draft.tables?.find((t) => t.id === tableId);
               const targetTable = draft.tables?.find((t) => t.id === targetTableId);
 
@@ -717,13 +620,11 @@ export const boardApi = api.injectEndpoints({
                     tableId: targetTableId
                   });
 
-                  // Update positions
                   targetTable.rows = updatePositions(targetTable.rows);
                   sourceTable.rows = updatePositions(sourceTable.rows);
                 }
               }
             } else {
-              // Same table reorder
               const table = draft.tables?.find((t) => t.id === tableId);
               if (table?.rows) {
                 table.rows = reorderItems(table.rows, rowId, newPosition);
@@ -736,12 +637,7 @@ export const boardApi = api.injectEndpoints({
           await queryFulfilled;
         } catch (error) {
           patchResult.undo();
-          const retryFn = () =>
-            dispatch(boardApi.endpoints.updateRowPosition.initiate(args));
-          await ErrorHandler.handleMutationError(error, {
-            operation: 'reorder row',
-            retry: retryFn
-          });
+          showErrorToast(error, 'reorder row');
         }
       }
     }),
@@ -784,14 +680,10 @@ export const boardApi = api.injectEndpoints({
               }
             })
           );
-          ErrorHandler.handleSuccess('add row owner', 'Owner added successfully');
+          showSuccessToast('Owner added successfully');
         } catch (error) {
           patchResult.undo();
-          const retryFn = () => dispatch(boardApi.endpoints.addRowOwner.initiate(args));
-          await ErrorHandler.handleMutationError(error, {
-            operation: 'add row owner',
-            retry: retryFn
-          });
+          showErrorToast(error, 'add row owner');
         }
       }
     }),
@@ -816,15 +708,10 @@ export const boardApi = api.injectEndpoints({
 
         try {
           await queryFulfilled;
-          ErrorHandler.handleSuccess('remove row owner', 'Owner removed successfully');
+          showSuccessToast('Owner removed successfully');
         } catch (error) {
           patchResult.undo();
-          const retryFn = () =>
-            dispatch(boardApi.endpoints.removeRowOwner.initiate(args));
-          await ErrorHandler.handleMutationError(error, {
-            operation: 'remove row owner',
-            retry: retryFn
-          });
+          showErrorToast(error, 'remove row owner');
         }
       }
     })

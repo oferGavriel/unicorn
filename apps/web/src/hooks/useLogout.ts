@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 
 import { clearUser, useLogoutMutation } from '@/features/auth';
 import { useAppDispatch } from '@/store';
-import { logoutAndRedirectToLogin } from '@/store/api';
+import { logoutAndRedirectToLogin } from '@/store/errorHandler';
 
 export const useLogout = () => {
   const [logoutMutation] = useLogoutMutation();

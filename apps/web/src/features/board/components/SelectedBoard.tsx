@@ -121,15 +121,12 @@ export const SelectedBoard: React.FC<SelectedBoardProps> = ({
       if (!boardId) {
         return;
       }
-      try {
-        await updateBoard({
-          id: boardId,
-          name,
-          description
-        }).unwrap();
-      } catch (error) {
-        console.error('Failed to update board:', error);
-      }
+
+      await updateBoard({
+        id: boardId,
+        name,
+        description
+      }).unwrap();
     },
     [boardId, updateBoard]
   );
