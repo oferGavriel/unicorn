@@ -30,15 +30,6 @@ services:
       interval: 5s
       retries: 5
 
-  # redis-commander:
-  #   container_name: redis-commander
-  #   image: ghcr.io/joeferner/redis-commander:latest
-  #   restart: always
-  #   ports:
-  #     - '8081:8081'
-  #   environment:
-  #     - REDIS_HOSTS=local:redis_container:6379
-
   api:
     container_name: api
     build:
@@ -53,7 +44,7 @@ services:
       - DB_USER=postgres
       - DB_PASS=3578
     volumes:
-      - ../apps/api:/code
+      - ../apps/api:/app
     ports:
       - '8000:8000'
     depends_on:
@@ -63,9 +54,9 @@ services:
         condition: service_healthy
     healthcheck:
       test: ['CMD-SHELL', 'curl --fail http://localhost:8000/api/v1/health || exit 1']
-      interval: 5s
+      interval: 30s
       retries: 5
-      timeout: 5s
+      timeout: 10s
 
 volumes:
   db_data:

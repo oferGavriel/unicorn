@@ -5,7 +5,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from app.database_models.common import (
     TimestampMixin,
-    SoftDeleteMixin,
     UuidPk,
     StrLen50,
     StrLen1K,
@@ -18,7 +17,7 @@ if TYPE_CHECKING:
     from app.database_models.board_member import BoardMember
 
 
-class Board(TimestampMixin, SoftDeleteMixin, Base):
+class Board(TimestampMixin, Base):
     id: Mapped[UuidPk]
     name: Mapped[StrLen50] = mapped_column(nullable=False)
     description: Mapped[Optional[StrLen1K]] = mapped_column(nullable=True)
