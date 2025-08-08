@@ -38,11 +38,13 @@ services:
     env_file:
       - ../.env
     environment:
-      - DB_HOST=localhost
+      - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=unicorn
       - DB_USER=postgres
       - DB_PASS=3578
+      - DATABASE_URL=postgresql://postgres:3578@postgres:5432/unicorn
+
     volumes:
       - ../apps/api:/app
     ports:

@@ -1,17 +1,14 @@
 import os
-import socket
 
-from typing import Any
+from pydantic import Field, PostgresDsn
 from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    db_host: str
-    db_port: int
-    db_name: str
-    db_user: str
-    db_pass: str
+    database_url: PostgresDsn = Field(
+        default="postgresql://postgres:3578@localhost:5432/unicorn", alias="DATABASE_URL"
+    )
 
     secret_key: str = "secreto"
     algorithm: str = "HS256"
@@ -26,25 +23,18 @@ class Settings(BaseSettings):
     cloudinary_base: str = os.getenv("CLOUDINARY_BASE", "blank.png")
 
     @property
-    def db_url(self) -> str:
-        return f"postgresql+psycopg2://{self.db_user}:{self.db_pass}@{self.db_host}:{self.db_port}/{self.db_name}"
+    def db_url_sync(self) -> str:
+        return str(self.database_url)
 
     @property
     def db_url_async(self) -> str:
-        return f"postgresql+asyncpg://{self.db_user}:{self.db_pass}@{self.db_host}:{self.db_port}/{self.db_name}"
+        return str(self.database_url).replace("postgresql://", "postgresql+asyncpg://")
 
     model_config = SettingsConfigDict(
         env_file=".env",
-        from_attributes=True,
+        populate_by_name=True,
+        extra="ignore",
     )
-
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        if self._is_running_in_docker():
-            self.db_host = "postgres"  # override for Docker
-
-    def _is_running_in_docker(self) -> bool:
-        return os.path.exists("/.dockerenv") or socket.gethostname() == "api"
 
 
 @lru_cache(maxsize=1)
