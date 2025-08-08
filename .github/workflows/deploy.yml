@@ -43,6 +43,7 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            DOCKER_IMAGE=oferikog/unicorn-app:latest
             docker stop app || true && docker rm app || true
             docker pull $DOCKER_IMAGE
             export DATABASE_URL=$(aws ssm get-parameter \
