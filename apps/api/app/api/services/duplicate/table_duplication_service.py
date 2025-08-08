@@ -77,9 +77,6 @@ class TableDuplicationService(BaseDuplicationService[Table]):
         self, source_table: Table, new_table_id: UUID, user_id: UUID
     ) -> None:
         for row in sorted(source_table.rows, key=lambda r: r.position):
-            if row.is_deleted:
-                continue
-
             await self.row_duplication_service.duplicate(
                 source_id=row.id,
                 context={

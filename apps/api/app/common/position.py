@@ -12,7 +12,6 @@ async def shift_positions(
         .where(
             owner_field == owner_id,
             model.position > from_pos,
-            model.is_deleted.is_(False),
         )
         .values(position=model.position + 1, updated_at=func.now())
     )

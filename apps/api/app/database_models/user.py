@@ -1,7 +1,7 @@
 from typing import List, Optional, TYPE_CHECKING
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.database_models.common import TimestampMixin, SoftDeleteMixin, UuidPk, StrLen50
+from app.database_models.common import TimestampMixin, UuidPk, StrLen50
 from app.db.base import Base
 
 if TYPE_CHECKING:
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from app.database_models.row import Row
 
 
-class User(TimestampMixin, SoftDeleteMixin, Base):
+class User(TimestampMixin, Base):
     id: Mapped[UuidPk]
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     first_name: Mapped[StrLen50] = mapped_column(nullable=False)

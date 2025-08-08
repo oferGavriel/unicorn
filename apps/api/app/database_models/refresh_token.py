@@ -4,14 +4,14 @@ from datetime import datetime
 from sqlalchemy import String, ForeignKey, Boolean, DateTime, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from app.database_models.common import TimestampMixin, SoftDeleteMixin, UuidPk
+from app.database_models.common import TimestampMixin, UuidPk
 from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.database_models.user import User
 
 
-class RefreshToken(TimestampMixin, SoftDeleteMixin, Base):
+class RefreshToken(TimestampMixin, Base):
     id: Mapped[UuidPk]
     user_id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=False

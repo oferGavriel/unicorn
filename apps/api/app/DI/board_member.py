@@ -23,7 +23,6 @@ async def board_member(
                 Board.owner_id == current_user.id,
                 BoardMember.user_id == current_user.id,
             ),
-            Board.is_deleted.is_(False),
         )
         .limit(1)
     )

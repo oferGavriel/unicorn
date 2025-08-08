@@ -7,7 +7,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: PostgresDsn = Field(
-        default="postgresql://postgres:3578@localhost:5432/unicorn", alias="DATABASE_URL"
+        default=PostgresDsn("postgresql://postgres:3578@localhost:5432/unicorn"),
+        alias="DATABASE_URL",
     )
 
     secret_key: str = "secreto"

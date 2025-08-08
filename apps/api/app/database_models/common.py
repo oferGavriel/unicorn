@@ -2,7 +2,7 @@ from typing import Annotated
 from uuid import UUID, uuid4
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from datetime import datetime
-from sqlalchemy import func, Boolean, INTEGER, String, DECIMAL, DateTime
+from sqlalchemy import func, INTEGER, String, DECIMAL, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 
 
@@ -17,12 +17,6 @@ class TimestampMixin:
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
-    )
-
-
-class SoftDeleteMixin:
-    is_deleted: Mapped[bool] = mapped_column(
-        Boolean, default=False, nullable=False, doc="Soft-delete flag"
     )
 
 

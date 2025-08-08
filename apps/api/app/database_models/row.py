@@ -3,7 +3,7 @@ from typing import List, Optional, TYPE_CHECKING
 from datetime import datetime
 from sqlalchemy import ForeignKey, Integer, Index, DateTime, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.database_models.common import TimestampMixin, SoftDeleteMixin, UuidPk, StrLen255
+from app.database_models.common import TimestampMixin, UuidPk, StrLen255
 from app.db.base import Base
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from app.core.enums import StatusEnum, PriorityEnum
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from app.database_models.user import User
 
 
-class Row(TimestampMixin, SoftDeleteMixin, Base):
+class Row(TimestampMixin, Base):
     id: Mapped[UuidPk]
     table_id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("tables.id"), nullable=False

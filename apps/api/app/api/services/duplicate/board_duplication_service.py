@@ -125,9 +125,6 @@ class BoardDuplicationService(BaseDuplicationService[Board]):
         self, source_board: Board, new_board_id: UUID, user_id: UUID
     ) -> None:
         for table in sorted(source_board.tables, key=lambda t: t.position):
-            if table.is_deleted:
-                continue
-
             await self.table_duplication_service.duplicate(
                 source_id=table.id,
                 context={
