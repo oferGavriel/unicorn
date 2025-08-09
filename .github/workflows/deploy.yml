@@ -64,22 +64,29 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'pnpm'
 
-      - name: Install deps
+      - name: Install pnpm
+        run: npm install -g pnpm@9
+
+      - name: Install deps (pnpm)
         working-directory: ${{ env.FRONTEND_DIR }}
-        run: npm ci
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare production env
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: |
+          echo "VITE_API_URL=${{ env.VITE_API_URL }}" > .env.production
 
       - name: Build frontend
         working-directory: ${{ env.FRONTEND_DIR }}
-        run: |
-          echo "VITE_API_URL=${{ env.VITE_API_URL }}" > .env
-          npm run build
+        run: pnpm run build
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
