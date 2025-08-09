@@ -64,7 +64,7 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "infra/nginx/nginx.conf"
-          target: "~/"
+          target: "~/nginx.conf"
 
       - name: Restart Nginx container
         uses: appleboy/ssh-action@v1.0.0
