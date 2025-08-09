@@ -57,6 +57,30 @@ jobs:
               -p 8000:8000 \
               $DOCKER_IMAGE
 
+      - name: Deploy Nginx config
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "infra/nginx/nginx.conf"
+          target: "~/"
+
+      - name: Restart Nginx container
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker stop nginx || true && docker rm nginx || true
+            docker run -d --name nginx \
+              --restart unless-stopped \
+              -p 80:80 \
+              -v ~/nginx.conf:/etc/nginx/nginx.conf:ro \
+              nginx:alpine
+
+
   frontend:
     name: Deploy Frontend to Cloudflare Pages
     runs-on: ubuntu-latest

@@ -1,4 +1,5 @@
 import uvicorn
+import os
 from fastapi import FastAPI
 from pydantic import ValidationError
 from fastapi.requests import Request
@@ -24,11 +25,18 @@ app = FastAPI(
     },
 )
 
+
+def _parse_origins(val: str) -> list[str]:
+    return [o.strip() for o in val.split(",") if o.strip()]
+
+
+CORS_ORIGINS = _parse_origins(os.getenv("CORS_ORIGINS", "http://localhost:5173"))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
 
