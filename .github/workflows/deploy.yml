@@ -47,11 +47,16 @@ jobs:
             docker stop app || true && docker rm app || true
             docker pull $DOCKER_IMAGE
             export DATABASE_URL=$(aws ssm get-parameter \
+            export CORS_ORIGINS=$(aws ssm get-parameter \
+              --name /app/unicorn/cors-origins \
+              --query Parameter.Value \
+              --output text)
               --name /app/unicorn/db-url \
               --with-decryption \
               --query Parameter.Value \
               --output text)
             docker run -d --name app \
+              -e CORS_ORIGINS="$CORS_ORIGINS" \
               --restart unless-stopped \
               --network unicorn-net \
               -e DATABASE_URL="$DATABASE_URL" \
