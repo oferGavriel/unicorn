@@ -129,5 +129,5 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: unicorn-frontend
-          directory: ${{ env.FRONTEND_DIR }}/build
+          directory: ${{ env.FRONTEND_DIR }}/dist
           branch: main
