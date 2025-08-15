@@ -7,24 +7,24 @@ export default defineConfig({
   root: '.',
   plugins: [
     react({
-      include: '**/*.tsx',
+      include: '**/*.tsx'
     }),
     tsconfigPaths()
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+      '@': path.resolve(__dirname, './src')
+    }
   },
   build: {
-    outDir: './build',
+    outDir: './dist'
   },
   server: {
-    port: 5173,
+    port: 5173
   },
   test: {
     globals: true,
     environment: 'happy-dom',
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: ['./src/test/setup.ts']
   }
 });
