@@ -43,25 +43,59 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -euo pipefail
+
             DOCKER_IMAGE=oferikog/unicorn-app:latest
+
+            export AWS_DEFAULT_REGION=eu-central-1
+
+            docker network create unicorn-net || true
+
             docker stop app || true && docker rm app || true
-            docker pull $DOCKER_IMAGE
-            export DATABASE_URL=$(aws ssm get-parameter \
-            export CORS_ORIGINS=$(aws ssm get-parameter \
-              --name /app/unicorn/cors-origins \
-              --query Parameter.Value \
-              --output text)
+            docker pull "$DOCKER_IMAGE"
+
+            DATABASE_URL=$(aws ssm get-parameter \
               --name /app/unicorn/db-url \
               --with-decryption \
               --query Parameter.Value \
               --output text)
+
+            CORS_ORIGINS=$(aws ssm get-parameter \
+              --name /app/unicorn/cors-origins \
+              --query Parameter.Value \
+              --output text)
+
+            CLOUDINARY_CLOUD_NAME=$(aws ssm get-parameter \
+              --name /app/unicorn/cloudinary-cloud-name \
+              --query Parameter.Value \
+              --output text)
+
+            CLOUDINARY_FOLDER=$(aws ssm get-parameter \
+              --name /app/unicorn/cloudinary-folder \
+              --query Parameter.Value \
+              --output text)
+
+            CLOUDINARY_BASE=$(aws ssm get-parameter \
+              --name /app/unicorn/cloudinary-base \
+              --query Parameter.Value \
+              --output text)
+
+            test -n "$DATABASE_URL"
+            test -n "$CORS_ORIGINS"
+            test -n "$CLOUDINARY_CLOUD_NAME"
+            test -n "$CLOUDINARY_FOLDER"
+            test -n "$CLOUDINARY_BASE"
+
             docker run -d --name app \
-              -e CORS_ORIGINS="$CORS_ORIGINS" \
               --restart unless-stopped \
               --network unicorn-net \
               -e DATABASE_URL="$DATABASE_URL" \
+              -e CORS_ORIGINS="$CORS_ORIGINS" \
+              -e CLOUDINARY_CLOUD_NAME="$CLOUDINARY_CLOUD_NAME" \
+              -e CLOUDINARY_FOLDER="$CLOUDINARY_FOLDER" \
+              -e CLOUDINARY_BASE="$CLOUDINARY_BASE" \
               -p 8000:8000 \
-              $DOCKER_IMAGE
+              "$DOCKER_IMAGE"
 
       - name: Copy Nginx config
         uses: appleboy/scp-action@v0.1.4

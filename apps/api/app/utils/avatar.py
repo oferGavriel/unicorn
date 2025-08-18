@@ -39,7 +39,7 @@ def _colour(user_id: UUID) -> str:
 def avatar_url(first: str, last: str, user_id: UUID, size: int = 128) -> str:
     text = quote_plus(_initials(first, last))
     bg = _colour(user_id)
-    font_size = int(size * 0.46)  # balances nicely
+    font_size = int(size * 0.46)
 
     text_layer = f"l_text:Arial_{font_size}:{text},co_rgb:ffffff,g_center"
     opts = f"w_{size},h_{size},c_fill,r_max,b_rgb:{bg}/{text_layer}"
