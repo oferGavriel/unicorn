@@ -3,7 +3,7 @@ from datetime import timedelta
 from typing import Optional, Annotated, List
 from fastapi import Depends
 from datetime import datetime, timezone
-from sqlalchemy import select, delete
+from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 from app.db.database import DBSessionDep
 from app.database_models.user import User
@@ -14,7 +14,6 @@ from app.core.security import (
     create_refresh_token as refresh_token_generator,
 )
 from app.common.repository import BaseRepository
-from app.common.errors.exceptions import NotFoundError
 
 
 class AuthRepository(BaseRepository[User]):
@@ -44,7 +43,7 @@ class AuthRepository(BaseRepository[User]):
         )
         return result.scalar_one_or_none()
 
-    async def revoke_refresh_token(self, token: str) -> None:
+    async def revoke_refresh_token(self, token: str) -> bool:
         result = await self.session.execute(
             select(RefreshToken).where(
                 RefreshToken.token == token,
@@ -53,18 +52,24 @@ class AuthRepository(BaseRepository[User]):
         )
         rt = result.scalar_one_or_none()
         if not rt:
-            raise NotFoundError(message="Refresh token not found or already revoked")
+            return False
 
         rt.revoked = True
         await self.session.commit()
+        return True
 
     async def cleanup_old_tokens(self, user_id: UUID) -> None:
-        await self.session.execute(
-            delete(RefreshToken).where(
-                (RefreshToken.user_id == user_id)
-                & (RefreshToken.expires_at < datetime.now(timezone.utc))
-            )
+        stmt = select(RefreshToken).where(
+            RefreshToken.user_id == user_id,
+            RefreshToken.expires_at < datetime.now(timezone.utc),
+            RefreshToken.revoked.is_(False),
         )
+        result = await self.session.execute(stmt)
+        expired_tokens = result.scalars().all()
+
+        for token in expired_tokens:
+            token.revoked = True
+
         await self.session.commit()
 
     async def get_valid_refresh_token_for_user(
@@ -88,6 +93,7 @@ class AuthRepository(BaseRepository[User]):
             user_id=user_id,
             token=token,
             expires_at=datetime.now(timezone.utc) + timedelta(days=30),
+            revoked=False,
         )
         self.session.add(new_token)
         await self.session.commit()

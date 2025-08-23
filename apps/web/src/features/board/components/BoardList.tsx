@@ -139,7 +139,6 @@ export const BoardList: React.FC<BoardListProps> = ({
           return (
             <div key={board.id} className="relative flex items-center group">
               {isEditing ? (
-                // Use EditableText in auto-edit mode
                 <div className="w-full p-2 my-1">
                   <EditableText
                     value={board.name}
@@ -154,10 +153,9 @@ export const BoardList: React.FC<BoardListProps> = ({
                   />
                 </div>
               ) : (
-                // Normal display mode
                 <div
                   className={`w-full flex items-center gap-2 p-2 my-1 text-left pr-10 rounded-md text-sm single-line cursor-pointer transition-colors
-                  ${isSelected ? 'bg-primary' : 'hover:bg-accent'}`}
+                  ${isSelected ? 'bg-secondary' : 'hover:bg-accent'}`}
                   onClick={() => onSelectBoard(board.id)}
                   data-testid={UI_IDS.SELECT_BOARD_BTN}
                 >
@@ -166,7 +164,6 @@ export const BoardList: React.FC<BoardListProps> = ({
                 </div>
               )}
 
-              {/* Dropdown Menu - hide when editing */}
               {!isEditing && (
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <DropdownMenu>

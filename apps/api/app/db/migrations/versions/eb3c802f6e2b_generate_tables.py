@@ -42,7 +42,7 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.Column("is_deleted", sa.Boolean(), nullable=False),
+        sa.Column("is_deleted", sa.Boolean(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_users_email"), "users", ["email"], unique=True)
@@ -65,7 +65,7 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.Column("is_deleted", sa.Boolean(), nullable=False),
+        sa.Column("is_deleted", sa.Boolean(), nullable=True),
         sa.ForeignKeyConstraint(
             ["owner_id"],
             ["users.id"],
@@ -94,7 +94,7 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.Column("is_deleted", sa.Boolean(), nullable=False),
+        sa.Column("is_deleted", sa.Boolean(), nullable=True),
         sa.ForeignKeyConstraint(
             ["user_id"],
             ["users.id"],
@@ -159,7 +159,7 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.Column("is_deleted", sa.Boolean(), nullable=False),
+        sa.Column("is_deleted", sa.Boolean(), nullable=True),
         sa.ForeignKeyConstraint(
             ["board_id"],
             ["boards.id"],
@@ -212,7 +212,7 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.Column("is_deleted", sa.Boolean(), nullable=False),
+        sa.Column("is_deleted", sa.Boolean(), nullable=True),
         sa.ForeignKeyConstraint(
             ["table_id"],
             ["tables.id"],

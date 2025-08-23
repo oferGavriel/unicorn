@@ -57,8 +57,9 @@ async def logout(
     auth_service: AuthServiceDep,
     refresh_token: str = Cookie(None),
 ) -> Response:
+    delete_auth_cookies(response)
+
     if refresh_token:
         await auth_service.logout(refresh_token)
 
-    delete_auth_cookies(response)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
