@@ -28,7 +28,11 @@ export const UserMenuDialog: React.FC<UserMenuDialogProps> = ({
       <DropdownMenuTrigger asChild>
         <div className="flex items-center bg-[#36363B] rounded-[6px_20px_20px_6px] cursor-pointer hover:bg-[#404045] transition-colors">
           <div className="flex items-center mx-2">
-            <img src="/logo.png" alt="unicorn logo" className="w-6" />
+            <img
+              src="https://res.cloudinary.com/dqkstk6dw/image/upload/v1755948181/logo_lwf6l7.png"
+              alt="unicorn logo"
+              className="w-6"
+            />
           </div>
           <img src={user.avatarUrl} alt="user avatar" className="w-8 h-8 rounded-full" />
         </div>

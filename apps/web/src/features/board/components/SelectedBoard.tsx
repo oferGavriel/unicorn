@@ -5,6 +5,7 @@ import React, { ReactElement, useCallback, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { Button } from '@/components';
+import { Spinner } from '@/shared/components/Spinner';
 
 import {
   useCreateRowMutation,
@@ -43,7 +44,12 @@ export const SelectedBoard: React.FC<SelectedBoardProps> = ({
   showCreateTableDialog
 }): ReactElement => {
   const { boardId } = useParams<{ boardId?: string }>();
-  const { data: board, isLoading } = useGetBoardByIdQuery(boardId!, {
+  const {
+    data: board,
+    isLoading,
+    isFetching,
+    isUninitialized
+  } = useGetBoardByIdQuery(boardId!, {
     skip: !boardId
   });
 
@@ -139,12 +145,8 @@ export const SelectedBoard: React.FC<SelectedBoardProps> = ({
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-400 text-xl">Loading board...</div>
-      </div>
-    );
+  if (isLoading || isUninitialized || isFetching) {
+    return <Spinner fullScreen text="Loading board..." size="lg" />;
   }
 
   return (

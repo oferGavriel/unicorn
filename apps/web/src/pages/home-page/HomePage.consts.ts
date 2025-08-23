@@ -7,7 +7,8 @@ export const UI_IDS = {
 };
 
 export const UI_TITLES = {
-  HEADER: 'Welcome to the Home Page',
-  DESCRIPTION: 'This is a simple home page example.',
+  HEADER: 'Not just another tool. A Unicorn.',
+  DESCRIPTION:
+    'Smart task management, money tracking, and reminders - all in one simple, powerful workspace.',
   NAV_LINK_TEXT: 'Go to Boards'
 };

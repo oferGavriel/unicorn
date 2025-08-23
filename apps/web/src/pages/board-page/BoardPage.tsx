@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react';
 import React, { ReactElement, useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@/components';
 import { IAuthUser } from '@/features/auth';
@@ -119,7 +119,13 @@ const BoardPage: React.FC<BoardPageProps> = (): ReactElement => {
     <div className="bg-[#212121] h-screen flex flex-col p-2 pt-1 gap-1 ">
       <header className="flex items-center justify-between pl-1 pr-3">
         <div className="p-2 rounded-sm cursor-pointer hover:bg-accent">
-          <img src="/full_logo.png" alt="" className="w-24" />
+          <Link to="/">
+            <img
+              src="https://res.cloudinary.com/dqkstk6dw/image/upload/v1755948186/full_logo_t0w6ra.png"
+              alt="unicorn logo"
+              className="w-24"
+            />
+          </Link>
         </div>
 
         <UserMenuDialog

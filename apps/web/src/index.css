@@ -40,7 +40,6 @@
     --dialog-bg: #111111;
     --input-border-color: #8d8d8d;
     --selected-board-bg: #111111;
-
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 3.9%;
@@ -155,6 +154,19 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.home-page-hero {
+  background-image:
+    linear-gradient(#fff0 78%, #000),
+    url(https://res.cloudinary.com/dqkstk6dw/image/upload/v1755623408/square_owurz7.webp),
+    url(https://res.cloudinary.com/dqkstk6dw/image/upload/v1755948113/gradient_fimbtk.png);
+  background-position:
+    0 0,
+    50% 0,
+    50%;
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-size: auto, 1440px, cover;
 }
 
 .primary-shadow {

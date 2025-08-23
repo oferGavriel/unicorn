@@ -23,7 +23,7 @@ const ProtectedRoute: React.FC<IProtectedRouteProps> = ({ children }): ReactElem
     isError,
     isUninitialized
   } = useCheckCurrentUserQuery(undefined, {
-    skip: !!loggedInUser
+    skip: !!loggedInUser || location.pathname === '/login'
   });
 
   useEffect(() => {
@@ -34,6 +34,10 @@ const ProtectedRoute: React.FC<IProtectedRouteProps> = ({ children }): ReactElem
       clearLoggedInUser();
     }
   }, [fetchedUser, isError, dispatch]);
+
+  if (location.pathname === '/login') {
+    return <>{children}</>;
+  }
 
   if (isLoading || !isUninitialized) {
     return <Spinner />;

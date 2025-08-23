@@ -54,7 +54,6 @@ export const authApi = api.injectEndpoints({
       async onQueryStarted(_arg, { queryFulfilled }) {
         try {
           await queryFulfilled;
-          showSuccessToast('You have been logged out successfully');
         } catch (error) {
           console.error('Logout error:', error);
         }

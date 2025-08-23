@@ -25,7 +25,7 @@ export const Spinner: React.FC<SpinnerProps> = ({
 
   // Container classes based on usage
   const containerClasses = fullScreen
-    ? `fixed inset-0 flex items-center justify-center bg-black/20 z-50 ${className}`
+    ? `fixed inset-0 flex items-center justify-center bg-black/50 z-50 ${className}`
     : `flex items-center justify-center w-full h-full ${className}`;
 
   return (
