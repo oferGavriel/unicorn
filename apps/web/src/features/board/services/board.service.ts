@@ -1,5 +1,4 @@
 import { IAuthUser } from '@/features/auth';
-import { PriorityEnum, StatusEnum } from '@/shared/shared.enum';
 import { api } from '@/store/api';
 import { showErrorToast, showSuccessToast } from '@/store/errorHandler';
 
@@ -71,22 +70,16 @@ export const boardApi = api.injectEndpoints({
         method: 'POST',
         body
       }),
-      invalidatesTags: ['Board'],
       async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
         try {
           const { data: newBoard } = await queryFulfilled;
           dispatch(
             boardApi.util.updateQueryData('getBoards', undefined, (draft) => {
-              if (!draft) {
-                draft = [];
-              }
-
-              draft.push({
-                ...newBoard
-              });
+              draft.unshift(newBoard);
             })
           );
-          showSuccessToast(`Board "${newBoard.name}" created successfully`);
+
+          dispatch(boardApi.util.upsertQueryData('getBoardById', newBoard.id, newBoard));
         } catch (error) {
           showErrorToast(error, 'create board');
         }
@@ -418,53 +411,26 @@ export const boardApi = api.injectEndpoints({
         method: 'POST',
         body
       }),
-      async onQueryStarted(
-        { boardId, tableId, ...rowData },
-        { dispatch, queryFulfilled }
-      ) {
-        const tempId = generateTempId('row');
-
-        // Optimistic update
-        const patchResult = dispatch(
-          boardApi.util.updateQueryData('getBoardById', boardId, (draft) => {
-            const table = draft.tables?.find((t) => t.id === tableId);
-            if (table) {
-              if (!table.rows) {
-                table.rows = [];
-              }
-
-              const newRow: IRow = {
-                id: tempId,
-                name: rowData.name,
-                position: table.rows.length + 1,
-                tableId,
-                status: StatusEnum.NOT_STARTED,
-                priority: PriorityEnum.MEDIUM,
-                owners: [],
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-              };
-
-              table.rows.push(newRow);
-            }
-          })
-        );
-
+      async onQueryStarted({ boardId, tableId }, { dispatch, queryFulfilled }) {
         try {
           const { data: newRow } = await queryFulfilled;
 
           dispatch(
             boardApi.util.updateQueryData('getBoardById', boardId, (draft) => {
               const table = draft.tables?.find((t) => t.id === tableId);
-              const tempIndex = table?.rows?.findIndex((r) => r.id === tempId) || -1;
-
-              if (table?.rows && tempIndex !== -1) {
-                table.rows[tempIndex] = newRow;
+              if (table) {
+                if (!table.rows) {
+                  table.rows = [];
+                }
+                table.rows.push(newRow);
+                // Sort by position to maintain order
+                table.rows.sort((a, b) => a.position - b.position);
               }
             })
           );
+
+          showSuccessToast('Row created successfully');
         } catch (error) {
-          patchResult.undo();
           showErrorToast(error, 'create row');
         }
       }
