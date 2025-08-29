@@ -120,7 +120,6 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build & Push Docker image
-        working-directory: ${{ env.BACKEND_DIR }}
         run: |
           docker buildx build \
             --platform linux/arm64,linux/amd64 \
