@@ -128,7 +128,7 @@ jobs:
             --push \
             --cache-from=type=gha \
             --cache-to=type=gha,mode=max \
-            -f Dockerfile .
+            -f $BACKEND_DIR/Dockerfile .
 
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.0
