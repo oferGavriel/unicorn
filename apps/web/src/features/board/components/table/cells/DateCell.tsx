@@ -14,7 +14,8 @@ import { BaseCellProps } from '../../../types/cell.interface';
 type DateCellProps = BaseCellProps<string | null>;
 
 export const DateCell: React.FC<DateCellProps> = ({ value, onUpdate, column }) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
 
   const formatDate = useCallback((dateString: string | null) => {
     if (!dateString) {
@@ -73,6 +74,7 @@ export const DateCell: React.FC<DateCellProps> = ({ value, onUpdate, column }) =
       try {
         const isoDate = newDate ? newDate.toISOString() : null;
         await onUpdate(isoDate);
+        setIsOpen(false);
       } catch (error) {
         console.error('Failed to update date:', error);
       } finally {
@@ -115,7 +117,7 @@ export const DateCell: React.FC<DateCellProps> = ({ value, onUpdate, column }) =
 
   return (
     <div className="relative h-full">
-      <DropdownMenu>
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
           <Button
             disabled={isLoading}

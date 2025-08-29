@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react';
-import React, { ReactElement, useCallback, useEffect, useState } from 'react';
+import React, { ReactElement, useCallback, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@/components';
@@ -69,12 +69,6 @@ const BoardPage: React.FC<BoardPageProps> = (): ReactElement => {
 
   const navigate = useNavigate();
   const { boardId } = useParams<{ boardId?: string }>();
-
-  useEffect(() => {
-    if (!boardId && boards.length > 0 && !isLoadingBoards) {
-      navigate(`/boards/${boards[0].id}`, { replace: true });
-    }
-  }, [boards, boardId, navigate, isLoadingBoards]);
 
   const onSelectBoard = useCallback(
     (id: string) => {
