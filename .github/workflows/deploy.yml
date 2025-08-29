@@ -20,8 +20,23 @@ jobs:
   backend_ci:
     name: Backend CI (lint + tests)
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: unicorn_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U test -d unicorn_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
     env:
-      DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/unicorn_test
+      DATABASE_URL: postgresql+asyncpg://test:test@postgres:5432/unicorn_test
       SECRET_KEY: test-secret-key
     defaults:
       run:
