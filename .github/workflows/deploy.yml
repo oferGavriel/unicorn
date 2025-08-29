@@ -1,7 +1,9 @@
-name: Deploy Backend & Frontend
+name: CI & Deploy (Backend + Frontend)
 
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
 
 env:
@@ -10,14 +12,95 @@ env:
   BACKEND_DIR: apps/api
   VITE_API_URL: https://api.myunicorn.pw
 
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
 jobs:
-  backend:
+  backend_ci:
+    name: Backend CI (lint + tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.BACKEND_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: |
+          if [ -f "poetry.lock" ]; then
+            pip install poetry
+            poetry install --no-interaction --no-root
+          elif [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          else
+            echo "No dependency file found"; exit 1
+          fi
+
+      - name: Lint
+        run: |
+          python -m pip install ruff
+          ruff check .
+
+      - name: Tests
+        run: |
+          python -m pip install pytest
+          pytest -q
+
+  frontend_ci:
+    name: Frontend CI (lint + tests + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.FRONTEND_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.1.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/pnpm-lock.yaml
+
+      - name: Install deps
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: pnpm run lint
+
+      - name: Tests
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: pnpm run test -- --ci --run
+
+      - name: Build
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: pnpm run build
+
+  backend_deploy:
     name: Deploy Backend to EC2
     runs-on: ubuntu-latest
+    needs: [backend_ci, frontend_ci]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -29,12 +112,15 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build & Push Docker image
+        working-directory: ${{ env.BACKEND_DIR }}
         run: |
           docker buildx build \
             --platform linux/arm64,linux/amd64 \
             -t $DOCKER_IMAGE \
             --push \
-            -f $BACKEND_DIR/Dockerfile .
+            --cache-from=type=gha \
+            --cache-to=type=gha,mode=max \
+            -f Dockerfile .
 
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.0
@@ -123,10 +209,11 @@ jobs:
               -v ~/ssl:/etc/nginx/ssl:ro \
               nginx:alpine
 
-  frontend:
+  frontend_deploy:
     name: Deploy Frontend to Cloudflare Pages
     runs-on: ubuntu-latest
-    needs: backend
+    needs: [backend_deploy]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
       - name: Checkout code
