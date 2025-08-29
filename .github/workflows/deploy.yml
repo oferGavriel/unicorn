@@ -20,6 +20,9 @@ jobs:
   backend_ci:
     name: Backend CI (lint + tests)
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/unicorn_test
+      SECRET_KEY: test-secret-key
     defaults:
       run:
         working-directory: ${{ env.BACKEND_DIR }}
@@ -69,7 +72,7 @@ jobs:
 
       - name: Lint
         working-directory: ${{ env.FRONTEND_DIR }}
-        run: pnpm run lint
+        run: pnpm run lint:check
 
       - name: Tests
         working-directory: ${{ env.FRONTEND_DIR }}
