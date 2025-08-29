@@ -1,6 +1,7 @@
 from uuid import UUID
-from app.common.errors.exceptions import PermissionDeniedError
 from fastapi import Depends, Path
+
+from app.common.errors.exceptions import PermissionDeniedError
 from app.db.database import DBSessionDep
 from app.database_models.board_member import BoardMember
 from app.database_models.board import Board
@@ -11,7 +12,7 @@ from app.database_models.user import User
 
 async def board_member(
     session: DBSessionDep,  # noqa: B008
-    board_id: UUID = Path(...),  # noqa: B008q
+    board_id: UUID = Path(...),  # noqa: B008
     current_user: User = CurrentUserDep,
 ) -> None:
     stmt = (

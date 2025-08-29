@@ -11,7 +11,7 @@ class Settings(BaseSettings):
         alias="DATABASE_URL",
     )
 
-    secret_key: str = "secreto"
+    secret_key: str = Field(..., env="SECRET_KEY")
     algorithm: str = "HS256"
     access_token_exp_minutes: int = 1500
     refresh_token_exp_days: int = 30
