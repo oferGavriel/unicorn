@@ -159,8 +159,7 @@
 .home-page-hero {
   background-image:
     linear-gradient(#fff0 78%, #000),
-    url(https://res.cloudinary.com/dqkstk6dw/image/upload/v1755623408/square_owurz7.webp),
-    url(https://res.cloudinary.com/dqkstk6dw/image/upload/v1755948113/gradient_fimbtk.png);
+    url(https://res.cloudinary.com/dqkstk6dw/image/upload/v1755623408/square_owurz7.webp);
   background-position:
     0 0,
     50% 0,
@@ -188,4 +187,13 @@
 }
 .summary-box {
   @apply h-full flex items-center justify-center text-xs text-white font-medium hover:h-8 transition-all duration-200 ease-in-out hover:rounded-md hover:duration-0;
+}
+
+.glass-bg {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(2.8px);
+  -webkit-backdrop-filter: blur(2.8px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
 }

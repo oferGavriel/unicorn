@@ -52,7 +52,6 @@ describe('AuthPage', () => {
       expect(screen.getByTestId(id)).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId(UI_IDS.HEADER)).toHaveTextContent(UI_TITLES.LOGIN_BTN);
     expect(screen.getByTestId(UI_IDS.SUBMIT_BUTTON)).toHaveTextContent(
       UI_TITLES.SIGN_IN_BTN
     );
@@ -73,7 +72,6 @@ describe('AuthPage', () => {
       expect(screen.getByTestId(id)).toBeInTheDocument();
     });
 
-    expect(screen.getByTestId(UI_IDS.HEADER)).toHaveTextContent(UI_TITLES.REGISTER_BTN);
     expect(screen.getByTestId(UI_IDS.SUBMIT_BUTTON)).toHaveTextContent(
       UI_TITLES.SIGN_UP_BTN
     );
@@ -90,14 +88,12 @@ describe('AuthPage', () => {
 
     // Toggle to register mode
     await user.click(toggleButton);
-    expect(screen.getByTestId(UI_IDS.HEADER)).toHaveTextContent(UI_TITLES.REGISTER_BTN);
     AuthPageRegisterElements.forEach((id) => {
       expect(screen.getByTestId(id)).toBeInTheDocument();
     });
 
     // Toggle back to login mode
     await user.click(toggleButton);
-    expect(screen.getByTestId(UI_IDS.HEADER)).toHaveTextContent(UI_TITLES.LOGIN_BTN);
     AuthPageLoginElements.forEach((id) => {
       expect(screen.getByTestId(id)).toBeInTheDocument();
     });

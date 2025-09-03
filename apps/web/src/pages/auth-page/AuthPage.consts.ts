@@ -15,8 +15,12 @@ export const UI_IDS = {
 };
 
 export const UI_TITLES = {
+  LOGIN_HEADER: 'Sign in with email',
+  REGISTER_HEADER: 'Create your account',
   LOGIN_BTN: 'Login',
   REGISTER_BTN: 'Register',
+  LOGIN_SUBTITLE: 'Welcome back. Please sign in to access your account.',
+  REGISTER_SUBTITLE: 'Create a new account to get started securely.',
   LOGIN_LOADING: 'Login is in progress...',
   REGISTER_LOADING: 'Register is in progress...',
   SIGN_UP_BTN: 'Sign Up',
