@@ -24,10 +24,10 @@ export const BoardSidebar: React.FC<BoardSidebarProps> = ({
 }): ReactElement => {
   return (
     <aside
-      className="w-[333px] max-w-[380px] bg-[#111111] rounded-xl border-gray-700 flex flex-col primary-shadow"
+      className="w-[333px] max-w-[380px] flex-shrink-0 bg-[#111111] rounded-xl border-gray-700 flex flex-col primary-shadow"
       data-testid={UI_IDS.BOARD_SIDEBAR}
     >
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea className="flex-1 py-4 px-3">
         {isLoadingBoards ? (
           <p className="text-gray-200" data-testid={UI_IDS.LOADING_BOARDS}>
             {UI_TITLES.LOADING_BOARDS}

@@ -147,7 +147,7 @@ const BoardPage: React.FC<BoardPageProps> = (): ReactElement => {
               setShowCreateBoardDialog={setShowCreateBoardDialog}
             />
 
-            <main className="bg-selected-board-bg border-gray-700 rounded-xl flex-1 primary-shadow">
+            <main className="bg-selected-board-bg border-gray-700 rounded-xl flex-1 primary-shadow overflow-auto">
               <SelectedBoard
                 showCreateTableDialog={() => setShowCreateTableDialog(true)}
               />

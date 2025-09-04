@@ -170,43 +170,48 @@ export const SelectedBoard: React.FC<SelectedBoardProps> = ({
               </BoardHeaderDialog>
             </div>
 
-            <div className="flex-1 pl-10">
-              <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-                <SortableContext items={tableIds} strategy={verticalListSortingStrategy}>
-                  <div className="flex flex-col gap-4">
-                    {sortedTables.map((table) => (
-                      <DraggableTable
-                        key={table.id}
-                        table={table}
-                        boardId={board.id}
-                        onAddRow={handleAddRow}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-
-                <DragOverlay dropAnimation={null}>
-                  {activeTable && (
-                    <div className="opacity-90 rotate-1 scale-105 shadow-2xl border-2 border-blue-400 rounded-lg">
-                      <BoardTable
-                        table={activeTable}
-                        boardId={board.id}
-                        onAddRow={handleAddRow}
-                      />
+            <div className="flex-1 pl-10 overflow-x-auto">
+              <div className="min-w-max">
+                <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                  <SortableContext
+                    items={tableIds}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="flex flex-col gap-4">
+                      {sortedTables.map((table) => (
+                        <DraggableTable
+                          key={table.id}
+                          table={table}
+                          boardId={board.id}
+                          onAddRow={handleAddRow}
+                        />
+                      ))}
                     </div>
-                  )}
-                </DragOverlay>
-              </DndContext>
+                  </SortableContext>
 
-              <div className="flex justify-start pt-4 pb-6">
-                <Button
-                  onClick={showCreateTableDialog}
-                  variant={'outline'}
-                  className="px-4 py-2 h-auto leading-3"
-                >
-                  <Plus size={26} className="w-6 h-auto" />
-                  Add new table
-                </Button>
+                  <DragOverlay dropAnimation={null}>
+                    {activeTable && (
+                      <div className="opacity-90 rotate-1 scale-105 shadow-2xl border-2 border-blue-400 rounded-lg">
+                        <BoardTable
+                          table={activeTable}
+                          boardId={board.id}
+                          onAddRow={handleAddRow}
+                        />
+                      </div>
+                    )}
+                  </DragOverlay>
+                </DndContext>
+
+                <div className="flex justify-start pt-4 pb-6">
+                  <Button
+                    onClick={showCreateTableDialog}
+                    variant={'outline'}
+                    className="px-4 py-2 h-auto leading-3"
+                  >
+                    <Plus size={26} className="w-6 h-auto" />
+                    Add new table
+                  </Button>
+                </div>
               </div>
             </div>
           </>

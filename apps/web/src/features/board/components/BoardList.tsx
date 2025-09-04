@@ -105,7 +105,7 @@ export const BoardList: React.FC<BoardListProps> = ({
         <Button
           variant="ghost"
           size="default"
-          className="w-full justify-start gap-2"
+          className="w-full justify-start gap-2 p-2"
           onClick={() => navigate('/')}
           data-testid={UI_IDS.HOME_BTN}
         >
@@ -115,7 +115,7 @@ export const BoardList: React.FC<BoardListProps> = ({
         <Button
           variant="ghost"
           size="default"
-          className="w-full justify-start gap-2"
+          className="w-full justify-start gap-2 p-2"
           onClick={() => toast.warning('My Work button clicked')}
           data-testid={UI_IDS.MY_WORK_BTN}
         >
@@ -126,7 +126,7 @@ export const BoardList: React.FC<BoardListProps> = ({
         <Separator className="my-4 bg-gray-500" />
 
         <h3
-          className="px-3 text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2"
+          className="px-3 text-xs xl:text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2"
           data-testid={UI_IDS.BOARD_HEADER}
         >
           {UI_TITLES.BOARD_HEADER}
