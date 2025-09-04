@@ -173,11 +173,18 @@ jobs:
               --query Parameter.Value \
               --output text)
 
+            JWT_SECRET=$(aws ssm get-parameter \
+              --name /app/unicorn/jwt-secret \
+              --with-decryption \
+              --query Parameter.Value \
+              --output text)
+
             test -n "$DATABASE_URL"
             test -n "$CORS_ORIGINS"
             test -n "$CLOUDINARY_CLOUD_NAME"
             test -n "$CLOUDINARY_FOLDER"
             test -n "$CLOUDINARY_BASE"
+            test -n "$JWT_SECRET"
 
             docker run -d --name app \
               --restart unless-stopped \
@@ -187,6 +194,7 @@ jobs:
               -e CLOUDINARY_CLOUD_NAME="$CLOUDINARY_CLOUD_NAME" \
               -e CLOUDINARY_FOLDER="$CLOUDINARY_FOLDER" \
               -e CLOUDINARY_BASE="$CLOUDINARY_BASE" \
+              -e SECRET_KEY="$JWT_SECRET" \
               -p 8000:8000 \
               "$DOCKER_IMAGE"
 
