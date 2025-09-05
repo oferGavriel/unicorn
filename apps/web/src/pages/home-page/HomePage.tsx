@@ -29,7 +29,7 @@ const HomePage: React.FC = (): ReactElement => {
           <Button
             size={'lg'}
             variant={'secondary'}
-            className="primary-shadow mt-6 text-lg lg:text-xl h-12 lg:h-15 w-28 lg:w-48 rounded-lg hover:scale-105 transition-all duration-200"
+            className="primary-shadow mt-6 text-md lg:text-xl h-12 lg:h-15 w-32 lg:w-48 rounded-lg transition-all duration-200 hover:bg-primary"
           >
             <Link to="/boards" data-testid={UI_IDS.NAV_LINK}>
               {UI_TITLES.NAV_LINK_TEXT}
