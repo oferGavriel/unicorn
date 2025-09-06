@@ -142,7 +142,7 @@ async def test_duplicate_board() -> None:
     duplicated_board = duplicate_resp.json()
 
     assert duplicated_board["id"] != board_id
-    assert duplicated_board["name"] == f"{original_board["name"]} (1)"
+    assert duplicated_board["name"] == f"{original_board['name']} (1)"
     assert duplicated_board["description"] == original_board["description"]
     assert duplicated_board["ownerId"] == user_id
 

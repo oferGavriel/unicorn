@@ -1,5 +1,6 @@
+from datetime import datetime
 from typing import List, Optional, TYPE_CHECKING
-from sqlalchemy import String
+from sqlalchemy import String, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database_models.common import TimestampMixin, UuidPk, StrLen50
 from app.db.base import Base
@@ -20,6 +21,9 @@ class User(TimestampMixin, Base):
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
 
     avatar_url: Mapped[Optional[str]] = mapped_column(String, nullable=True, default=None)
+    last_seen_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # relationships
     boards: Mapped[List["Board"]] = relationship(

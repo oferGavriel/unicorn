@@ -1,8 +1,9 @@
+from datetime import datetime, timezone
 from uuid import UUID
 from fastapi import Request, Depends
 from app.db.database import DBSessionDep
 from app.database_models.user import User
-from sqlalchemy import select
+from sqlalchemy import select, update
 from app.core.security import decode_token
 from app.common.errors.exceptions import TokenInvalidError, AccessTokenExpiredError
 
@@ -27,6 +28,16 @@ async def current_user(request: Request, session: DBSessionDep) -> User:
     user = result.scalar_one_or_none()
     if not user:
         raise TokenInvalidError("User not found")
+
+    try:
+        await session.execute(
+            update(User)
+            .where(User.id == user.id)
+            .values(last_seen_at=datetime.now(timezone.utc))
+        )
+        await session.commit()
+    except Exception:
+        await session.rollback()
 
     return user
 
