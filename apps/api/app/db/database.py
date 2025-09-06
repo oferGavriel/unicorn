@@ -7,8 +7,10 @@ from sqlalchemy.ext.asyncio import (
 )
 from app.core.config import get_settings
 
+settings = get_settings()
+
 async_engine = create_async_engine(
-    get_settings().db_url_async,
+    settings.db_url_async,
     pool_pre_ping=True,
     connect_args={"server_settings": {"timezone": "UTC"}},
 )

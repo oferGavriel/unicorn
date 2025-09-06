@@ -18,7 +18,10 @@ from app.api.dal.auth_repository import AuthRepository
 DATABASE_URL = "postgresql+asyncpg://test:test@localhost:5432/unicorn_test"
 
 engine = create_async_engine(
-    DATABASE_URL, connect_args={"server_settings": {"timezone": "UTC"}}
+    DATABASE_URL,
+    echo=False,
+    pool_pre_ping=True,
+    connect_args={"server_settings": {"timezone": "UTC"}}
 )
 
 async_session_maker = async_sessionmaker(

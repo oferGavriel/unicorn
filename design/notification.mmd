@@ -1,0 +1,35 @@
+```mermaid
+flowchart LR
+  subgraph Client
+    U[Member A Frontend]
+  end
+
+  subgraph API[FastAPI EC2]
+    SVC[Task Board Services]
+    PRES[Presence Middleware update last_seen_at]
+    RED[Redis Client]
+  end
+
+  subgraph Redis[Redis]
+    LIST[[notif:board:actor:recipient list of events]]
+    DUE[(ZSET notif:due score = expiry epoch ms member = groupKey)]
+  end
+
+  subgraph Worker[Notifier Worker EC2]
+    POLL[Poll due zset now >= score]
+    BUILD[Summarize batch]
+    SUP[Suppress if active last_seen 10m]
+    SEND[Resend API]
+    AUDIT[(Postgres audit row)]
+    CLEAN[DEL list + ZREM due]
+  end
+
+  U -->|HTTP action| SVC --> PRES
+  SVC -->|emit event| RED
+  RED -->|RPUSH event| LIST
+  RED -->|ZADD score| DUE
+  POLL -->|ZRANGEBYSCORE <= now| DUE
+  POLL -->|LRANGE events| LIST --> BUILD --> SUP
+  SUP -->|email| SEND --> AUDIT --> CLEAN
+  SUP -->|suppress| CLEAN
+```

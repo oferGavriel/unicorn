@@ -1,16 +1,53 @@
 import uvicorn
 import os
+import sys
+
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+
 from fastapi import FastAPI
 from pydantic import ValidationError
 from fastapi.requests import Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes.main_router import add_routes
+from sqlalchemy import text
 
+from app.api.routes.main_router import add_routes
 from app.common.errors.error_model import ErrorResponseModel
 from app.common.errors.exceptions import AppExceptionError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.core.logger import logger
+from app.db.database import async_engine
+
+
+async def check_database_connection() -> None:
+    try:
+        async with async_engine.begin() as conn:
+            await conn.execute(text("SELECT 1"))
+        logger.info("Database connection successful")
+    except Exception as e:
+        logger.error(f"Database connection failed: {e}")
+        sys.exit(1)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    logger.info("Starting up...")
+
+    try:
+        await check_database_connection()
+    except SystemExit:
+        raise
+    except Exception as e:
+        logger.error(f"Application startup failed: {e}")
+        sys.exit(1)
+
+    yield
+
+    logger.info("Shutting down...")
+    await async_engine.dispose()
+    logger.info("Application shutdown complete.")
+
 
 app = FastAPI(
     title="Monday Lite API",
@@ -23,6 +60,7 @@ app = FastAPI(
         "defaultModelsExpandDepth": -1,
         "persistAuthorization": True,
     },
+    lifespan=lifespan,
 )
 
 

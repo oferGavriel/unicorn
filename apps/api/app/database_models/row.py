@@ -11,7 +11,6 @@ from app.core.enums import StatusEnum, PriorityEnum
 if TYPE_CHECKING:
     from app.database_models.table import Table
     from app.database_models.note import Note
-    from app.database_models.notification import Notification
     from app.database_models.user import User
 
 
@@ -48,7 +47,5 @@ class Row(TimestampMixin, Base):
     )
     table: Mapped["Table"] = relationship("Table", back_populates="rows")
     notes: Mapped[List["Note"]] = relationship("Note", back_populates="row")
-    notifications: Mapped[List["Notification"]] = relationship(
-        "Notification", back_populates="row", cascade="all, delete-orphan"
-    )
+
     __table_args__ = (Index("ix_rows_table_position", "table_id", "position"),)

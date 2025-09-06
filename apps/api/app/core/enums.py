@@ -18,3 +18,28 @@ class PriorityEnum(str, Enum):
 class RoleEnum(str, Enum):
     owner = "owner"
     member = "member"
+
+
+class NotificationChannelEnum(str, Enum):
+    EMAIL = "email"
+    IN_APP = "in_app"
+    WEB_PUSH = "web_push"
+
+
+class NotificationStatusEnum(str, Enum):
+    QUEUED = "queued"
+    SENT = "sent"
+    FAILED = "failed"
+    SUPPRESSED = "suppressed"
+
+
+class SuppressionReasonEnum(str, Enum):
+    RECIPIENT_ACTIVE = "recipient_active"
+    PREFERENCES_DISABLED = "preferences_disabled"
+    INVALID_EMAIL = "invalid_email"
+    RATE_LIMITED = "rate_limited"
+    OTHER = "other"
+
+
+class NotificationKindEnum(str, Enum):
+    BOARD_ACTIVITY_DIGEST = "board_activity_digest"

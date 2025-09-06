@@ -11,7 +11,7 @@ class UserCreate(BaseSchema):
     email: EmailStr = Field(max_length=255, min_length=1)
     password: str = Field(max_length=128, min_length=6)
 
-    @field_validator('first_name', 'last_name')
+    @field_validator("first_name", "last_name")
     @classmethod
     def validate_name(cls, value: str) -> str:
         if not value.isalpha():

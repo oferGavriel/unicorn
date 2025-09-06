@@ -1,5 +1,3 @@
-import os
-
 from pydantic import Field, PostgresDsn
 from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -11,7 +9,7 @@ class Settings(BaseSettings):
         alias="DATABASE_URL",
     )
 
-    secret_key: str
+    secret_key: str = Field(default="super-secret")
     algorithm: str = "HS256"
     access_token_exp_minutes: int = 1500
     refresh_token_exp_days: int = 30
@@ -19,9 +17,9 @@ class Settings(BaseSettings):
     max_tries: int = 60
     wait_seconds: int = 1
 
-    cloudinary_cloud_name: str = os.getenv("CLOUDINARY_CLOUD_NAME", "")
-    cloudinary_folder: str = os.getenv("CLOUDINARY_FOLDER", "avatars")
-    cloudinary_base: str = os.getenv("CLOUDINARY_BASE", "blank.png")
+    cloudinary_cloud_name: str = Field(default="")
+    cloudinary_folder: str = Field(default="avatars")
+    cloudinary_base: str = Field(default="blank.png")
 
     @property
     def db_url_sync(self) -> str:
