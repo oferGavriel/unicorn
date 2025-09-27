@@ -7,7 +7,7 @@ from tests.conftest import (
 )
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_create_and_list_tables() -> None:
     client, _, board_id = await create_board_with_authenticated_user()
 
@@ -28,7 +28,7 @@ async def test_create_and_list_tables() -> None:
     assert any(table["id"] == table_id for table in tables)
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_create_table_invalid_board() -> None:
     client, _ = await get_authenticated_client()
     invalid_board_id = str(uuid4())
@@ -40,7 +40,7 @@ async def test_create_table_invalid_board() -> None:
     assert resp.json()["message"] == f"Board with ID {invalid_board_id} not found"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_list_tables_unauthenticated():
     client, board_id, _ = await create_board_with_authenticated_user()
 
@@ -49,7 +49,7 @@ async def test_list_tables_unauthenticated():
     assert resp.status_code == HTTPStatus.UNAUTHORIZED
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_update_table_success():
     client, _, board_id = await create_board_with_authenticated_user()
     create_resp = await client.post(
@@ -67,7 +67,7 @@ async def test_update_table_success():
     assert updated["name"] == "After"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_update_table_not_found():
     client, _, board_id = await create_board_with_authenticated_user()
     invalid_table_id = str(uuid4())
@@ -80,7 +80,7 @@ async def test_update_table_not_found():
     assert json["message"] == f"Table with ID {invalid_table_id} not found"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_delete_table_success():
     client, _, board_id = await create_board_with_authenticated_user()
     create_resp = await client.post(
@@ -96,7 +96,7 @@ async def test_delete_table_success():
     assert all(t["id"] != table_id for t in list_resp.json())
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_table_access_from_other_user():
     client1, _, board_id = await create_board_with_authenticated_user()
     table_resp = await client1.post(
@@ -117,7 +117,7 @@ async def test_table_access_from_other_user():
     )
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_duplicate_table() -> None:
     client, _, board_id = await create_board_with_authenticated_user()
 

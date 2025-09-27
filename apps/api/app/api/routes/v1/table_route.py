@@ -15,7 +15,11 @@ from app.database_models.user import User
 router = APIRouter()
 
 
-@router.get("/", response_model=List[TableRead], description="List all tables")
+@router.get(
+  "/",
+  response_model=List[TableRead],
+  description="List all tables",
+)
 async def list_tables(
     board_id: UUID,
     table_service: TableServiceDep,

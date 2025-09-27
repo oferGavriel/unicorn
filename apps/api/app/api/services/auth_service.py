@@ -1,3 +1,4 @@
+from uuid import UUID
 from typing import Annotated, Tuple
 from fastapi import Depends
 from uuid import uuid4
@@ -10,6 +11,7 @@ from app.common.errors.exceptions import (
     ConflictError,
     RefreshTokenExpiredError,
     InvalidCredentialsError,
+    NotFoundError,
 )
 
 from app.api.services.token_service import TokenService
@@ -68,6 +70,13 @@ class AuthService(BaseService[User, UserRead]):
     async def get_all_users(self) -> list[UserRead]:
         users = await self.auth_repository.get_all_users()
         return [self.convert_to_model(user) for user in users]
+
+    async def get_user(self, user_id: UUID) -> UserRead:
+        user = await self.auth_repository.get_user(user_id)
+        if not user:
+            raise NotFoundError(message="User not found")
+        return self.convert_to_model(user)
+
 
     async def _issue_tokens(self, user: User) -> Tuple[str, str]:
         user.access_token = TokenService.create_access_token(str(user.id))

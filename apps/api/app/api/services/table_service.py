@@ -6,19 +6,23 @@ from app.api.dal.table_repository import TableRepositoryDep
 from app.api.services.board_service import BoardServiceDep
 from app.database_models import Table
 from app.api.models.table_model import TableCreate, TableUpdate, TableRead
+from app.api.services.duplicate.duplication_factory import DuplicationServiceFactory
 from app.common.service import BaseService
 from app.common.errors.exceptions import NotFoundError
-
-from app.api.services.duplicate.duplication_factory import DuplicationServiceFactory
+from app.api.dal.auth_repository import AuthRepositoryDep
 
 
 class TableService(BaseService[Table, TableRead]):
     def __init__(
-        self, table_repository: TableRepositoryDep, board_service: BoardServiceDep
+        self,
+        table_repository: TableRepositoryDep,
+        board_service: BoardServiceDep,
+        auth_repository: AuthRepositoryDep,
     ):
         super().__init__(TableRead, table_repository)
         self.table_repository = table_repository
         self.board_service = board_service
+        self.auth_repository = auth_repository
 
     async def list_tables(self, board_id: UUID, user_id: UUID) -> List[TableRead]:
         await self._check_if_board_exists(board_id, user_id)
@@ -49,8 +53,9 @@ class TableService(BaseService[Table, TableRead]):
             position=next_position,
             **table_data,
         )
-        result = await self.table_repository.create(payload)
-        return self.convert_to_model(result)
+        created = await self.table_repository.create(payload)
+
+        return self.convert_to_model(created)
 
     async def update_table(
         self,
@@ -62,10 +67,9 @@ class TableService(BaseService[Table, TableRead]):
         await self._check_if_board_exists(board_id, user_id)
 
         table = await self._get_table_entity(table_id, board_id)
-
         payload = data.model_dump(exclude_none=True)
-
         updated_table = await self.table_repository.update(table, payload)
+
         return self.convert_to_model(updated_table)
 
     async def delete_table(self, table_id: UUID, board_id: UUID, user_id: UUID) -> None:

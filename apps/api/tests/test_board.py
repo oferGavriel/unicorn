@@ -5,7 +5,7 @@ from http import HTTPStatus
 from tests.conftest import create_board_with_authenticated_user, get_authenticated_client
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_create_and_list_boards() -> None:
     client, _ = await get_authenticated_client()
 
@@ -27,7 +27,7 @@ async def test_create_and_list_boards() -> None:
     assert any(board["id"] == board_id for board in boards)
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_board_by_id() -> None:
     client, _ = await get_authenticated_client()
 
@@ -47,7 +47,7 @@ async def test_get_board_by_id() -> None:
     assert board["description"] == "This is a test board."
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_update_board() -> None:
     client, _ = await get_authenticated_client()
 
@@ -72,7 +72,7 @@ async def test_update_board() -> None:
     assert updated_board["description"] == "This is an updated test board."
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_delete_board() -> None:
     client, _ = await get_authenticated_client()
 
@@ -92,7 +92,7 @@ async def test_delete_board() -> None:
     assert get_resp.status_code == HTTPStatus.NOT_FOUND
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_cannot_access_board_of_other_user() -> None:
     # User A
     client_a, _ = await get_authenticated_client()
@@ -112,14 +112,14 @@ async def test_cannot_access_board_of_other_user() -> None:
     ), get_resp.text
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_raise_unauthorized(async_client: AsyncClient) -> None:
     async_client.cookies.clear()
     resp = await async_client.get("/api/v1/boards/")
     assert resp.status_code == HTTPStatus.UNAUTHORIZED
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_raise_not_found_board() -> None:
     client, _ = await get_authenticated_client()
     board_id = uuid4()
@@ -129,7 +129,7 @@ async def test_raise_not_found_board() -> None:
     assert json["message"] == f"Board with ID {board_id} not found"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_duplicate_board() -> None:
     client, user_id, board_id = await create_board_with_authenticated_user()
 
@@ -159,7 +159,7 @@ async def test_duplicate_board() -> None:
     assert duplicated_board["id"] in board_ids
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_add_member_to_board() -> None:
     client_a, _, board_id = await create_board_with_authenticated_user()
 
@@ -175,7 +175,7 @@ async def test_add_member_to_board() -> None:
     assert user_id_b in board["memberIds"]
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_board_members() -> None:
     client_a, _, board_id = await create_board_with_authenticated_user()
 
@@ -188,7 +188,7 @@ async def test_get_board_members() -> None:
     assert any(member["id"] == user_id_b for member in members_data)
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_full_board_flow() -> None:
     """
     Test user A creates a board, adds a table, and a row, add user B as a member,

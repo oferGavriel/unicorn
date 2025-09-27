@@ -1,5 +1,6 @@
 from fastapi import APIRouter, status
 from typing import List
+from uuid import UUID
 
 from app.api.services.auth_service import AuthServiceDep
 from app.api.models.user_model import UserRead
@@ -27,3 +28,12 @@ async def get_current_user(current_user: User = CurrentUserDep) -> UserRead:
 )
 async def get_all_users(auth_service: AuthServiceDep) -> List[UserRead]:
     return await auth_service.get_all_users()
+
+@router.get(
+    "/{user_id}",
+    response_model=UserRead,
+    status_code=status.HTTP_200_OK,
+    description="Get a user by ID",
+)
+async def get_user(user_id: UUID, auth_service: AuthServiceDep) -> UserRead:
+    return await auth_service.get_user(user_id)

@@ -38,6 +38,15 @@ jobs:
     env:
       DATABASE_URL: postgresql+asyncpg://test:test@postgres:5432/unicorn_test
       SECRET_KEY: test-secret-key
+      # For notification tests
+      NOTIF_WINDOW_SECONDS: 1
+      NOTIF_SUPPRESS_MINUTES: 1
+      NOTIF_WORKER_POLL_MS: 1000
+      # For email settings
+      RESEND_API_KEY: ""
+      FROM_EMAIL: ""
+      FROM_NAME: "Test Notifications"
+      FRONTEND_URL: "http://localhost:5173"
     defaults:
       run:
         working-directory: ${{ env.BACKEND_DIR }}
@@ -153,6 +162,12 @@ jobs:
               --query Parameter.Value \
               --output text)
 
+            REDIS_URL=$(aws ssm get-parameter \
+              --name /app/unicorn/redis-url \
+              --with-decryption \
+              --query Parameter.Value \
+              --output text)
+
             CORS_ORIGINS=$(aws ssm get-parameter \
               --name /app/unicorn/cors-origins \
               --query Parameter.Value \
@@ -179,24 +194,98 @@ jobs:
               --query Parameter.Value \
               --output text)
 
+            NOTIF_WINDOW_SECONDS=$(aws ssm get-parameter \
+              --name /app/unicorn/notif-window-seconds \
+              --query Parameter.Value \
+              --output text)
+
+            NOTIF_SUPPRESS_MINUTES=$(aws ssm get-parameter \
+              --name /app/unicorn/notif-suppress-minutes \
+              --query Parameter.Value \
+              --output text)
+
+            NOTIF_WORKER_POLL_MS=$(aws ssm get-parameter \
+              --name /app/unicorn/notif-worker-poll-ms \
+              --query Parameter.Value \
+              --output text)
+
+            RESEND_API_KEY=$(aws ssm get-parameter \
+              --name /app/unicorn/resend-api-key \
+              --with-decryption \
+              --query Parameter.Value \
+              --output text)
+
+            FROM_EMAIL=$(aws ssm get-parameter \
+              --name /app/unicorn/from-email \
+              --query Parameter.Value \
+              --output text)
+
+            FROM_NAME=$(aws ssm get-parameter \
+              --name /app/unicorn/from-name \
+              --query Parameter.Value \
+              --output text)
+
+            FRONTEND_URL=$(aws ssm get-parameter \
+              --name /app/unicorn/frontend-url \
+              --query Parameter.Value \
+              --output text)
+
             test -n "$DATABASE_URL"
+            test -n "$REDIS_URL"
             test -n "$CORS_ORIGINS"
             test -n "$CLOUDINARY_CLOUD_NAME"
             test -n "$CLOUDINARY_FOLDER"
             test -n "$CLOUDINARY_BASE"
             test -n "$JWT_SECRET"
+            test -n "$NOTIF_WINDOW_SECONDS"
+            test -n "$NOTIF_SUPPRESS_MINUTES"
+            test -n "$NOTIF_WORKER_POLL_MS"
+            test -n "$RESEND_API_KEY"
+            test -n "$FROM_EMAIL"
+            test -n "$FROM_NAME"
+            test -n "$FRONTEND_URL"
+
+            docker run -d --name redis \
+              --restart unless-stopped \
+              --network unicorn-net \
+              -p 6379:6379 \
+              redis:alpine redis-server --loglevel warning
 
             docker run -d --name app \
               --restart unless-stopped \
               --network unicorn-net \
               -e DATABASE_URL="$DATABASE_URL" \
+              -e REDIS_URL="$REDIS_URL" \
               -e CORS_ORIGINS="$CORS_ORIGINS" \
               -e CLOUDINARY_CLOUD_NAME="$CLOUDINARY_CLOUD_NAME" \
               -e CLOUDINARY_FOLDER="$CLOUDINARY_FOLDER" \
               -e CLOUDINARY_BASE="$CLOUDINARY_BASE" \
               -e SECRET_KEY="$JWT_SECRET" \
+              -e NOTIF_WINDOW_SECONDS="$NOTIF_WINDOW_SECONDS" \
+              -e NOTIF_SUPPRESS_MINUTES="$NOTIF_SUPPRESS_MINUTES" \
+              -e NOTIF_WORKER_POLL_MS="$NOTIF_WORKER_POLL_MS" \
+              -e RESEND_API_KEY="$RESEND_API_KEY" \
+              -e FROM_EMAIL="$FROM_EMAIL" \
+              -e FROM_NAME="$FROM_NAME" \
+              -e FRONTEND_URL="$FRONTEND_URL" \
               -p 8000:8000 \
               "$DOCKER_IMAGE"
+
+            docker run -d --name notification_worker \
+              --restart unless-stopped \
+              --network unicorn-net \
+              -e DATABASE_URL="$DATABASE_URL" \
+              -e REDIS_URL="$REDIS_URL" \
+              -e SECRET_KEY="$JWT_SECRET" \
+              -e NOTIF_WINDOW_SECONDS="$NOTIF_WINDOW_SECONDS" \
+              -e NOTIF_SUPPRESS_MINUTES="$NOTIF_SUPPRESS_MINUTES" \
+              -e NOTIF_WORKER_POLL_MS="$NOTIF_WORKER_POLL_MS" \
+              -e RESEND_API_KEY="$RESEND_API_KEY" \
+              -e FROM_EMAIL="$FROM_EMAIL" \
+              -e FROM_NAME="$FROM_NAME" \
+              -e FRONTEND_URL="$FRONTEND_URL" \
+              "$DOCKER_IMAGE" python -m app.notification.worker
+
 
       - name: Copy Nginx config
         uses: appleboy/scp-action@v0.1.4

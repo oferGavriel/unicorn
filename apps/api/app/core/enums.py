@@ -43,3 +43,7 @@ class SuppressionReasonEnum(str, Enum):
 
 class NotificationKindEnum(str, Enum):
     BOARD_ACTIVITY_DIGEST = "board_activity_digest"
+    WELCOME = "welcome"
+    BOARD_INVITATION = "board_invitation"
+    ROW_ASSIGNMENT = "row_assignment"
+    DEADLINE_REMINDER = "deadline_reminder"

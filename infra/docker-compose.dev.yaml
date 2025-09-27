@@ -43,7 +43,7 @@ services:
       - DB_USER=postgres
       - DB_PASS=3578
       - DATABASE_URL=postgresql://postgres:3578@postgres:5432/unicorn
-
+      - REDIS_URL=redis://redis:6379/0
     volumes:
       - ../apps/api:/app
     ports:
@@ -58,6 +58,33 @@ services:
       interval: 30s
       retries: 5
       timeout: 10s
+
+  notification_worker:
+    container_name: notification_worker
+    build:
+      context: ../
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - ../apps/api/.env
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=unicorn
+      - DB_USER=postgres
+      - DB_PASS=3578
+      - DATABASE_URL=postgresql://postgres:3578@postgres:5432/unicorn
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ../apps/api:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ['python', '-m', 'app.notification.worker']
 
 volumes:
   db_data:
