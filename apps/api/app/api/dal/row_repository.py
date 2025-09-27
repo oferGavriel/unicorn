@@ -55,7 +55,15 @@ class RowRepository(BaseRepository[Row]):
         return result.scalar_one()
 
     async def update(self, row: Row, data: dict) -> Row:
-        return await self.update_entity(row, **data)
+        updated_row = await self.update_entity(row, **data)
+
+        q = (
+            select(Row)
+            .options(selectinload(Row.owner_users))
+            .where(Row.id == updated_row.id)
+        )
+        result = await self.session.execute(q)
+        return result.scalar_one()
 
     async def delete(self, row_id: UUID, table_id: UUID) -> None:
         row = await self.get(row_id, table_id)

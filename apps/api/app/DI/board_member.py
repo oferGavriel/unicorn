@@ -27,9 +27,7 @@ async def board_member(
         )
         .limit(1)
     )
-    print("BEFORE BOARD MEMBER MIDDLEWARE")
     result = await session.execute(stmt)
-    print("board_member result", result.all())
     if not result.scalar_one_or_none():
         raise PermissionDeniedError("You are not a member of this board.")
 

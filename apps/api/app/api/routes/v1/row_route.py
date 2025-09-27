@@ -40,8 +40,9 @@ async def delete_row(
     table_id: UUID,
     row_id: UUID,
     row_service: RowServiceDep,
+    current_user: User = CurrentUserDep,
 ) -> None:
-    await row_service.delete_row(row_id, table_id)
+    await row_service.delete_row(row_id, table_id, current_user.id)
 
 
 @router.post(

@@ -9,7 +9,7 @@ from tests.conftest import (
 from app.common.errors.exceptions import NotFoundError
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_create_row() -> None:
     client, _, board_id, table_id = await create_table_with_authenticated_user()
 
@@ -25,7 +25,7 @@ async def test_create_row() -> None:
     assert data["position"] == 1
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_update_row() -> None:
     client, _, board_id, table_id = await create_table_with_authenticated_user()
 
@@ -50,7 +50,7 @@ async def test_update_row() -> None:
     assert updated_row["position"] == update_resp.json()["position"]
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_delete_row(row_service: RowService) -> None:
     client, _, board_id, table_id = await create_table_with_authenticated_user()
 
@@ -71,7 +71,7 @@ async def test_delete_row(row_service: RowService) -> None:
         await row_service.get_row(UUID(row_id), UUID(table_id))
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_row_not_found() -> None:
     client, _, board_id, table_id = await create_table_with_authenticated_user()
 
@@ -90,7 +90,7 @@ async def test_row_not_found() -> None:
     assert resp.status_code == HTTPStatus.NOT_FOUND
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_user_cannot_create_row_in_other_user_table() -> None:
     # User A created a board and table
     _, _, board_id, table_id = await create_table_with_authenticated_user()
@@ -106,7 +106,7 @@ async def test_user_cannot_create_row_in_other_user_table() -> None:
     assert resp.status_code in (HTTPStatus.FORBIDDEN, HTTPStatus.NOT_FOUND)
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_user_cannot_update_row_in_other_user_table() -> None:
     # User A created a board and table and adds a row
     client_a, _, board_id, table_id = await create_table_with_authenticated_user()

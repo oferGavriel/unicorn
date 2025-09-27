@@ -1,6 +1,9 @@
+from app.api.dal.board_member_repository import BoardMemberRepository
 import pytest
-import asyncio
+import pytest_asyncio
 import logging
+from unittest.mock import AsyncMock, MagicMock
+
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from httpx import AsyncClient
 from httpx._transports.asgi import ASGITransport
@@ -8,57 +11,92 @@ from http import HTTPStatus
 from app.main import app
 from app.db.base import Base
 from app.db.database import get_db_session
+from app.notification.redis_client import get_redis
 from tests.utils.register_and_login_user import register_and_login_user
-from app.api.services.row_service import RowService
-from app.api.dal.row_repository import RowRepository
-from app.api.dal.table_repository import TableRepository
-from app.api.dal.row_owner_repository import RowOwnerRepository
-from app.api.dal.auth_repository import AuthRepository
+from app.notification.notification_service import NotificationService
+from app.api.services import (
+    AuthService,
+    BoardService,
+    RowService,
+    TableService
+)
+from app.api.dal import (
+    AuthRepository,
+    BoardRepository,
+    RowRepository,
+    TableRepository,
+    RowOwnerRepository,
+)
 
 DATABASE_URL = "postgresql+asyncpg://test:test@localhost:5432/unicorn_test"
 
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=False,
-    pool_pre_ping=True,
-    connect_args={"server_settings": {"timezone": "UTC"}}
-)
 
-async_session_maker = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-    autocommit=False,
-    autoflush=False,
-)
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def setup_test_database():
+    engine = create_async_engine(
+      DATABASE_URL,
+      echo=False,
+      pool_pre_ping=True,
+      connect_args={"server_settings": {"timezone": "UTC"}}
+    )
+    async_session_maker = async_sessionmaker(
+        engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autocommit=False,
+        autoflush=False,
+    )
 
+    # Store in app state for other fixtures to access
+    app.state.test_engine = engine
+    app.state.test_async_session_maker = async_session_maker
 
-@pytest.fixture(scope="session")
-def anyio_backend():
-    return "asyncio"
-
-
-@pytest.fixture(scope="session", autouse=True)
-async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
-
     yield
-
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
-
+    await engine.dispose()
 
 @pytest.fixture(scope="function")
+def mock_redis():
+    r = AsyncMock()
+    pipeline = MagicMock()
+    pipeline.execute = AsyncMock(return_value=[])
+    pipeline.rpush = MagicMock()
+    pipeline.zadd = MagicMock()
+    r.pipeline = MagicMock(return_value=pipeline)
+    r.zrangebyscore = AsyncMock(return_value=[])
+    r.lrange = AsyncMock(return_value=[])
+    r.zrem = AsyncMock()
+    r.delete = AsyncMock()
+    r.aclose = AsyncMock()
+    return r
+
+
+@pytest.fixture(scope="function", autouse=True)
+def mock_redis_dependency(mock_redis):
+    async def override_get_redis():
+        yield mock_redis
+    app.dependency_overrides[get_redis] = override_get_redis
+
+    yield mock_redis
+
+    app.dependency_overrides.pop(get_redis, None)
+
+
+@pytest_asyncio.fixture(scope="function")
 async def db():
-    async with async_session_maker() as session:
-        yield session
-        await session.rollback()
-        await session.close()
+    async with app.state.test_async_session_maker() as session:
+        try:
+            yield session
+        finally:
+            await session.rollback()
+            await session.close()
 
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def async_client():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
@@ -66,21 +104,9 @@ async def async_client():
 
 
 @pytest.fixture(scope="function", autouse=True)
-async def auto_rollback(db: AsyncSession):
-    await db.rollback()
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.get_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest.fixture(scope="session", autouse=True)
 def override_app_db():
     async def override_get_db():
-        async with async_session_maker() as session:
+        async with app.state.test_async_session_maker() as session:
             yield session
 
     app.dependency_overrides[get_db_session] = override_get_db
@@ -95,29 +121,20 @@ def disable_logger_during_tests():
 
 
 @pytest.fixture
-def row_service(
-    row_repository: RowRepository,
-    table_repository: TableRepository,
-    row_owner_repository: RowOwnerRepository,
-    auth_repository: AuthRepository,
-) -> RowService:
-    return RowService(
-        row_repository=row_repository,
-        table_repository=table_repository,
-        row_owner_repository=row_owner_repository,
-        auth_repository=auth_repository,
-    )
+def auth_repository(db: AsyncSession) -> AuthRepository:
+    return AuthRepository(db)
 
+@pytest.fixture
+def board_repository(db: AsyncSession) -> BoardRepository:
+    return BoardRepository(db)
 
 @pytest.fixture
 def row_repository(db: AsyncSession) -> RowRepository:
     return RowRepository(db)
 
-
 @pytest.fixture
 def table_repository(db: AsyncSession) -> TableRepository:
     return TableRepository(db)
-
 
 @pytest.fixture
 def row_owner_repository(db: AsyncSession) -> RowOwnerRepository:
@@ -125,8 +142,53 @@ def row_owner_repository(db: AsyncSession) -> RowOwnerRepository:
 
 
 @pytest.fixture
-def auth_repository(db: AsyncSession) -> AuthRepository:
-    return AuthRepository(db)
+def auth_service(auth_repository: AuthRepository) -> AuthService:
+    return AuthService(auth_repository)
+
+@pytest.fixture
+def board_service(
+    board_repository: BoardRepository,
+    member_repository: BoardMemberRepository,
+    row_service: RowService,
+) -> BoardService:
+    return BoardService(
+        board_repository=board_repository,
+        member_repository=member_repository,
+        row_service=row_service,
+    )
+
+@pytest.fixture
+def table_service(
+    table_repository: TableRepository,
+    board_service: BoardService,
+    auth_repository: AuthRepository,
+) -> TableService:
+    return TableService(
+        table_repository=table_repository,
+        board_service=board_service,
+        auth_repository=auth_repository,
+    )
+
+@pytest.fixture
+def row_service(
+    row_repository: RowRepository,
+    table_repository: TableRepository,
+    row_owner_repository: RowOwnerRepository,
+    auth_repository: AuthRepository,
+    notification_service: NotificationService,
+) -> RowService:
+    return RowService(
+        row_repository=row_repository,
+        table_repository=table_repository,
+        row_owner_repository=row_owner_repository,
+        auth_repository=auth_repository,
+        notification_service=notification_service,
+    )
+
+
+@pytest.fixture
+def notification_service(mock_redis) -> NotificationService:
+    return NotificationService(mock_redis)
 
 
 async def get_authenticated_client(email=None) -> tuple[AsyncClient, str]:
@@ -135,7 +197,7 @@ async def get_authenticated_client(email=None) -> tuple[AsyncClient, str]:
     cookies, user_id = await register_and_login_user(client, email=email)
     client.cookies.set("access_token", cookies["access_token"])
     client.cookies.set("refresh_token", cookies["refresh_token"])
-    return client, user_id
+    return client, str(user_id)
 
 
 async def create_board_with_authenticated_user() -> tuple[AsyncClient, str, str]:
@@ -158,3 +220,31 @@ async def create_table_with_authenticated_user() -> tuple[AsyncClient, str, str,
     assert create_table_resp.status_code == HTTPStatus.CREATED
     table_id = create_table_resp.json()["id"]
     return client, user_id, board_id, table_id
+
+@pytest_asyncio.fixture
+async def table_with_two_members():
+    member_client, member_id = await get_authenticated_client()
+    try:
+        # create board and table with owner
+        create_table_result = await create_table_with_authenticated_user()
+        # create_table_with_authenticated_user returns (client, user_id, board_id, table_id)
+        owner_client, owner_id, board_id, table_id = create_table_result
+
+        # add member to board
+        add_member_resp = await owner_client.post(
+            f"/api/v1/boards/{board_id}/members",
+            json={"user_id": member_id, "role": "MEMBER"}
+        )
+        assert add_member_resp.status_code == HTTPStatus.CREATED
+
+        yield {
+            "owner_client": owner_client,
+            "owner_id": owner_id,
+            "member_client": member_client,
+            "member_id": member_id,
+            "board_id": board_id,
+            "table_id": table_id,
+        }
+    finally:
+        await owner_client.aclose()
+        await member_client.aclose()

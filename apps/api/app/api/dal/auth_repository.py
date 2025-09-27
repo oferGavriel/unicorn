@@ -109,5 +109,9 @@ class AuthRepository(BaseRepository[User]):
         result = await self.session.execute(select(User).where(User.id.in_(user_ids)))
         return list(result.scalars().all())
 
+    async def get_user(self, user_id: UUID) -> Optional[User]:
+        result = await self.session.execute(select(User).where(User.id == user_id))
+        return result.scalar_one_or_none()
+
 
 AuthRepositoryDep = Annotated[AuthRepository, Depends(AuthRepository)]

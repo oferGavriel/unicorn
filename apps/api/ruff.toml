@@ -51,4 +51,4 @@ line-ending = "auto"
 max-args = 5
 
 [lint.per-file-ignores]
-"tests/**/*.py" = ["S101"]
+"tests/**/*.py" = ["S101", "E501"]
