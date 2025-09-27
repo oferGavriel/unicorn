@@ -153,7 +153,9 @@ jobs:
 
             docker network create unicorn-net || true
 
-            docker stop app || true && docker rm app || true
+            docker stop app notification_worker redis || true
+            docker rm -f app notification_worker redis || true
+
             docker pull "$DOCKER_IMAGE"
 
             DATABASE_URL=$(aws ssm get-parameter \
