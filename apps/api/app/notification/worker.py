@@ -14,6 +14,10 @@ from app.db.database import get_db_session
 from app.notification.redis_client import init_redis_pool, close_redis_pool
 from app.notification.schemas import Event
 from app.notification.email_service import send_digest_email
+from app.notification.redis_client import _redis_pool
+from app.db.database import async_session_maker
+
+
 
 settings = get_settings()
 DUE_ZSET = "notif:due"
@@ -170,13 +174,10 @@ async def run_worker() -> None:
         poll_interval = settings.notif_worker_poll_ms / 1000
         logger.info(f"📊 Poll interval: {poll_interval}s")
 
-        # Get Redis pool for worker
-        from app.notification.redis_client import _redis_pool
-
         while True:
             redis_client = None
             try:
-                async with get_db_session() as db:
+                async with async_session_maker() as db:
                     redis_client = redis.Redis(connection_pool=_redis_pool)
                     worker = NotificationWorker(db, redis_client)
                     await worker.process_expired_windows()
