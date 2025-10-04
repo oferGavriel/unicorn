@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.logger import logger
 from app.core.config import get_settings
 
-settings = get_settings()
 DUE_ZSET = "notif:due"
 
 
@@ -32,6 +31,7 @@ async def emit_activity(  # noqa: PLR0913
         )
         return
 
+    settings = get_settings()
     expiry_ms = _expiry_ms(settings.notif_window_seconds)
 
     pipe = redis_client.pipeline(transaction=False)
@@ -78,6 +78,7 @@ def _expiry_ms(window_sec: int) -> int:
 async def _eligible_recipients_for_board(
     db: AsyncSession, board_id: str, actor_id: str
 ) -> list[str]:
+    settings = get_settings()
     # Check if suppression is disabled (for tests)
     if settings.notif_suppress_minutes == 0:
         # No suppression - notify all board members except actor
