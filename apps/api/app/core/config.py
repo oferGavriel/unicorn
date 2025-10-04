@@ -17,7 +17,10 @@ class Settings(BaseSettings):
     max_tries: int = 60
     wait_seconds: int = 1
 
-    redis_url: str = Field(default="redis://localhost:6379/0")
+    redis_url: str = Field(
+        default="redis://localhost:6379/0",
+        alias="REDIS_URL",
+    )
 
     notif_window_seconds: int = Field(default=300, ge=1)
     notif_suppress_minutes: int = Field(default=5, ge=1)
