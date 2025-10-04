@@ -3,14 +3,13 @@ from fastapi import Depends
 import redis.asyncio as redis
 from app.core.config import get_settings
 
-settings = get_settings()
-
 _redis_pool: redis.ConnectionPool | None = None
 
 
 async def init_redis_pool() -> None:
     global _redis_pool  # noqa: PLW0603
     if _redis_pool is None:
+        settings = get_settings()
         _redis_pool = redis.ConnectionPool.from_url(
             settings.redis_url,
             encoding="utf-8",

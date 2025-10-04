@@ -18,12 +18,23 @@ from app.core.enums import (
 from app.core.logger import logger
 from app.core.config import get_settings
 
-settings = get_settings()
+# Initialize resend API key dynamically
+def _get_resend_api_key() -> str:
+    settings = get_settings()
+    return settings.resend_api_key
 
-resend.api_key = settings.resend_api_key
+resend.api_key = _get_resend_api_key()
 
-FROM_EMAIL = settings.from_email
-FROM_NAME = settings.from_name
+def _get_from_email() -> str:
+    settings = get_settings()
+    return settings.from_email
+
+def _get_from_name() -> str:
+    settings = get_settings()
+    return settings.from_name
+
+FROM_EMAIL = _get_from_email()
+FROM_NAME = _get_from_name()
 
 
 class EmailTemplate(Enum):
@@ -112,6 +123,7 @@ class EmailService:
     async def send_welcome_email(self, recipient_id: str) -> bool:
         """Send welcome email to new user"""
         subject = f"Welcome to {FROM_NAME}!"
+        settings = get_settings()
         context = {
             "app_name": FROM_NAME,
             "dashboard_url": f"{settings.frontend_url}/dashboard",
