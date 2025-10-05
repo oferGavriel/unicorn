@@ -20,20 +20,24 @@ from app.main import app
 @pytest.fixture(autouse=True)
 def mock_notification_settings():
     """Override notification settings for all notification tests"""
-    with patch('app.notification.emitter.settings') as mock_emitter_settings, \
-         patch('app.notification.worker.settings') as mock_worker_settings:
+    # Create a mock settings object with test values
+    mock_settings = MagicMock()
+    mock_settings.notif_suppress_minutes = 0
+    mock_settings.notif_window_seconds = 1
+    mock_settings.notif_worker_poll_ms = 100
+    mock_settings.notif_suppress_seconds = 0
+    mock_settings.redis_url = "redis://localhost:6379/0"
+    mock_settings.resend_api_key = "test-key"
+    mock_settings.from_email = "test@example.com"
+    mock_settings.from_name = "Test App"
+    mock_settings.frontend_url = "http://localhost:5173"
 
-        mock_emitter_settings.notif_suppress_minutes = 0
-        mock_emitter_settings.notif_window_seconds = 1
-        mock_emitter_settings.notif_worker_poll_ms = 100
-        mock_emitter_settings.notif_suppress_seconds = 0
-
-        mock_worker_settings.notif_suppress_minutes = 0
-        mock_worker_settings.notif_window_seconds = 1
-        mock_worker_settings.notif_worker_poll_ms = 100
-        mock_worker_settings.notif_suppress_seconds = 0
-
-        yield mock_emitter_settings
+    # Patch get_settings in all the modules that use it
+    with patch('app.notification.emitter.get_settings', return_value=mock_settings), \
+         patch('app.notification.worker.get_settings', return_value=mock_settings), \
+         patch('app.notification.email_service.get_settings', return_value=mock_settings), \
+         patch('app.notification.redis_client.get_settings', return_value=mock_settings):
+        yield
 
 class TestWorker:
     @pytest.fixture

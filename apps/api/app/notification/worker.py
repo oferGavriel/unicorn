@@ -17,7 +17,6 @@ from app.notification.redis_client import _redis_pool
 from app.db.database import async_session_maker
 
 
-settings = get_settings()
 DUE_ZSET = "notif:due"
 
 class NotificationWorker:
@@ -168,6 +167,7 @@ async def run_worker() -> None:
         await init_redis_pool()
         logger.info("✅ Worker Redis pool initialized")
 
+        settings = get_settings()
         poll_interval = settings.notif_worker_poll_ms / 1000
         logger.info(f"📊 Poll interval: {poll_interval}s")
 
