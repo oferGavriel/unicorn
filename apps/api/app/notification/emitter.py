@@ -21,6 +21,7 @@ async def emit_activity(  # noqa: PLR0913
     actor_name: str,
     events: Iterable[Event],
 ) -> None:
+    settings = get_settings()
     payloads = _serialize_events(events, actor_name)
 
     recipients = await _eligible_recipients_for_board(db, board_id, actor_id)
@@ -31,7 +32,6 @@ async def emit_activity(  # noqa: PLR0913
         )
         return
 
-    settings = get_settings()
     expiry_ms = _expiry_ms(settings.notif_window_seconds)
 
     pipe = redis_client.pipeline(transaction=False)
