@@ -13,7 +13,6 @@ from app.core.config import get_settings
 from app.notification.redis_client import init_redis_pool, close_redis_pool
 from app.notification.schemas import Event
 from app.notification.email_service import send_digest_email
-from app.notification.redis_client import _redis_pool
 from app.db.database import async_session_maker
 
 
@@ -175,7 +174,14 @@ async def run_worker() -> None:
             redis_client = None
             try:
                 async with async_session_maker() as db:
-                    redis_client = redis.Redis(connection_pool=_redis_pool)
+                    # Create a fresh Redis client using current settings
+                    settings = get_settings()
+                    logger.info(f"🔗 Connecting to Redis: {settings.redis_url}")
+                    redis_client = redis.Redis.from_url(
+                        settings.redis_url,
+                        encoding="utf-8",
+                        decode_responses=True
+                    )
                     worker = NotificationWorker(db, redis_client)
                     await worker.process_expired_windows()
             except Exception as e:
