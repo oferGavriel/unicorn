@@ -312,7 +312,7 @@ components:
           - items:
               format: uuid
               type: string
-            maxItems: 50
+            maxItems: 10
             type: array
           - type: 'null'
           title: Owners

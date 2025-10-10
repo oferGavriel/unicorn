@@ -20,7 +20,7 @@ class RowCreate(BaseSchema):
 
 class RowUpdate(BaseSchema):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
-    owners: Optional[List[UUID]] = Field(None, max_length=50)
+    owners: Optional[List[UUID]] = Field(None, max_length=10)
     status: Optional[StatusEnum] = Field(None)
     priority: Optional[PriorityEnum] = Field(None)
     due_date: Optional[datetime] = Field(None)

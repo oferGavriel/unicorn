@@ -62,6 +62,15 @@ class NotificationWorker:
         # Summarize events
         summary = self._summarize_events(events)
 
+        # Check if emails should be sent based on environment
+        settings = get_settings()
+        if not settings.should_send_emails:
+            logger.info(
+              f"Email sending disabled in {settings.environment} environment."
+              f" Would have sent digest for group {group_key}"
+            )
+            return
+
         # Send notification
         await send_digest_email(
             db=self.db,
@@ -174,9 +183,7 @@ async def run_worker() -> None:
             redis_client = None
             try:
                 async with async_session_maker() as db:
-                    # Create a fresh Redis client using current settings
                     settings = get_settings()
-                    logger.info(f"🔗 Connecting to Redis: {settings.redis_url}")
                     redis_client = redis.Redis.from_url(
                         settings.redis_url,
                         encoding="utf-8",

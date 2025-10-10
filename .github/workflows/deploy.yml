@@ -232,6 +232,16 @@ jobs:
               --query Parameter.Value \
               --output text)
 
+            ENVIRONMENT=$(aws ssm get-parameter \
+              --name /app/unicorn/environment \
+              --query Parameter.Value \
+              --output text)
+
+            EMAIL_ENABLED=$(aws ssm get-parameter \
+              --name /app/unicorn/email-enabled \
+              --query Parameter.Value \
+              --output text)
+
             test -n "$DATABASE_URL"
             test -n "$REDIS_URL"
             test -n "$CORS_ORIGINS"
@@ -246,6 +256,8 @@ jobs:
             test -n "$FROM_EMAIL"
             test -n "$FROM_NAME"
             test -n "$FRONTEND_URL"
+            test -n "$ENVIRONMENT"
+            test -n "$EMAIL_ENABLED"
 
             docker run -d --name redis \
               --restart unless-stopped \
@@ -270,6 +282,8 @@ jobs:
               -e FROM_EMAIL="$FROM_EMAIL" \
               -e FROM_NAME="$FROM_NAME" \
               -e FRONTEND_URL="$FRONTEND_URL" \
+              -e ENVIRONMENT="$ENVIRONMENT" \
+              -e EMAIL_ENABLED="$EMAIL_ENABLED" \
               -p 8000:8000 \
               "$DOCKER_IMAGE"
 
@@ -286,6 +300,8 @@ jobs:
               -e FROM_EMAIL="$FROM_EMAIL" \
               -e FROM_NAME="$FROM_NAME" \
               -e FRONTEND_URL="$FRONTEND_URL" \
+              -e ENVIRONMENT="$ENVIRONMENT" \
+              -e EMAIL_ENABLED="$EMAIL_ENABLED" \
               "$DOCKER_IMAGE" python -m app.notification.worker
 
 
