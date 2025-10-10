@@ -1,8 +1,0 @@
-2025-10-08 18:21:12 | INFO | app | Starting up...
-2025-10-08 18:21:41 | INFO | app | 🚀 Starting notification worker...
-2025-10-08 18:21:41 | INFO | app | ✅ Worker Redis pool initialized
-2025-10-08 18:21:41 | INFO | app | 📊 Poll interval: 2.0s
-2025-10-08 18:23:08 | WARNING | app | [401] TokenInvalidError: Not authenticated, please login first
-2025-10-08 20:20:55 | ERROR | app | [404] HTTPException: Not Found
-2025-10-08 22:31:07 | ERROR | app | [404] HTTPException: Not Found
-2025-10-08 23:04:52 | ERROR | app | [404] HTTPException: Not Found
