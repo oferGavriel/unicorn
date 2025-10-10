@@ -65,7 +65,10 @@ class NotificationWorker:
         # Check if emails should be sent based on environment
         settings = get_settings()
         if not settings.should_send_emails:
-            logger.info(f"Email sending disabled in {settings.environment} environment. Would have sent digest for group {group_key}")
+            logger.info(
+              f"Email sending disabled in {settings.environment} environment."
+              f" Would have sent digest for group {group_key}"
+            )
             return
 
         # Send notification
