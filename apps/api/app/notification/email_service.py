@@ -1,5 +1,4 @@
 # ruff: noqa: E501
-import os
 from typing import Dict, Any, Optional
 from enum import Enum
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,23 +17,13 @@ from app.core.enums import (
 from app.core.logger import logger
 from app.core.config import get_settings
 
-# Initialize resend API key dynamically
-def _get_resend_api_key() -> str:
-    settings = get_settings()
-    return settings.resend_api_key
 
-resend.api_key = _get_resend_api_key()
+settings = get_settings()
 
-def _get_from_email() -> str:
-    settings = get_settings()
-    return settings.from_email
-
-def _get_from_name() -> str:
-    settings = get_settings()
-    return settings.from_name
-
-FROM_EMAIL = _get_from_email()
-FROM_NAME = _get_from_name()
+frontend_url = settings.frontend_url
+resend.api_key = settings.resend_api_key
+FROM_EMAIL = settings.from_email
+FROM_NAME = settings.from_name
 
 
 class EmailTemplate(Enum):
@@ -69,7 +58,7 @@ class EmailService:
 
             # Generate email content based on template
             html_content, text_content = await self._generate_email_content(
-                template, context, recipient
+                template, context, recipient, actor_id
             )
 
             # Create notification record
@@ -108,7 +97,7 @@ class EmailService:
             "summary": summary,
             "board_name": board.name,
             "board_id": board_id,
-            "board_url": f"/boards/{board_id}",
+            "board_url": f"/{board_id}",
         }
 
         return await self.send_email(
@@ -123,10 +112,9 @@ class EmailService:
     async def send_welcome_email(self, recipient_id: str) -> bool:
         """Send welcome email to new user"""
         subject = f"Welcome to {FROM_NAME}!"
-        settings = get_settings()
         context = {
             "app_name": FROM_NAME,
-            "dashboard_url": f"{settings.frontend_url}/dashboard",
+            "dashboard_url": f"{frontend_url}/dashboard",
         }
 
         return await self.send_email(
@@ -153,7 +141,7 @@ class EmailService:
             "board_name": board.name,
             "board_id": board_id,
             "inviter_name": inviter_name,
-            "board_url": f"/boards/{board_id}",
+            "board_url": f"/{board_id}",
         }
 
         return await self.send_email(
@@ -202,11 +190,13 @@ class EmailService:
         return notification
 
     async def _generate_email_content(
-        self, template: EmailTemplate, context: Dict[str, Any], recipient: User
+        self, template: EmailTemplate, context: Dict[str, Any], recipient: User, actor_id: Optional[str] = None
     ) -> tuple[str, str]:
         """Generate HTML and text content based on template"""
         if template == EmailTemplate.BOARD_ACTIVITY_DIGEST:
-            return self._generate_digest_email(context)
+            if not actor_id:
+                raise ValueError("actor_id is required for BOARD_ACTIVITY_DIGEST template")
+            return await self._generate_digest_email(context, actor_id)
         elif template == EmailTemplate.WELCOME:
             return self._generate_welcome_email(context, recipient)
         elif template == EmailTemplate.BOARD_INVITATION:
@@ -224,6 +214,12 @@ class EmailService:
         notification_id: UUID
     ) -> bool:
         """Send email via Resend API"""
+        # Check if emails should be sent based on environment
+        settings = get_settings()
+        if not settings.should_send_emails:
+            logger.info(f"Email sending disabled in {settings.environment} environment. Would have sent to: {to_email}")
+            return True  # Return True to indicate "success" but don't actually send
+
         try:
             email_response = resend.Emails.send({
                 "from": f"{FROM_NAME} <{FROM_EMAIL}>",
@@ -281,17 +277,17 @@ class EmailService:
             return "You have a new notification"
 
     # Email content generators
-    def _generate_digest_email(self, context: Dict[str, Any]) -> tuple[str, str]:
+    async def _generate_digest_email(self, context: Dict[str, Any], actor_id: str) -> tuple[str, str]:
         """Generate board activity digest email content"""
         summary = context["summary"]
         board_name = context["board_name"]
         board_url = context["board_url"]
 
         # HTML content (existing logic)
-        html_content = self._generate_email_html(summary, board_name, board_url)
+        html_content = await self._generate_email_html(summary, board_name, board_url, actor_id)
 
         # Text content (existing logic)
-        text_content = self._generate_email_text(summary, board_name, board_url)
+        text_content = await self._generate_email_text(summary, board_name, board_url)
 
         return html_content, text_content
 
@@ -377,16 +373,62 @@ class EmailService:
         return html_content, text_content
 
     # Keep existing methods for backward compatibility
-    def _generate_email_html(self, summary: Dict[str, Any], board_name: str, board_url: str) -> str:
+    async def _get_actor_avatar(self, actor_id: str) -> Optional[str]:
+        """Get actor's avatar URL by actor ID"""
+        try:
+            result = await self.db.execute(
+                select(User).where(User.id == actor_id)
+            )
+            user = result.scalar_one_or_none()
+            if user and user.avatar_url:
+                return user.avatar_url
+        except Exception as e:
+            logger.error(f"EmailService: Error getting actor avatar for ID {actor_id}: {str(e)}")
+        return None
+
+    async def _get_user_avatars_html(self, user_ids: list[str]) -> str:
+        if not user_ids:
+            logger.error("EmailService: No user IDs provided")
+            return ""
+
+        try:
+            result = await self.db.execute(
+                select(User).where(User.id.in_(user_ids))
+            )
+            users = result.scalars().all()
+
+            avatars_html = ""
+            max_avatars = 3
+            for user in users[:max_avatars]:
+                if user.avatar_url:
+                    avatars_html += f'<img src="{user.avatar_url}" alt="{user.first_name}" style="width: 20px; height: 20px; border-radius: 50%; margin-right: 5px; object-fit: cover;">'
+                    logger.info(f"EmailService: Avatar: {user.avatar_url}")
+
+            if len(users) > max_avatars:
+                avatars_html += f'<span style="font-size: 12px; color: #6c757d;">+{len(users) - max_avatars}</span>'
+
+            return avatars_html
+        except Exception as e:
+            logger.error(f"EmailService: Error getting user avatars for {user_ids}: {str(e)}")
+            return ""
+
+    async def _generate_email_html(self, summary: Dict[str, Any], board_name: str, board_url: str, actor_id: str) -> str:
         """Generate HTML email content (existing method)"""
         actor_name = summary["actor_name"]
         total_events = summary["total_events"]
+        actor_avatar = await self._get_actor_avatar(actor_id)
 
-        # Base URL - you might want to make this configurable
-        base_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        board_url = f"{base_url}/boards/{board_url}"
+        board_url = f"{frontend_url}/boards/{board_url}"
 
-        html = f"""
+        html = self._generate_html_header(board_name, actor_name, total_events, actor_avatar)
+        html += await self._generate_activity_details(summary)
+        html += self._generate_html_footer(board_url, board_name)
+
+        return html
+
+    def _generate_html_header(self, board_name: str, actor_name: str, total_events: int, actor_avatar: Optional[str]) -> str:
+        """Generate HTML header section"""
+        return f"""
         <!DOCTYPE html>
         <html>
         <head>
@@ -409,54 +451,93 @@ class EmailService:
             <div class="container">
                 <div class="header">
                     <h2 style="margin: 0; color: #495057;">Activity in {board_name}</h2>
-                    <p style="margin: 10px 0 0 0; color: #6c757d;">{actor_name} made {total_events} changes</p>
+                    <div style="display: flex; align-items: center; margin: 10px 0 0 0;">
+                        {f'<img src="{actor_avatar}" alt="{actor_name}" style="width: 32px; height: 32px; border-radius: 50%; margin-right: 10px; object-fit: cover;">' if actor_avatar else ''}
+                        <p style="margin: 0; color: #6c757d;">{actor_name} made {total_events} changes</p>
+                    </div>
                 </div>
         """  # noqa: E501
 
-        # Add activity details
+    async def _generate_activity_details(self, summary: Dict[str, Any]) -> str:
+        """Generate activity details section"""
+        html = ""
         for _board_id_key, board_data in summary["boards"].items():
             for _table_id, table_data in board_data["tables"].items():
                 table_name = table_data.get("name", "Untitled Table")
-
                 html += f"""
                 <div class="activity-item">
                     <h3 style="margin-top: 0; color: #495057;">{table_name}</h3>
                 """
-
-                for _row_id, row_data in table_data["rows"].items():
-                    row_name = row_data.get("name", "Untitled Row")
-                    actions = row_data["actions"]
-
-                    if "created" in actions:
-                        action_text = "created a new row"
-                        icon = "✨"
-                    elif "deleted" in actions:
-                        action_text = "deleted the row"
-                        icon = "🗑️"
-                    elif "updated" in actions:
-                        action_text = "updated the row"
-                        icon = "✏️"
-                    else:
-                        action_text = "modified the row"
-                        icon = "📝"
-
-                    html += f"""
-                    <p><strong>{icon} {row_name}</strong> - {action_text}</p>
-                    """
-
-                    # Show changes
-                    if row_data["changes"]:
-                        html += '<div class="changes"><strong>Changes:</strong>'
-                        for field, delta in row_data["changes"].items():
-                            from_val = delta["from"] or "empty"
-                            to_val = delta["to"] or "empty"
-                            field_display = field.replace("_", " ").title()
-                            html += f'<div class="change-item">• {field_display}: <span style="color: #dc3545;">{from_val}</span> → <span style="color: #28a745;">{to_val}</span></div>'  # noqa: E501
-                        html += "</div>"
-
+                html += await self._generate_table_rows(table_data["rows"])
                 html += "</div>"
+        return html
 
-        html += f"""
+    async def _generate_table_rows(self, rows: Dict[str, Any]) -> str:
+        """Generate HTML for table rows"""
+        html = ""
+        for _row_id, row_data in rows.items():
+            row_name = row_data.get("name", "Untitled Row")
+            actions = row_data["actions"]
+            action_text, icon = self._get_action_details(actions, row_data)
+
+            html += f"""
+            <p><strong>{icon} Task: {row_name}</strong> - {action_text}</p>
+            """
+
+            if row_data["changes"]:
+                html += await self._generate_changes_html(row_data["changes"])
+        return html
+
+    def _get_action_details(self, actions: list, row_data: Dict[str, Any]) -> tuple[str, str]:
+        """Get action text and icon based on actions"""
+        if "created" in actions:
+            return "created a new row", "✨"
+        elif "deleted" in actions:
+            return "deleted the row", "🗑️"
+        elif "updated" in actions:
+            if len(row_data["changes"]) == 1:
+                field = list(row_data["changes"].keys())[0]
+                field_name = self._get_friendly_field_name(field)
+                return f"updated {field_name.lower()}", "✏️"
+            else:
+                return "updated the row", "✏️"
+        else:
+            return "modified the row", "📝"
+
+    async def _generate_changes_html(self, changes: Dict[str, Any]) -> str:
+        """Generate HTML for changes section"""
+        html = '<div class="changes"><strong>Changes:</strong>'
+        for field, delta in changes.items():
+            from_val = await self._format_field_value(field, delta["from"])
+            to_val = await self._format_field_value(field, delta["to"])
+            field_display = self._get_friendly_field_name(field)
+
+            avatars_html = await self._get_owner_change_avatars(field, delta)
+            html += f'<div class="change-item">• {field_display}: <span style="color: #dc3545;">{from_val}</span> → <span style="color: #28a745;">{to_val}</span>{avatars_html}</div>'  # noqa: E501
+        html += "</div>"
+        return html
+
+    async def _get_owner_change_avatars(self, field: str, delta: Dict[str, str]) -> str:
+        """Get avatars HTML for owner changes"""
+        if field != "owner_id":
+            return ""
+
+        old_avatars = ""
+        new_avatars = ""
+
+        if delta["from"] and delta["from"] != "empty":
+            old_user_ids = [uid.strip() for uid in delta["from"].split(',') if uid.strip()]
+            old_avatars = await self._get_user_avatars_html(old_user_ids)
+
+        if delta["to"] and delta["to"] != "empty":
+            new_user_ids = [uid.strip() for uid in delta["to"].split(',') if uid.strip()]
+            new_avatars = await self._get_user_avatars_html(new_user_ids)
+
+        return f'<div style="display: flex; align-items: center; margin: 2px 0;">{old_avatars} → {new_avatars}</div>'
+
+    def _generate_html_footer(self, board_url: str, board_name: str) -> str:
+        """Generate HTML footer section"""
+        return f"""
                 <div style="text-align: center;">
                     <a href="{board_url}" class="button">View Board</a>
                 </div>
@@ -470,14 +551,11 @@ class EmailService:
         </html>
         """  # noqa: E501
 
-        return html
-
-    def _generate_email_text(self, summary: Dict[str, Any], board_name: str, board_url: str) -> str:
+    async def _generate_email_text(self, summary: Dict[str, Any], board_name: str, board_url: str) -> str:
         """Generate plain text email content (existing method)"""
         actor_name = summary["actor_name"]
         total_events = summary["total_events"]
-        base_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        board_url = f"{base_url}/boards/{board_url}"
+        board_url = f"{frontend_url}/boards/{board_url}"
 
         text = f"""
           Activity in {board_name}
@@ -493,15 +571,31 @@ class EmailService:
 
                 for _row_id, row_data in table_data["rows"].items():
                     row_name = row_data.get("name", "Untitled Row")
-                    actions = ", ".join(row_data["actions"])
-                    text += f"• {row_name} was {actions}\n"
+                    actions = row_data["actions"]
 
-                    # Show changes
+                    # Create more descriptive action text
+                    if "created" in actions:
+                        action_text = "created"
+                    elif "deleted" in actions:
+                        action_text = "deleted"
+                    elif "updated" in actions:
+                        if len(row_data["changes"]) == 1:
+                            field = list(row_data["changes"].keys())[0]
+                            field_name = self._get_friendly_field_name(field)
+                            action_text = f"updated {field_name.lower()}"
+                        else:
+                            action_text = "updated"
+                    else:
+                        action_text = "modified"
+
+                    text += f"• {action_text}: {row_name}\n"
+
+                    # Show changes details
                     if row_data["changes"]:
                         for field, delta in row_data["changes"].items():
-                            from_val = delta["from"] or "empty"
-                            to_val = delta["to"] or "empty"
-                            field_display = field.replace("_", " ").title()
+                            from_val = await self._format_field_value(field, delta["from"])
+                            to_val = await self._format_field_value(field, delta["to"])
+                            field_display = self._get_friendly_field_name(field)
                             text += f"  - {field_display}: {from_val} → {to_val}\n"
                     text += "\n"
 
@@ -514,6 +608,78 @@ class EmailService:
           """  # noqa: E501
 
         return text
+
+    def _get_friendly_field_name(self, field: str) -> str:
+        """Convert field names to user-friendly display names"""
+        field_mapping = {
+            "name": "Task Name",
+            "status": "Status",
+            "priority": "Priority",
+            "due_date": "Due Date",
+            "owner_id": "Owner",
+            "description": "Description",
+            "position": "Position"
+        }
+        return field_mapping.get(field, field.replace("_", " ").title())
+
+    async def _format_field_value(self, field: str, value: str) -> str:
+        """Format field values for better readability"""
+        # Handle empty values
+        if not value or value == "empty":
+            return "Not set"
+
+        # Handle specific field types
+        if field == "due_date":
+            return self._format_due_date(value)
+
+        if field in ["status", "priority"]:
+            return value.replace("_", " ").title()
+
+        if field == "owner_id":
+            return await self._format_owner_names(value)
+
+        # Default: return original value
+        return value
+
+    def _format_due_date(self, value: str) -> str:
+        """Format due date for better readability"""
+        try:
+            # Parse ISO format and format nicely
+            dt = datetime.fromisoformat(value.replace('Z', '+00:00'))
+            return dt.strftime("%B %d, %Y at %I:%M %p")
+        except (ValueError, AttributeError):
+            return value
+
+    async def _format_owner_names(self, value: str) -> str:
+        """Format owner names for better readability"""
+        if not value:
+            return "Unassigned"
+
+        try:
+            # Parse comma-separated user IDs
+            user_ids = [uid.strip() for uid in value.split(',') if uid.strip()]
+            if not user_ids:
+                return "Unassigned"
+
+            # Fetch user details
+            result = await self.db.execute(
+                select(User).where(User.id.in_(user_ids))
+            )
+            users = result.scalars().all()
+
+            if not users:
+                return "Unknown User"
+
+            # Format user names
+            max_avatars = 3
+            if len(users) <= max_avatars:
+                return ", ".join([f"{user.first_name} {user.last_name}" for user in users])
+            else:
+                return ", ".join([user.first_name for user in users[:max_avatars]]) + f" and {len(users) - max_avatars} others"
+
+        except Exception as e:
+            logger.error(f"EmailService: Error formatting owner names: {str(e)}")
+            return "Assigned" if value else "Unassigned"
 
 
 # Backward compatibility function

@@ -25,10 +25,15 @@ class Settings(BaseSettings):
     notif_suppress_minutes: int = Field(default=5, ge=1)
     notif_worker_poll_ms: int = Field(default=5000, ge=1000)
 
+    # Environment settings - Set ENVIRONMENT=production and EMAIL_ENABLED=true to enable email sending
+    environment: str = Field(default="development", alias="ENVIRONMENT")
+
+    # Email settings
     resend_api_key: str = Field(default="")
     from_email: str = Field(default="")
     from_name: str = Field(default="Unicorn Notifications")
     frontend_url: str = Field(default="http://localhost:5173")
+    email_enabled: bool = Field(default=False, alias="EMAIL_ENABLED")
 
     cloudinary_cloud_name: str = Field(default="")
     cloudinary_folder: str = Field(default="avatars")
@@ -45,6 +50,16 @@ class Settings(BaseSettings):
     @property
     def notif_suppress_seconds(self) -> int:
         return self.notif_suppress_minutes * 60
+
+    @property
+    def is_production(self) -> bool:
+        """Check if running in production environment"""
+        return self.environment.lower() == "production"
+
+    @property
+    def should_send_emails(self) -> bool:
+        """Determine if emails should be sent based on environment and settings"""
+        return self.is_production and self.email_enabled
 
     model_config = SettingsConfigDict(
         env_file=".env",
