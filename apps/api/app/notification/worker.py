@@ -10,10 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logger import logger
 from app.core.config import get_settings
-from app.notification.redis_client import init_redis_pool, close_redis_pool
+from app.core.redis import init_redis_pool, close_redis_pool
 from app.notification.schemas import Event
 from app.notification.email_service import send_digest_email
-from app.db.database import async_session_maker
+from app.core.database import async_session_maker
 
 
 DUE_ZSET = "notif:due"

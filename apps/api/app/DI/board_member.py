@@ -2,7 +2,7 @@ from uuid import UUID
 from fastapi import Depends, Path
 
 from app.common.errors.exceptions import PermissionDeniedError
-from app.db.database import DBSessionDep
+from app.core.database import DBSessionDep
 from app.database_models.board_member import BoardMember
 from app.database_models.board import Board
 from sqlalchemy import select, or_

@@ -7,7 +7,7 @@ from app.api.routes.v1.user_route import router as user_router
 from app.api.routes.v1.board_route import router as board_router
 from app.api.routes.v1.table_route import router as table_router
 from app.api.routes.v1.row_route import router as row_router
-from app.api.routes.v1.health_route import health_router
+from app.api.routes.v1.health_route import router as health_router
 from app.api.routes.util import use_route_names_as_operation_ids, save_openapi_yaml
 from app.DI.current_user import CurrentUserDep
 from app.common.errors.error_model import ErrorResponseModel

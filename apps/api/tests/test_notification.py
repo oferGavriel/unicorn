@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timezone
+from typing import Any, AsyncGenerator, Dict, Generator, List
 from uuid import uuid4
 from unittest.mock import AsyncMock, patch, MagicMock
 
@@ -18,7 +19,7 @@ from tests.utils.register_and_login_user import register_and_login_user
 from app.main import app
 
 @pytest.fixture(autouse=True)
-def mock_notification_settings():
+def mock_notification_settings() -> Generator[None, None, None]:
     """Override notification settings for all notification tests"""
     # Create a mock settings object with test values
     mock_settings = MagicMock()
@@ -36,16 +37,16 @@ def mock_notification_settings():
     with patch('app.notification.emitter.get_settings', return_value=mock_settings), \
          patch('app.notification.worker.get_settings', return_value=mock_settings), \
          patch('app.notification.email_service.get_settings', return_value=mock_settings), \
-         patch('app.notification.redis_client.get_settings', return_value=mock_settings):
+         patch('app.core.redis.get_settings', return_value=mock_settings):
         yield
 
 class TestWorker:
     @pytest.fixture
-    def mock_db(self):
+    def mock_db(self) -> AsyncMock:
         return AsyncMock()
 
     @pytest.fixture
-    def sample_events(self):
+    def sample_events(self) -> List[Dict[str, Any]]:
         board_id = str(uuid4())
         table_id = str(uuid4())
         row_id = str(uuid4())
@@ -64,7 +65,7 @@ class TestWorker:
         ]
 
     @pytest.mark.asyncio
-    async def test_no_expired_groups(self, mock_db, mock_redis):
+    async def test_no_expired_groups(self, mock_db: AsyncMock, mock_redis: AsyncMock) -> None:
         worker = NotificationWorker(mock_db, mock_redis)
         mock_redis.zrangebyscore.return_value = []
 
@@ -75,7 +76,12 @@ class TestWorker:
         mock_redis.delete.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_expired_group_sends_email(self, mock_db, mock_redis, sample_events):
+    async def test_expired_group_sends_email(
+      self,
+      mock_db: AsyncMock,
+      mock_redis: AsyncMock,
+      sample_events: List[Dict[str, Any]]
+    ) -> None:
         worker = NotificationWorker(mock_db, mock_redis)
 
         board_id = sample_events[0]["board_id"]
@@ -94,7 +100,7 @@ class TestWorker:
             mock_redis.delete.assert_called_once_with(group_key)
 
     @pytest.mark.asyncio
-    async def test_process_group_empty_noop(self, mock_db, mock_redis):
+    async def test_process_group_empty_noop(self, mock_db: AsyncMock, mock_redis: AsyncMock) -> None:
         worker = NotificationWorker(mock_db, mock_redis)
         group_key = "notif:board:actor:recipient"
         mock_redis.lrange.return_value = []
@@ -104,7 +110,7 @@ class TestWorker:
         mock_redis.lrange.assert_called_once_with(group_key, 0, -1)
 
     @pytest.mark.asyncio
-    async def test_process_expired_windows_error_handled(self, mock_db, mock_redis):
+    async def test_process_expired_windows_error_handled(self, mock_db: AsyncMock, mock_redis: AsyncMock) -> None:
         worker = NotificationWorker(mock_db, mock_redis)
         group_key = "notif:board:actor:recipient"
         mock_redis.zrangebyscore.return_value = [(group_key.encode(), 1.0)]
@@ -113,7 +119,7 @@ class TestWorker:
         # Should not raise
         await worker.process_expired_windows()
 
-    def test_summarize_events_basic(self, mock_db, mock_redis):
+    def test_summarize_events_basic(self, mock_db: AsyncMock, mock_redis: AsyncMock) -> None:
         worker = NotificationWorker(mock_db, mock_redis)
         events = [
             {
@@ -126,19 +132,19 @@ class TestWorker:
                 "snapshot": {"name": "Row 1", "status": "NOT_STARTED"},
             }
         ]
-        summary = worker._summarize_events(events)
+        summary = worker._summarize_events(events)  # type: ignore
         assert summary["actor_name"] == "Alice"
-        assert summary["total_events"] == 1
+        assert summary["total_events"] == len(events)
         assert "b1" in summary["boards"]
         assert "t1" in summary["boards"]["b1"]["tables"]
         assert "r1" in summary["boards"]["b1"]["tables"]["t1"]["rows"]
         assert "created" in summary["boards"]["b1"]["tables"]["t1"]["rows"]["r1"]["actions"]
 
-    def test_summarize_events_malformed_event(self, mock_db, mock_redis):
+    def test_summarize_events_malformed_event(self, mock_db: AsyncMock, mock_redis: AsyncMock) -> None:
         worker = NotificationWorker(mock_db, mock_redis)
-        events = [{"type": "RowCreated", "board_id": "b1"}]  # missing table/row ids
-        summary = worker._summarize_events(events)
-        assert summary["total_events"] == 1
+        events = [{"type": "RowCreated", "board_id": "b1"}]
+        summary = worker._summarize_events(events)  # type: ignore
+        assert summary["total_events"] == len(events)
         assert isinstance(summary["boards"], dict)
 
 
@@ -146,7 +152,7 @@ class TestEmailService:
     """Test the EmailService class and its various email templates"""
 
     @pytest.fixture
-    def mock_db(self):
+    def mock_db(self) -> AsyncMock:
         db = AsyncMock()
         db.add = MagicMock()
         db.commit = AsyncMock()
@@ -154,7 +160,7 @@ class TestEmailService:
         return db
 
     @pytest.fixture
-    def sample_user(self):
+    def sample_user(self) -> User:
         return User(
             id=str(uuid4()),
             email="test@example.com",
@@ -163,7 +169,7 @@ class TestEmailService:
         )
 
     @pytest.fixture
-    def sample_board(self):
+    def sample_board(self) -> Board:
         return Board(
             id=str(uuid4()),
             name="Test Board",
@@ -173,7 +179,12 @@ class TestEmailService:
         )
 
     @pytest.mark.asyncio
-    async def test_send_digest_email_success(self, mock_db, sample_user, sample_board):
+    async def test_send_digest_email_success(
+      self,
+       mock_db: AsyncMock,
+       sample_user: User,
+       sample_board: Board
+    ) -> None:
         """Test successful digest email sending"""
         email_service = EmailService(mock_db)
 
@@ -209,8 +220,8 @@ class TestEmailService:
             }
 
             result = await email_service.send_digest_email(
-                recipient_id=sample_user.id,
-                board_id=sample_board.id,
+                recipient_id=str(sample_user.id),
+                board_id=str(sample_board.id),
                 actor_id=str(uuid4()),
                 summary=summary
             )
@@ -223,7 +234,7 @@ class TestEmailService:
             mock_db.commit.assert_called()
 
     @pytest.mark.asyncio
-    async def test_send_welcome_email(self, mock_db, sample_user):
+    async def test_send_welcome_email(self, mock_db: AsyncMock, sample_user: User) -> None:
         """Test welcome email sending"""
         email_service = EmailService(mock_db)
 
@@ -236,7 +247,7 @@ class TestEmailService:
         with patch('resend.Emails.send') as mock_resend:
             mock_resend.return_value = {"id": "welcome-email-id"}
 
-            result = await email_service.send_welcome_email(sample_user.id)
+            result = await email_service.send_welcome_email(str(sample_user.id))
 
             assert result is True
             mock_resend.assert_called_once()
@@ -248,7 +259,7 @@ class TestEmailService:
             assert "Welcome to" in call_args["html"]
 
     @pytest.mark.asyncio
-    async def test_send_board_invitation_email(self, mock_db, sample_user, sample_board):
+    async def test_send_board_invitation_email(self, mock_db: AsyncMock, sample_user: User, sample_board: Board) -> None:
         """Test board invitation email sending"""
         email_service = EmailService(mock_db)
 
@@ -262,8 +273,8 @@ class TestEmailService:
             mock_resend.return_value = {"id": "invitation-email-id"}
 
             result = await email_service.send_board_invitation(
-                recipient_id=sample_user.id,
-                board_id=sample_board.id,
+                recipient_id=str(sample_user.id),
+                board_id=str(sample_board.id),
                 inviter_id=str(uuid4()),
                 inviter_name="Jane Smith"
             )
@@ -278,7 +289,7 @@ class TestEmailService:
             assert "Jane Smith" in call_args["html"]
 
     @pytest.mark.asyncio
-    async def test_send_email_recipient_not_found(self, mock_db):
+    async def test_send_email_recipient_not_found(self, mock_db: AsyncMock) -> None:
         """Test email sending when recipient is not found"""
         email_service = EmailService(mock_db)
 
@@ -298,7 +309,7 @@ class TestEmailService:
         mock_db.add.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_backward_compatibility_send_digest_email(self, mock_db, sample_user, sample_board):
+    async def test_backward_compatibility_send_digest_email(self, mock_db: AsyncMock, sample_user: User, sample_board: Board) -> None:
         """Test backward compatibility function"""
         # Mock database queries properly
         mock_result = MagicMock()
@@ -318,8 +329,8 @@ class TestEmailService:
             # Test the backward compatibility function
             await send_digest_email(
                 db=mock_db,
-                recipient_id=sample_user.id,
-                board_id=sample_board.id,
+                recipient_id=str(sample_user.id),
+                board_id=str(sample_board.id),
                 actor_id=str(uuid4()),
                 summary=summary
             )
@@ -329,7 +340,7 @@ class TestEmailService:
 
 class TestNotificationServiceIntegration:
     @pytest.mark.asyncio
-    async def test_emit_row_created(self, mock_redis_dependency, table_with_two_members):
+    async def test_emit_row_created(self, mock_redis_dependency: AsyncMock, table_with_two_members: Dict[str, Any]) -> None:
         setup = table_with_two_members
         owner_client = setup["owner_client"]
         board_id = setup["board_id"]
@@ -348,7 +359,7 @@ class TestNotificationServiceIntegration:
         pipe.execute.assert_called()
 
     @pytest.mark.asyncio
-    async def test_emit_row_updated(self, mock_redis_dependency, table_with_two_members):
+    async def test_emit_row_updated(self, mock_redis_dependency: AsyncMock, table_with_two_members: Dict[str, Any]) -> None:
         setup = table_with_two_members
         owner_client = setup["owner_client"]
         board_id = setup["board_id"]
@@ -382,7 +393,7 @@ class TestTwoUserNotificationFlow:
     EXPECTED_CALLS_AFTER_THIRD_ACTION = 3
 
     @pytest_asyncio.fixture
-    async def two_user_setup(self):
+    async def two_user_setup(self) -> AsyncGenerator[Dict[str, Any], None]:
         """Helper fixture to create two authenticated users with a shared board"""
 
         # Create owner
@@ -417,8 +428,8 @@ class TestTwoUserNotificationFlow:
         await owner_client.aclose()
         await member_client.aclose()
 
-    @pytest.mark.asyncio  # type: ignore
-    async def test_two_users_get_notified_on_changes(self, db, mock_redis_dependency, two_user_setup):  # type: ignore
+    @pytest.mark.asyncio
+    async def test_two_users_get_notified_on_changes(self, db: AsyncMock, mock_redis_dependency: AsyncMock, two_user_setup: Dict[str, Any]) -> None:
         """Test that when two users work on the same board, they get notified of each other's changes"""
         setup = two_user_setup
         owner_client = setup["owner_client"]
@@ -458,7 +469,7 @@ class TestTwoUserNotificationFlow:
         assert mock_redis_dependency.pipeline.call_count >= self.EXPECTED_CALLS_AFTER_THIRD_ACTION
 
     @pytest.mark.asyncio
-    async def test_worker_processes_notifications_and_sends_emails(self, db, mock_redis_dependency):
+    async def test_worker_processes_notifications_and_sends_emails(self, db: AsyncMock, mock_redis_dependency: AsyncMock) -> None:
         """Test that the worker processes expired notifications and sends emails"""
 
         # Create two users
@@ -533,7 +544,7 @@ class TestTwoUserNotificationFlow:
             await member_client.aclose()
 
     @pytest.mark.asyncio
-    async def test_notification_suppression_disabled_in_tests(self, db, mock_redis_dependency, two_user_setup):
+    async def test_notification_suppression_disabled_in_tests(self, db: AsyncMock, mock_redis_dependency: AsyncMock, two_user_setup: Dict[str, Any]) -> None:
         """Test that notification suppression is disabled in tests"""
         setup = two_user_setup
         owner_client = setup["owner_client"]

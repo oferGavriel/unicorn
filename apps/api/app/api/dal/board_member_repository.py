@@ -1,10 +1,10 @@
 from uuid import UUID
-from typing import Annotated
+from typing import Annotated, Optional
 from fastapi import Depends
 from sqlalchemy import delete, select
 from app.database_models.board_member import BoardMember
 from app.common.repository import BaseRepository
-from app.db.database import DBSessionDep
+from app.core.database import DBSessionDep
 from app.core.enums import RoleEnum
 
 
@@ -24,7 +24,8 @@ class BoardMemberRepository(BaseRepository[BoardMember]):
             BoardMember.user_id == user_id,
         )
         result = await self.session.execute(q)
-        return result.scalar_one_or_none()
+        board_member: Optional[BoardMember] = result.scalar_one_or_none()
+        return board_member
 
     async def add(
         self, board_id: UUID, user_id: UUID, role: RoleEnum = RoleEnum.member

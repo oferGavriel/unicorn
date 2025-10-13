@@ -1,12 +1,13 @@
+# ruff: noqa: E501
 import asyncio
 import sys
 import time
 from uuid import UUID, uuid4
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional, Callable
 
 sys.path.append('/Users/oferiko/Developer/personal/unicorn/apps/api')
 
-from app.db.database import async_session_maker
+from app.core.database import async_session_maker, AsyncSession
 from app.notification.email_service import EmailService
 from app.database_models import User, Board, Table, Row
 from app.core.enums import StatusEnum, PriorityEnum
@@ -32,7 +33,7 @@ class TestDataFactory:
 
     @staticmethod
     async def create_test_user(
-        db_session,
+        db_session: AsyncSession,
         user_number: int,
         with_avatar: bool = True
     ) -> Dict[str, Any]:
@@ -64,7 +65,7 @@ class TestDataFactory:
 
     @staticmethod
     async def create_test_board(
-        db_session,
+        db_session: AsyncSession,
         owner_id: str,
         name: str = "Test Board"
     ) -> UUID:
@@ -80,7 +81,7 @@ class TestDataFactory:
 
     @staticmethod
     async def create_test_table(
-        db_session,
+        db_session: AsyncSession,
         board_id: UUID,
         name: str = "Test Table"
     ) -> UUID:
@@ -96,7 +97,7 @@ class TestDataFactory:
 
     @staticmethod
     async def create_test_row(
-        db_session,
+        db_session: AsyncSession,
         table_id: UUID,
         name: str = "Test Row",
         position: int = 1
@@ -258,29 +259,27 @@ class EmailTestScenarios:
         }
 
 
+class TestEmailService(EmailService):
+    async def _get_recipient(self, recipient_id: str) -> Optional[User]:
+        mock_user = User()
+        mock_user.id = UUID(recipient_id)
+        mock_user.email = ResendSandboxConfig.get_sandbox_email("delivered", "notification_test")
+        mock_user.first_name = "Test"
+        mock_user.last_name = "User"
+        return mock_user
+
+
 class EmailNotificationTester:
 
-    def __init__(self, db_session):
+    def __init__(self, db_session: AsyncSession):
         self.db = db_session
-        self.email_service = EmailService(db_session)
-        self._setup_sandbox_recipient()
-
-    def _setup_sandbox_recipient(self):
-        async def mock_get_recipient(recipient_id: UUID):
-            mock_user = User()
-            mock_user.id = recipient_id
-            mock_user.email = ResendSandboxConfig.get_sandbox_email("delivered", "notification_test")
-            mock_user.first_name = "Test"
-            mock_user.last_name = "User"
-            return mock_user
-
-        self.email_service._get_recipient = mock_get_recipient
+        self.email_service = TestEmailService(db_session)
 
     async def send_test_email( # noqa: PLR0913
         self,
         recipient_id: UUID,
         board_id: UUID,
-        actor_id: str,
+        actor_id: UUID,
         summary: Dict[str, Any],
         test_name: str
     ) -> bool:
@@ -288,9 +287,9 @@ class EmailNotificationTester:
 
         try:
             success = await self.email_service.send_digest_email(
-                recipient_id=recipient_id,
-                board_id=board_id,
-                actor_id=actor_id,
+                recipient_id=str(recipient_id),
+                board_id=str(board_id),
+                actor_id=str(actor_id),
                 summary=summary
             )
 
@@ -311,7 +310,7 @@ class EmailNotificationTester:
 class EmailNotificationVerifier:
     """Main class for verifying email notifications manually."""
 
-    async def setup_test_data(self, db):
+    async def setup_test_data(self, db: AsyncSession) -> Dict[str, Any]:
         """Setup test data for email notifications."""
         # Create test user
         user_data = await TestDataFactory.create_test_user(db, 1)
@@ -332,11 +331,11 @@ class EmailNotificationVerifier:
             "row_id": str(row_id)
         }
 
-    async def verify_basic_notification_scenarios(self, test_setup, email_tester):
+    async def verify_basic_notification_scenarios(self, test_setup: Dict[str, Any], email_tester: EmailNotificationTester) -> bool:
         """Verify basic notification scenarios."""
         print("\n🧪 Verifying basic notification scenarios...")
 
-        scenarios = [
+        scenarios: List[tuple[str, Callable[[str, str, str, str], Dict[str, Any]]]] = [
             ("Task name change", EmailTestScenarios.create_task_name_change_scenario),
             ("Status change", EmailTestScenarios.create_status_change_scenario),
             ("Multiple changes", EmailTestScenarios.create_multiple_changes_scenario),
@@ -363,7 +362,7 @@ class EmailNotificationVerifier:
         print(f"✅ Basic scenarios completed: {sum(results)}/{len(results)} successful")
         return all(results)
 
-    async def verify_avatar_functionality(self, db, email_tester):
+    async def verify_avatar_functionality(self, db: AsyncSession, email_tester: EmailNotificationTester) -> bool:
         """Verify avatar functionality with multiple users."""
         print("\n🧪 Verifying avatar functionality with 4 users...")
 
@@ -381,7 +380,7 @@ class EmailNotificationVerifier:
         await db.commit()
 
         # Test scenarios
-        scenarios = [
+        scenarios: List[Dict[str, Any]] = [
             {
                 "name": "Actor avatar in header",
                 "summary": {
@@ -449,10 +448,10 @@ class EmailNotificationVerifier:
         for scenario in scenarios:
             success = await email_tester.send_test_email(
                 recipient_id=users[0]["id"],
-                board_id=str(board_id),
+                board_id=board_id,
                 actor_id=users[0]["id"],
                 summary=scenario["summary"],
-                test_name=scenario["name"]
+                test_name=str(scenario["name"])
             )
             results.append(success)
 
@@ -462,7 +461,7 @@ class EmailNotificationVerifier:
 
 
 # Standalone verification runner for manual testing
-async def run_email_notification_verification():
+async def run_email_notification_verification() -> None:
     """Run email notification verification manually."""
     print("🚀 Starting email notification verification...")
     print("📧 Using Resend sandbox mode - emails won't count against your limits!")
