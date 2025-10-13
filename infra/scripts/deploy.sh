@@ -85,7 +85,7 @@ chmod 600 "$ENV_FILE"
 log_info ".env.prod file created securely"
 
 # ═══════════════════════════════════════════════════════════
-# Step 3: Backup current state (optional but recommended)
+# Step 3: Backup current state
 # ═══════════════════════════════════════════════════════════
 log_info "Creating backup of current deployment..."
 mkdir -p "$BACKUP_DIR"

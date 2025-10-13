@@ -24,9 +24,6 @@ __pycache__/
 .dmypy.json
 ruff_cache/
 
-# Alembic versions (optional — keep if you want versions in VCS)
-# apps/api/db/migrations/versions/
-
 # ── Docker ─────────────────────────────────────────────────
 **/.docker/
 docker-compose.override.yml
