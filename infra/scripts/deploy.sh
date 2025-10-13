@@ -26,7 +26,7 @@ log_warn() {
 # Configuration
 # ═══════════════════════════════════════════════════════════
 DOCKER_IMAGE="${DOCKER_IMAGE:-oferikog/unicorn-app:latest}"
-COMPOSE_FILE="/home/ec2-user/docker-compose.prod.yml"
+COMPOSE_FILE="/home/ec2-user/docker-compose.prod.yaml"
 ENV_FILE="/home/ec2-user/.env.prod"
 BACKUP_DIR="/home/ec2-user/backups"
 MAX_HEALTH_RETRIES=30
