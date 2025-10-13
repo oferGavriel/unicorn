@@ -4,7 +4,7 @@ import logging
 from tenacity import after_log, before_log, retry, stop_after_attempt, wait_fixed
 from sqlalchemy import text
 
-from app.db.database import async_engine
+from app.core.database import async_engine
 from app.core.config import get_settings
 
 

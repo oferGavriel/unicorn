@@ -8,7 +8,7 @@ from app.database_models.table import Table
 from app.database_models.row import Row
 from app.database_models.board_member import BoardMember
 from app.common.repository import BaseRepository
-from app.db.database import DBSessionDep
+from app.core.database import DBSessionDep
 
 
 class BoardRepository(BaseRepository[Board]):
@@ -52,7 +52,8 @@ class BoardRepository(BaseRepository[Board]):
             )
         )
         res = await self.session.execute(q)
-        return res.unique().scalars().one_or_none()
+        board: Optional[Board] = res.unique().scalars().one_or_none()
+        return board
 
     async def get_for_user(self, board_id: UUID, user_id: UUID) -> Optional[Board]:
         q = (
@@ -71,19 +72,22 @@ class BoardRepository(BaseRepository[Board]):
             )
         )
         res = await self.session.execute(q)
-        return res.unique().scalars().one_or_none()
+        board: Optional[Board] = res.unique().scalars().one_or_none()
+        return board
 
     async def get(self, board_id: UUID) -> Optional[Board]:
         q = select(Board).where(Board.id == board_id)
         res = await self.session.execute(q)
-        return res.unique().scalars().one_or_none()
+        board: Optional[Board] = res.unique().scalars().one_or_none()
+        return board
 
     async def create(self, board: Board) -> Board:
         self.session.add(board)
         await self.session.commit()
         q = select(Board).where(Board.id == board.id).options(selectinload(Board.members))
         result = await self.session.execute(q)
-        return result.scalar_one()
+        created_board: Board = result.scalar_one()
+        return created_board
 
     async def update(self, board: Board, data: dict) -> Board:
         return await self.update_entity(board, **data)

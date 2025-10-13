@@ -5,7 +5,7 @@ from sqlalchemy import insert, delete
 from app.database_models.row import Row
 from app.database_models.row_owner import RowOwner
 from app.common.repository import BaseRepository
-from app.db.database import DBSessionDep
+from app.core.database import DBSessionDep
 
 
 class RowOwnerRepository(BaseRepository[Row]):

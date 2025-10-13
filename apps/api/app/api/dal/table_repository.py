@@ -4,7 +4,7 @@ from typing import List, Optional, Annotated
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload, selectinload
 
-from app.db.database import DBSessionDep
+from app.core.database import DBSessionDep
 from app.common.repository import BaseRepository
 from app.database_models.table import Table
 from app.database_models.row import Row
@@ -33,7 +33,8 @@ class TableRepository(BaseRepository[Table]):
             .options(joinedload(Table.rows).selectinload(Row.owner_users))
         )
         result = await self.session.execute(q)
-        return result.unique().scalar_one_or_none()
+        table: Optional[Table] = result.unique().scalar_one_or_none()
+        return table
 
     async def get_by_user(self, table_id: UUID, user_id: UUID) -> Optional[Table]:
         q = (
@@ -46,7 +47,8 @@ class TableRepository(BaseRepository[Table]):
             .options(joinedload(Table.rows))
         )
         result = await self.session.execute(q)
-        return result.unique().scalar_one_or_none()
+        table: Optional[Table] = result.unique().scalar_one_or_none()
+        return table
 
     async def create(self, table: Table) -> Table:
         self.session.add(table)
@@ -54,7 +56,8 @@ class TableRepository(BaseRepository[Table]):
 
         q = select(Table).where(Table.id == table.id).options(selectinload(Table.rows))
         result = await self.session.execute(q)
-        return result.scalar_one()
+        created_table: Table = result.scalar_one()
+        return created_table
 
     async def update(self, table: Table, data: dict) -> Table:
         return await self.update_entity(table, **data)

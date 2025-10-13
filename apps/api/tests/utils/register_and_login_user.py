@@ -7,9 +7,9 @@ async def register_and_login_user(
     async_client: AsyncClient,
     first_name: str = "Alice",
     last_name: str = "Smith",
-    email: str = None,
+    email: str | None = None,
     password: str = "secret123",  # noqa: S107
-) -> tuple[dict[str, str], int]:
+) -> tuple[dict[str, str], str]:
     if email is None:
         email = f"user+{uuid.uuid4().hex[:8]}@example.com"
 
@@ -25,7 +25,8 @@ async def register_and_login_user(
         assert user_data["email"] == email
         assert user_data["id"] is not None
 
-        return login_resp.cookies, user_data["id"]
+        user_id = user_data["id"]
+        return dict(login_resp.cookies), str(user_id)
 
     register_resp = await async_client.post(
         "/api/v1/auth/register",
@@ -44,4 +45,5 @@ async def register_and_login_user(
     assert user_data["email"] == email
     assert user_data["id"] is not None
 
-    return register_resp.cookies, user_data["id"]
+    user_id = user_data["id"]
+    return dict(register_resp.cookies), str(user_id)

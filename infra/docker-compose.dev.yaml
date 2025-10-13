@@ -1,81 +1,112 @@
+version: '3.9'
+
 services:
+  # ═══════════════════════════════════════════════════════════
+  # PostgreSQL
+  # ═══════════════════════════════════════════════════════════
   postgres:
+    image: postgres:16-alpine
     container_name: postgres_container
-    image: postgres:15
+    restart: unless-stopped
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=3578
-      - POSTGRES_DB=unicorn
-    ports: ['5432:5432']
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 3578
+      POSTGRES_DB: unicorn
+    ports:
+      - "5432:5432"
     volumes:
       - ./docker-volumes/postgres:/var/lib/postgresql/data
+    networks:
+      - unicorn-dev
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U  postgres']
+      test: ["CMD-SHELL", "pg_isready -U postgres -d unicorn"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  # ═══════════════════════════════════════════════════════════
+  # Redis
+  # ═══════════════════════════════════════════════════════════
   redis:
+    image: redis:7-alpine
     container_name: redis_container
-    image: redis:alpine
+    restart: unless-stopped
+    command: redis-server --loglevel warning --appendonly yes
     ports:
-      - '6379:6379'
+      - "6379:6379"
     volumes:
-      - ./docker-volumes/cache:/data
-    command: redis-server --loglevel warning
-    restart: always
+      - ./docker-volumes/redis:/data
+    networks:
+      - unicorn-dev
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
+      timeout: 3s
       retries: 5
 
+  # ═══════════════════════════════════════════════════════════
+  # API - FastAPI backend
+  # ═══════════════════════════════════════════════════════════
   api:
-    container_name: api
     build:
       context: ../
       dockerfile: apps/api/Dockerfile
+      target: development
+    container_name: api
+    restart: unless-stopped
     env_file:
       - ../apps/api/.env
     environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=unicorn
-      - DB_USER=postgres
-      - DB_PASS=3578
-      - DATABASE_URL=postgresql://postgres:3578@postgres:5432/unicorn
+      - DATABASE_URL=postgresql+asyncpg://postgres:3578@postgres:5432/unicorn
       - REDIS_URL=redis://redis:6379/0
-    volumes:
-      - ../apps/api:/app
+      - ENVIRONMENT=development
+      - MAX_TRIES=60
+      - WAIT_SECONDS=1
     ports:
-      - '8000:8000'
+      - "8000:8000"
+    volumes:
+      # Mount source code for hot reload
+      - ../apps/api:/app
+      # Exclude cache directories
+      - /app/__pycache__
+      - /app/.pytest_cache
+      - /app/.ruff_cache
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    networks:
+      - unicorn-dev
     healthcheck:
-      test: ['CMD-SHELL', 'curl --fail http://localhost:8000/api/v1/health || exit 1']
+      test: ["CMD-SHELL", "curl --fail http://localhost:8000/api/v1/health || exit 1"]
       interval: 30s
-      retries: 5
       timeout: 10s
+      retries: 5
+      start_period: 40s
 
+  # ═══════════════════════════════════════════════════════════
+  # Worker - Notification processor
+  # ═══════════════════════════════════════════════════════════
   notification_worker:
-    container_name: notification_worker
     build:
       context: ../
       dockerfile: apps/api/Dockerfile
+      target: development
+    container_name: notification_worker
+    restart: unless-stopped
+    command: python -m app.notification.worker
     env_file:
       - ../apps/api/.env
     environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=unicorn
-      - DB_USER=postgres
-      - DB_PASS=3578
-      - DATABASE_URL=postgresql://postgres:3578@postgres:5432/unicorn
+      - DATABASE_URL=postgresql+asyncpg://postgres:3578@postgres:5432/unicorn
       - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=development
     volumes:
       - ../apps/api:/app
+      - /app/__pycache__
+      - /app/.pytest_cache
+      - /app/.ruff_cache
     depends_on:
       postgres:
         condition: service_healthy
@@ -83,8 +114,13 @@ services:
         condition: service_healthy
       api:
         condition: service_healthy
-    restart: unless-stopped
-    command: ['python', '-m', 'app.notification.worker']
+    networks:
+      - unicorn-dev
+
+networks:
+  unicorn-dev:
+    name: unicorn-dev
+    driver: bridge
 
 volumes:
   db_data:

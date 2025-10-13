@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
+from typing import Optional
 from uuid import UUID
 from fastapi import Request, Depends
-from app.db.database import DBSessionDep
+from app.core.database import DBSessionDep
 from app.database_models.user import User
 from sqlalchemy import select, update
 from app.core.security import decode_token
@@ -25,7 +26,7 @@ async def current_user(request: Request, session: DBSessionDep) -> User:
         raise TokenInvalidError("Invalid token") from err
 
     result = await session.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
+    user: Optional[User] = result.scalar_one_or_none()
     if not user:
         raise TokenInvalidError("User not found")
 

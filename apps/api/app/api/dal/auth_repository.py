@@ -5,7 +5,7 @@ from fastapi import Depends
 from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
-from app.db.database import DBSessionDep
+from app.core.database import DBSessionDep
 from app.database_models.user import User
 from app.database_models.refresh_token import (
     RefreshToken,
@@ -23,7 +23,8 @@ class AuthRepository(BaseRepository[User]):
 
     async def get_by_email(self, email: str) -> Optional[User]:
         res = await self.session.execute(select(User).where(User.email == email))
-        return res.scalar_one_or_none()
+        user: Optional[User] = res.scalar_one_or_none()
+        return user
 
     async def create(self, user: User) -> User:
         self.session.add(user)
@@ -41,7 +42,8 @@ class AuthRepository(BaseRepository[User]):
                 RefreshToken.expires_at > datetime.now(timezone.utc),
             )
         )
-        return result.scalar_one_or_none()
+        refresh_token: Optional[RefreshToken] = result.scalar_one_or_none()
+        return refresh_token
 
     async def revoke_refresh_token(self, token: str) -> bool:
         result = await self.session.execute(
@@ -85,7 +87,8 @@ class AuthRepository(BaseRepository[User]):
             .order_by(RefreshToken.created_at.desc())
         )
         result = await self.session.execute(stmt)
-        return result.scalar_one_or_none()
+        refresh_token: Optional[RefreshToken] = result.scalar_one_or_none()
+        return refresh_token
 
     async def create_refresh_token(self, user_id: UUID) -> str:
         token = refresh_token_generator(str(user_id))
@@ -111,7 +114,8 @@ class AuthRepository(BaseRepository[User]):
 
     async def get_user(self, user_id: UUID) -> Optional[User]:
         result = await self.session.execute(select(User).where(User.id == user_id))
-        return result.scalar_one_or_none()
+        user: Optional[User] = result.scalar_one_or_none()
+        return user
 
 
 AuthRepositoryDep = Annotated[AuthRepository, Depends(AuthRepository)]

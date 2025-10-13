@@ -3,7 +3,7 @@ from app.core.logger import logger
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.notification.redis_client import RedisDep
+from app.core.redis import RedisDep
 from app.notification.schemas import Event
 from app.notification.emitter import emit_activity
 from app.notification.event_builder import build_row_event

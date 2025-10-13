@@ -588,8 +588,9 @@ components:
       title: ValidationError
       type: object
 info:
+  description: Task management and collaboration platform
   title: Unicorn API
-  version: 0.1.0
+  version: 1.0.0
 openapi: 3.1.0
 paths:
   /api/v1/auth/login:
@@ -1661,18 +1662,49 @@ paths:
       - row
   /api/v1/health:
     get:
-      operationId: health
+      operationId: health_check
       responses:
         '200':
           content:
             application/json:
               schema:
-                additionalProperties:
-                  type: string
-                title: Response Health Api V1 Health Get
+                additionalProperties: true
+                title: Response Health Check Api V1 Health Get
                 type: object
           description: Successful Response
-      summary: Health
+      summary: Health Check
+      tags:
+      - health
+  /api/v1/health/live:
+    get:
+      operationId: liveness_check
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                title: Response Liveness Check Api V1 Health Live Get
+                type: object
+          description: Successful Response
+      summary: Liveness Check
+      tags:
+      - health
+  /api/v1/health/ready:
+    get:
+      operationId: readiness_check
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                title: Response Readiness Check Api V1 Health Ready Get
+                type: object
+          description: Successful Response
+      summary: Readiness Check
+      tags:
+      - health
   /api/v1/users/all:
     get:
       description: Get all users

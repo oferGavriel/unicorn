@@ -1,29 +1,34 @@
-name: CI & Deploy (Backend + Frontend)
+name: CI/CD Pipeline - Unicorn
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 env:
-  DOCKER_IMAGE: oferikog/unicorn-app:latest
+  DOCKER_IMAGE: oferikog/unicorn-app
   FRONTEND_DIR: apps/web
   BACKEND_DIR: apps/api
   VITE_API_URL: https://api.myunicorn.pw
+  REGISTRY: docker.io
 
 concurrency:
-  group: deploy-main
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  # ═══════════════════════════════════════════════════════════
+  # Backend CI: Lint, Type Check, Tests
+  # ═══════════════════════════════════════════════════════════
   backend_ci:
-    name: Backend CI (lint + tests)
+    name: Backend CI
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     services:
       postgres:
-        image: postgres:16
+        image: postgres:16-alpine
         env:
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
@@ -35,82 +40,165 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+
     env:
-      DATABASE_URL: postgresql+asyncpg://test:test@postgres:5432/unicorn_test
-      SECRET_KEY: test-secret-key
-      # For notification tests
+      DATABASE_URL: postgresql://test:test@localhost:5432/unicorn_test
+      REDIS_URL: redis://localhost:6379/0
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: unicorn_test
+      DB_USER: test
+      DB_PASS: test
+      SECRET_KEY: test-secret-key-for-ci-only
+      ENVIRONMENT: test
+      # Notification settings for tests
       NOTIF_WINDOW_SECONDS: 1
       NOTIF_SUPPRESS_MINUTES: 1
       NOTIF_WORKER_POLL_MS: 1000
-      # For email settings
-      RESEND_API_KEY: ""
-      FROM_EMAIL: ""
-      FROM_NAME: "Test Notifications"
-      FRONTEND_URL: "http://localhost:5173"
+      # Email settings (disabled for tests)
+      RESEND_API_KEY: test-key
+      FROM_EMAIL: test@example.com
+      FROM_NAME: Test Notifications
+      FRONTEND_URL: http://localhost:5173
+      EMAIL_ENABLED: false
+      # Cloudinary
+      CLOUDINARY_CLOUD_NAME: test
+      CLOUDINARY_FOLDER: test
+      CLOUDINARY_BASE: test.png
+      CORS_ORIGINS: http://localhost:5173
+
     defaults:
       run:
         working-directory: ${{ env.BACKEND_DIR }}
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Setup Python
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: 'pip'
 
-      - name: Install deps
+      - name: Install Poetry
         run: |
-            pip install poetry
-            poetry install --no-interaction --no-root
+          pip install --upgrade pip
+          pip install poetry==1.7.1
 
-      - name: Lint
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+
+      - name: Lint with Ruff
         run: poetry run ruff check .
 
-      - name: Tests
-        run: poetry run pytest -q
+      - name: Type check with MyPy
+        continue-on-error: true
+        run: poetry run mypy . || echo "Type checking has warnings"
 
+      - name: Run database migrations
+        run: poetry run alembic upgrade head
+
+      - name: Run tests with coverage
+        run: |
+          poetry run pytest \
+            --cov=app \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --verbose
+
+      - name: Upload coverage reports
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: codecov/codecov-action@v4
+        continue-on-error: true
+        with:
+          files: ./apps/api/coverage.xml
+          flags: backend
+          fail_ci_if_error: false
+
+  # ═══════════════════════════════════════════════════════════
+  # Frontend CI: Lint, Type Check, Tests, Build
+  # ═══════════════════════════════════════════════════════════
   frontend_ci:
-    name: Frontend CI (lint + tests + build)
+    name: Frontend CI
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     defaults:
       run:
         working-directory: ${{ env.FRONTEND_DIR }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9.1.1
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: "pnpm"
           cache-dependency-path: ${{ env.FRONTEND_DIR }}/pnpm-lock.yaml
 
-      - name: Install deps
-        working-directory: ${{ env.FRONTEND_DIR }}
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Lint
-        working-directory: ${{ env.FRONTEND_DIR }}
         run: pnpm run lint:check
 
-      - name: Tests
-        working-directory: ${{ env.FRONTEND_DIR }}
-        run: pnpm run test -- --ci --run
+      - name: Type check
+        continue-on-error: true
+        run: pnpm run type-check || echo "Type checking has warnings"
+
+      - name: Run tests
+        run: pnpm run test -- --ci --run --coverage
 
       - name: Build
-        working-directory: ${{ env.FRONTEND_DIR }}
         run: pnpm run build
 
-  backend_deploy:
-    name: Deploy Backend to EC2
+      - name: Upload build artifacts
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: ${{ env.FRONTEND_DIR }}/dist
+          retention-days: 1
+
+  # ═══════════════════════════════════════════════════════════
+  # Build & Push Docker Image
+  # ═══════════════════════════════════════════════════════════
+  build_docker:
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
     needs: [backend_ci, frontend_ci]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    timeout-minutes: 30
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
 
     steps:
       - name: Checkout code
@@ -122,220 +210,143 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to DockerHub
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build & Push Docker image
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_IMAGE }}
+          tags: |
+            type=sha,prefix=main-,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value={{date 'YYYYMMDD-HHmmss'}}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ env.BACKEND_DIR }}/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            GIT_COMMIT=${{ github.sha }}
+          target: production
+
+      - name: Image digest
         run: |
-          docker buildx build \
-            --platform linux/arm64,linux/amd64 \
-            -t $DOCKER_IMAGE \
-            --push \
-            --cache-from=type=gha \
-            --cache-to=type=gha,mode=max \
-            -f $BACKEND_DIR/Dockerfile .
+          echo "Image digest: ${{ steps.build.outputs.digest }}"
 
-      - name: Deploy to EC2 via SSH
-        uses: appleboy/ssh-action@v1.0.0
+      # ═══════════════════════════════════════════════════════════
+      # Deploy Backend to EC2
+      # ═══════════════════════════════════════════════════════════
+
+  deploy_backend:
+    name: Deploy Backend to EC2
+    runs-on: ubuntu-latest
+    needs: [build_docker]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://api.myunicorn.pw
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy deployment files to EC2
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            set -euo pipefail
-
-            DOCKER_IMAGE=oferikog/unicorn-app:latest
-
-            export AWS_DEFAULT_REGION=eu-central-1
-
-            docker network create unicorn-net || true
-
-            docker stop app notification_worker redis || true
-            docker rm -f app notification_worker redis || true
-
-            docker pull "$DOCKER_IMAGE"
-
-            DATABASE_URL=$(aws ssm get-parameter \
-              --name /app/unicorn/db-url \
-              --with-decryption \
-              --query Parameter.Value \
-              --output text)
-
-            REDIS_URL=$(aws ssm get-parameter \
-              --name /app/unicorn/redis-url \
-              --with-decryption \
-              --query Parameter.Value \
-              --output text)
-
-            CORS_ORIGINS=$(aws ssm get-parameter \
-              --name /app/unicorn/cors-origins \
-              --query Parameter.Value \
-              --output text)
-
-            CLOUDINARY_CLOUD_NAME=$(aws ssm get-parameter \
-              --name /app/unicorn/cloudinary-cloud-name \
-              --query Parameter.Value \
-              --output text)
-
-            CLOUDINARY_FOLDER=$(aws ssm get-parameter \
-              --name /app/unicorn/cloudinary-folder \
-              --query Parameter.Value \
-              --output text)
-
-            CLOUDINARY_BASE=$(aws ssm get-parameter \
-              --name /app/unicorn/cloudinary-base \
-              --query Parameter.Value \
-              --output text)
-
-            JWT_SECRET=$(aws ssm get-parameter \
-              --name /app/unicorn/jwt-secret \
-              --with-decryption \
-              --query Parameter.Value \
-              --output text)
-
-            NOTIF_WINDOW_SECONDS=$(aws ssm get-parameter \
-              --name /app/unicorn/notif-window-seconds \
-              --query Parameter.Value \
-              --output text)
-
-            NOTIF_SUPPRESS_MINUTES=$(aws ssm get-parameter \
-              --name /app/unicorn/notif-suppress-minutes \
-              --query Parameter.Value \
-              --output text)
-
-            NOTIF_WORKER_POLL_MS=$(aws ssm get-parameter \
-              --name /app/unicorn/notif-worker-poll-ms \
-              --query Parameter.Value \
-              --output text)
-
-            RESEND_API_KEY=$(aws ssm get-parameter \
-              --name /app/unicorn/resend-api-key \
-              --with-decryption \
-              --query Parameter.Value \
-              --output text)
-
-            FROM_EMAIL=$(aws ssm get-parameter \
-              --name /app/unicorn/from-email \
-              --query Parameter.Value \
-              --output text)
-
-            FROM_NAME=$(aws ssm get-parameter \
-              --name /app/unicorn/from-name \
-              --query Parameter.Value \
-              --output text)
-
-            FRONTEND_URL=$(aws ssm get-parameter \
-              --name /app/unicorn/frontend-url \
-              --query Parameter.Value \
-              --output text)
-
-            ENVIRONMENT=$(aws ssm get-parameter \
-              --name /app/unicorn/environment \
-              --query Parameter.Value \
-              --output text)
-
-            EMAIL_ENABLED=$(aws ssm get-parameter \
-              --name /app/unicorn/email-enabled \
-              --query Parameter.Value \
-              --output text)
-
-            test -n "$DATABASE_URL"
-            test -n "$REDIS_URL"
-            test -n "$CORS_ORIGINS"
-            test -n "$CLOUDINARY_CLOUD_NAME"
-            test -n "$CLOUDINARY_FOLDER"
-            test -n "$CLOUDINARY_BASE"
-            test -n "$JWT_SECRET"
-            test -n "$NOTIF_WINDOW_SECONDS"
-            test -n "$NOTIF_SUPPRESS_MINUTES"
-            test -n "$NOTIF_WORKER_POLL_MS"
-            test -n "$RESEND_API_KEY"
-            test -n "$FROM_EMAIL"
-            test -n "$FROM_NAME"
-            test -n "$FRONTEND_URL"
-            test -n "$ENVIRONMENT"
-            test -n "$EMAIL_ENABLED"
-
-            docker run -d --name redis \
-              --restart unless-stopped \
-              --network unicorn-net \
-              -p 6379:6379 \
-              redis:alpine redis-server --loglevel warning
-
-            docker run -d --name app \
-              --restart unless-stopped \
-              --network unicorn-net \
-              -e DATABASE_URL="$DATABASE_URL" \
-              -e REDIS_URL="$REDIS_URL" \
-              -e CORS_ORIGINS="$CORS_ORIGINS" \
-              -e CLOUDINARY_CLOUD_NAME="$CLOUDINARY_CLOUD_NAME" \
-              -e CLOUDINARY_FOLDER="$CLOUDINARY_FOLDER" \
-              -e CLOUDINARY_BASE="$CLOUDINARY_BASE" \
-              -e SECRET_KEY="$JWT_SECRET" \
-              -e NOTIF_WINDOW_SECONDS="$NOTIF_WINDOW_SECONDS" \
-              -e NOTIF_SUPPRESS_MINUTES="$NOTIF_SUPPRESS_MINUTES" \
-              -e NOTIF_WORKER_POLL_MS="$NOTIF_WORKER_POLL_MS" \
-              -e RESEND_API_KEY="$RESEND_API_KEY" \
-              -e FROM_EMAIL="$FROM_EMAIL" \
-              -e FROM_NAME="$FROM_NAME" \
-              -e FRONTEND_URL="$FRONTEND_URL" \
-              -e ENVIRONMENT="$ENVIRONMENT" \
-              -e EMAIL_ENABLED="$EMAIL_ENABLED" \
-              -p 8000:8000 \
-              "$DOCKER_IMAGE"
-
-            docker run -d --name notification_worker \
-              --restart unless-stopped \
-              --network unicorn-net \
-              -e DATABASE_URL="$DATABASE_URL" \
-              -e REDIS_URL="$REDIS_URL" \
-              -e SECRET_KEY="$JWT_SECRET" \
-              -e NOTIF_WINDOW_SECONDS="$NOTIF_WINDOW_SECONDS" \
-              -e NOTIF_SUPPRESS_MINUTES="$NOTIF_SUPPRESS_MINUTES" \
-              -e NOTIF_WORKER_POLL_MS="$NOTIF_WORKER_POLL_MS" \
-              -e RESEND_API_KEY="$RESEND_API_KEY" \
-              -e FROM_EMAIL="$FROM_EMAIL" \
-              -e FROM_NAME="$FROM_NAME" \
-              -e FRONTEND_URL="$FRONTEND_URL" \
-              -e ENVIRONMENT="$ENVIRONMENT" \
-              -e EMAIL_ENABLED="$EMAIL_ENABLED" \
-              "$DOCKER_IMAGE" python -m app.notification.worker
-
-
-      - name: Copy Nginx config
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "infra/nginx/nginx.conf"
+          source: "infra/docker-compose.prod.yml,infra/scripts/deploy.sh,infra/nginx/nginx.conf"
           target: "/home/ec2-user/"
-          strip_components: 2
+          strip_components: 1
 
-      - name: Restart Nginx container
-        uses: appleboy/ssh-action@v1.0.0
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}:latest
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: DOCKER_IMAGE
+          command_timeout: 10m
+          script: |
+            set -e
+
+            # Make script executable
+            chmod +x /home/ec2-user/scripts/deploy.sh
+
+            # Run deployment script
+            /home/ec2-user/scripts/deploy.sh
+
+            # Verify deployment
+            sleep 5
+            curl -f http://localhost:8000/api/v1/health || exit 1
+
+      - name: Verify deployment health
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            docker stop nginx || true && docker rm nginx || true
-            docker run -d --name nginx \
-              --restart unless-stopped \
-              --network unicorn-net \
-              -p 80:80 -p 443:443 \
-              -v /home/ec2-user/nginx.conf:/etc/nginx/nginx.conf:ro \
-              -v ~/ssl:/etc/nginx/ssl:ro \
-              nginx:alpine
+            echo "=== Deployment Verification ==="
 
-  frontend_deploy:
+            echo -e "\n📊 Container Status:"
+            docker-compose -f /home/ec2-user/docker-compose.prod.yml ps
+
+            echo -e "\n🏥 Health Check:"
+            curl -s http://localhost:8000/api/v1/health | jq '.' || echo "Health check failed"
+
+            echo -e "\n📈 Resource Usage:"
+            docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}" || true
+
+            echo -e "\n📝 Recent App Logs (last 20 lines):"
+            docker logs --tail 20 unicorn-app
+
+            echo -e "\n✅ Deployment verification complete"
+
+      - name: Rollback on failure
+        if: failure()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "ERROR:Deployment failed, checking logs..."
+            docker-compose -f /home/ec2-user/docker-compose.prod.yml logs --tail 100
+
+            echo "Attempting to restart services..."
+            docker-compose -f /home/ec2-user/docker-compose.prod.yml restart
+
+  # ═══════════════════════════════════════════════════════════
+  # Deploy Frontend to Cloudflare Pages
+  # ═══════════════════════════════════════════════════════════
+  deploy_frontend:
     name: Deploy Frontend to Cloudflare Pages
     runs-on: ubuntu-latest
-    needs: [backend_deploy]
+    needs: [deploy_backend]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: https://myunicorn.pw
 
     steps:
       - name: Checkout code
@@ -344,23 +355,24 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 9.1.1
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'pnpm'
           cache-dependency-path: ${{ env.FRONTEND_DIR }}/pnpm-lock.yaml
 
-      - name: Install deps
+      - name: Install dependencies
         working-directory: ${{ env.FRONTEND_DIR }}
         run: pnpm install --frozen-lockfile
 
-      - name: Prepare production env
+      - name: Create production environment file
         working-directory: ${{ env.FRONTEND_DIR }}
         run: |
           echo "VITE_API_URL=${{ env.VITE_API_URL }}" > .env.production
+          echo "VITE_ENVIRONMENT=production" >> .env.production
 
       - name: Build frontend
         working-directory: ${{ env.FRONTEND_DIR }}
@@ -374,3 +386,67 @@ jobs:
           projectName: unicorn-frontend
           directory: ${{ env.FRONTEND_DIR }}/dist
           branch: main
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify frontend deployment
+        run: |
+          echo "Waiting for Cloudflare Pages deployment to propagate..."
+          sleep 15
+
+          if curl -f -s -o /dev/null -w "%{http_code}" https://myunicorn.pw | grep -q "200"; then
+            echo "SUCCESS: Frontend is live and responding"
+          else
+            echo "WARNING: Frontend might not be fully deployed yet"
+            exit 1
+          fi
+
+  # ═══════════════════════════════════════════════════════════
+  # Deployment Summary
+  # ═══════════════════════════════════════════════════════════
+  deployment_summary:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [deploy_backend, deploy_frontend]
+    if: always() && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Generate deployment summary
+        run: |
+          echo "# SUCCESS: Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Author:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Time:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## SUCCESS: Services Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.deploy_backend.result }}" == "success" ]; then
+            echo "- SUCCESS: **Backend API**: https://api.myunicorn.pw" >> $GITHUB_STEP_SUMMARY
+            echo "- SUCCESS: **Worker**: Background notification processor" >> $GITHUB_STEP_SUMMARY
+            echo "- SUCCESS: **Redis**: Cache layer" >> $GITHUB_STEP_SUMMARY
+            echo "- SUCCESS: **Nginx**: Reverse proxy" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ERROR: **Backend**: Deployment failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.deploy_frontend.result }}" == "success" ]; then
+            echo "- SUCCESS: **Frontend**: https://myunicorn.pw" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ERROR: **Frontend**: Deployment failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## SUCCESS: Quick Links" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- [API Health Check](https://api.myunicorn.pw/api/v1/health)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Frontend](https://myunicorn.pw)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Commit Details](https://github.com/${{ github.repository }}/commit/${{ github.sha }})" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::ERROR: Deployment failed! Check the logs above for details."
+          echo "# ERROR: Deployment Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The deployment encountered errors. Please review the job logs and fix the issues." >> $GITHUB_STEP_SUMMARY

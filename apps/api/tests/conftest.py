@@ -1,3 +1,4 @@
+from typing import Any, AsyncGenerator, Dict, Generator
 from app.api.dal.board_member_repository import BoardMemberRepository
 import pytest
 import pytest_asyncio
@@ -10,8 +11,8 @@ from httpx._transports.asgi import ASGITransport
 from http import HTTPStatus
 from app.main import app
 from app.db.base import Base
-from app.db.database import get_db_session
-from app.notification.redis_client import get_redis
+from app.core.database import get_db_session
+from app.core.redis import get_redis
 from tests.utils.register_and_login_user import register_and_login_user
 from app.notification.notification_service import NotificationService
 from app.api.services import (
@@ -32,7 +33,7 @@ DATABASE_URL = "postgresql+asyncpg://test:test@localhost:5432/unicorn_test"
 
 
 @pytest_asyncio.fixture(scope="function", autouse=True)
-async def setup_test_database():
+async def setup_test_database() -> AsyncGenerator[None, None]:
     engine = create_async_engine(
       DATABASE_URL,
       echo=False,
@@ -60,7 +61,7 @@ async def setup_test_database():
     await engine.dispose()
 
 @pytest.fixture(scope="function")
-def mock_redis():
+def mock_redis() -> AsyncMock:
     r = AsyncMock()
     pipeline = MagicMock()
     pipeline.execute = AsyncMock(return_value=[])
@@ -76,8 +77,8 @@ def mock_redis():
 
 
 @pytest.fixture(scope="function", autouse=True)
-def mock_redis_dependency(mock_redis):
-    async def override_get_redis():
+def mock_redis_dependency(mock_redis: AsyncMock) -> Generator[AsyncMock, None, None]:
+    async def override_get_redis() -> AsyncGenerator[AsyncMock, None]:
         yield mock_redis
     app.dependency_overrides[get_redis] = override_get_redis
 
@@ -87,7 +88,7 @@ def mock_redis_dependency(mock_redis):
 
 
 @pytest_asyncio.fixture(scope="function")
-async def db():
+async def db() -> AsyncGenerator[AsyncSession, None]:
     async with app.state.test_async_session_maker() as session:
         try:
             yield session
@@ -97,15 +98,15 @@ async def db():
 
 
 @pytest_asyncio.fixture(scope="function")
-async def async_client():
+async def async_client() -> AsyncGenerator[AsyncClient, None]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
 
 @pytest.fixture(scope="function", autouse=True)
-def override_app_db():
-    async def override_get_db():
+def override_app_db() -> Generator[None, None, None]:
+    async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
         async with app.state.test_async_session_maker() as session:
             yield session
 
@@ -115,7 +116,7 @@ def override_app_db():
 
 
 @pytest.fixture(autouse=True, scope="session")
-def disable_logger_during_tests():
+def disable_logger_during_tests() -> None:
     logging.getLogger().handlers.clear()
     logging.getLogger().addHandler(logging.NullHandler())
 
@@ -187,11 +188,11 @@ def row_service(
 
 
 @pytest.fixture
-def notification_service(mock_redis) -> NotificationService:
+def notification_service(mock_redis: AsyncMock) -> NotificationService:
     return NotificationService(mock_redis)
 
 
-async def get_authenticated_client(email=None) -> tuple[AsyncClient, str]:
+async def get_authenticated_client(email: str | None = None) -> tuple[AsyncClient, str]:
     transport = ASGITransport(app=app)
     client = AsyncClient(transport=transport, base_url="http://test")
     cookies, user_id = await register_and_login_user(client, email=email)
@@ -222,7 +223,7 @@ async def create_table_with_authenticated_user() -> tuple[AsyncClient, str, str,
     return client, user_id, board_id, table_id
 
 @pytest_asyncio.fixture
-async def table_with_two_members():
+async def table_with_two_members() -> AsyncGenerator[Dict[str, Any], None]:
     member_client, member_id = await get_authenticated_client()
     try:
         # create board and table with owner

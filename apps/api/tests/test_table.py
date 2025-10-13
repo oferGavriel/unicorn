@@ -41,7 +41,7 @@ async def test_create_table_invalid_board() -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_tables_unauthenticated():
+async def test_list_tables_unauthenticated() -> None:
     client, board_id, _ = await create_board_with_authenticated_user()
 
     client.cookies.clear()
@@ -50,7 +50,7 @@ async def test_list_tables_unauthenticated():
 
 
 @pytest.mark.asyncio
-async def test_update_table_success():
+async def test_update_table_success() -> None:
     client, _, board_id = await create_board_with_authenticated_user()
     create_resp = await client.post(
         f"/api/v1/boards/{board_id}/tables/",
@@ -68,7 +68,7 @@ async def test_update_table_success():
 
 
 @pytest.mark.asyncio
-async def test_update_table_not_found():
+async def test_update_table_not_found() -> None:
     client, _, board_id = await create_board_with_authenticated_user()
     invalid_table_id = str(uuid4())
     resp = await client.patch(
@@ -81,7 +81,7 @@ async def test_update_table_not_found():
 
 
 @pytest.mark.asyncio
-async def test_delete_table_success():
+async def test_delete_table_success() -> None:
     client, _, board_id = await create_board_with_authenticated_user()
     create_resp = await client.post(
         f"/api/v1/boards/{board_id}/tables/",
@@ -97,7 +97,7 @@ async def test_delete_table_success():
 
 
 @pytest.mark.asyncio
-async def test_table_access_from_other_user():
+async def test_table_access_from_other_user() -> None:
     client1, _, board_id = await create_board_with_authenticated_user()
     table_resp = await client1.post(
         f"/api/v1/boards/{board_id}/tables/",

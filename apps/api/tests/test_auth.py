@@ -46,7 +46,7 @@ async def test_register_duplicate_email(async_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_login_invalid_credentials(async_client: AsyncClient):
+async def test_login_invalid_credentials(async_client: AsyncClient) -> None:
     payload = {"email": "nonexistent@example.com", "password": "wrongpass"}
     resp = await async_client.post("/api/v1/auth/login", json=payload)
     json_resp = resp.json()
@@ -55,7 +55,7 @@ async def test_login_invalid_credentials(async_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_refresh_token_success_and_failure(async_client: AsyncClient):
+async def test_refresh_token_success_and_failure(async_client: AsyncClient) -> None:
     email = f"user+{uuid4().hex}@example.com"
     payload = {
         "first_name": "Alice",
@@ -82,7 +82,7 @@ async def test_refresh_token_success_and_failure(async_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_logout(async_client: AsyncClient):
+async def test_logout(async_client: AsyncClient) -> None:
     email = f"user+{uuid4().hex}@example.com"
     payload = {
         "first_name": "Alice",
@@ -104,7 +104,9 @@ async def test_logout(async_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_register_with_invalid_chars_raise_error(async_client: AsyncClient) -> None:
+async def test_register_with_invalid_chars_raise_error(
+    async_client: AsyncClient,
+) -> None:
     email = f"user+{uuid4().hex}@example.com"
     payload = {
         "first_name": "J0hn$",

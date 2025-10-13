@@ -5,7 +5,7 @@ from sqlalchemy import select, update, func
 from sqlalchemy.orm import selectinload
 from app.database_models.row import Row
 from app.common.repository import BaseRepository
-from app.db.database import DBSessionDep
+from app.core.database import DBSessionDep
 
 
 class RowRepository(BaseRepository[Row]):
@@ -30,7 +30,9 @@ class RowRepository(BaseRepository[Row]):
             .where(Row.id == row_id, Row.table_id == table_id)
             .order_by(Row.position.asc())
         )
-        return (await self.session.execute(q)).scalar_one_or_none()
+        result = await self.session.execute(q)
+        row: Optional[Row] = result.scalar_one_or_none()
+        return row
 
     async def create(self, row: Row) -> Row:
         if row.position > 0:
@@ -52,7 +54,8 @@ class RowRepository(BaseRepository[Row]):
 
         q = select(Row).options(selectinload(Row.owner_users)).where(Row.id == row.id)
         result = await self.session.execute(q)
-        return result.scalar_one()
+        created_row: Row = result.scalar_one()
+        return created_row
 
     async def update(self, row: Row, data: dict) -> Row:
         updated_row = await self.update_entity(row, **data)
@@ -63,7 +66,8 @@ class RowRepository(BaseRepository[Row]):
             .where(Row.id == updated_row.id)
         )
         result = await self.session.execute(q)
-        return result.scalar_one()
+        updated_row_full: Row = result.scalar_one()
+        return updated_row_full
 
     async def delete(self, row_id: UUID, table_id: UUID) -> None:
         row = await self.get(row_id, table_id)
