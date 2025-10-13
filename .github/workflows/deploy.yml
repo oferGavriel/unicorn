@@ -271,7 +271,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "infra/docker-compose.prod.yml,infra/scripts/deploy.sh,infra/nginx/nginx.conf"
+          source: "infra/docker-compose.prod.yaml,infra/scripts/deploy.sh,infra/nginx/nginx.conf"
           target: "/home/ec2-user/"
           strip_components: 1
 
@@ -308,7 +308,7 @@ jobs:
             echo "=== Deployment Verification ==="
 
             echo -e "\n📊 Container Status:"
-            docker-compose -f /home/ec2-user/docker-compose.prod.yml ps
+            docker-compose -f /home/ec2-user/docker-compose.prod.yaml ps
 
             echo -e "\n🏥 Health Check:"
             curl -s http://localhost:8000/api/v1/health | jq '.' || echo "Health check failed"
@@ -330,10 +330,10 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             echo "ERROR:Deployment failed, checking logs..."
-            docker-compose -f /home/ec2-user/docker-compose.prod.yml logs --tail 100
+            docker-compose -f /home/ec2-user/docker-compose.prod.yaml logs --tail 100
 
             echo "Attempting to restart services..."
-            docker-compose -f /home/ec2-user/docker-compose.prod.yml restart
+            docker-compose -f /home/ec2-user/docker-compose.prod.yaml restart
 
   # ═══════════════════════════════════════════════════════════
   # Deploy Frontend to Cloudflare Pages

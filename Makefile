@@ -19,7 +19,7 @@ WEB_DIR = apps/web
 
 # Docker Compose files
 COMPOSE_DEV = $(INFRA_DIR)/docker-compose.dev.yaml
-COMPOSE_PROD = $(INFRA_DIR)/docker-compose.prod.yml
+COMPOSE_PROD = $(INFRA_DIR)/docker-compose.prod.yaml
 
 help: ## Show this help message
 	@echo "$(COLOR_INFO)═══════════════════════════════════════════════════════════$(COLOR_RESET)"
