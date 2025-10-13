@@ -71,7 +71,7 @@ JWT_SECRET=$(fetch_secret "/app/unicorn/jwt-secret")
 # Create .env.prod file
 log_info "Generating .env.prod file..."
 cat > "$ENV_FILE" <<EOF
-DATABASE_URL=$DATABASE_URL
+DATABASE_URL="${DATABASE_URL}"
 CORS_ORIGINS=$CORS_ORIGINS
 CLOUDINARY_CLOUD_NAME=$CLOUDINARY_CLOUD_NAME
 CLOUDINARY_FOLDER=$CLOUDINARY_FOLDER
