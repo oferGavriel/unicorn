@@ -67,44 +67,36 @@ CLOUDINARY_CLOUD_NAME=$(fetch_secret "/app/unicorn/cloudinary-cloud-name")
 CLOUDINARY_FOLDER=$(fetch_secret "/app/unicorn/cloudinary-folder")
 CLOUDINARY_BASE=$(fetch_secret "/app/unicorn/cloudinary-base")
 JWT_SECRET=$(fetch_secret "/app/unicorn/jwt-secret")
-
-# Notification parameters
 NOTIF_WINDOW_SECONDS=$(fetch_secret "/app/unicorn/notif-window-seconds")
 NOTIF_SUPPRESS_MINUTES=$(fetch_secret "/app/unicorn/notif-suppress-minutes")
 NOTIF_WORKER_POLL_MS=$(fetch_secret "/app/unicorn/notif-worker-poll-ms")
-
-# Email parameters
 RESEND_API_KEY=$(fetch_secret "/app/unicorn/resend-api-key")
 FROM_EMAIL=$(fetch_secret "/app/unicorn/from-email")
 FROM_NAME=$(fetch_secret "/app/unicorn/from-name")
 EMAIL_ENABLED=$(fetch_secret "/app/unicorn/email-enabled")
-
-# Application parameters
 FRONTEND_URL=$(fetch_secret "/app/unicorn/frontend-url")
 ENVIRONMENT=$(fetch_secret "/app/unicorn/environment")
 
 # Create .env.prod file with ALL variables
 log_info "Generating .env.prod file..."
-cat > "$ENV_FILE" <<EOF
-DATABASE_URL="${DATABASE_URL}"
-SECRET_KEY="${JWT_SECRET}"
-CORS_ORIGINS="${CORS_ORIGINS}"
-CLOUDINARY_CLOUD_NAME="${CLOUDINARY_CLOUD_NAME}"
-CLOUDINARY_FOLDER="${CLOUDINARY_FOLDER}"
-CLOUDINARY_BASE="${CLOUDINARY_BASE}"
-NOTIF_WINDOW_SECONDS="${NOTIF_WINDOW_SECONDS}"
-NOTIF_SUPPRESS_MINUTES="${NOTIF_SUPPRESS_MINUTES}"
-NOTIF_WORKER_POLL_MS="${NOTIF_WORKER_POLL_MS}"
-RESEND_API_KEY="${RESEND_API_KEY}"
-FROM_EMAIL="${FROM_EMAIL}"
-FROM_NAME="${FROM_NAME}"
-EMAIL_ENABLED="${EMAIL_ENABLED}"
-FRONTEND_URL="${FRONTEND_URL}"
-ENVIRONMENT="${ENVIRONMENT}"
-REDIS_URL=redis://redis:6379/0
-MAX_TRIES=60
-WAIT_SECONDS=1
-EOF
+printf 'DATABASE_URL="%s"\n' "$DATABASE_URL" > "$ENV_FILE"
+printf 'SECRET_KEY="%s"\n' "$JWT_SECRET" >> "$ENV_FILE"
+printf 'CORS_ORIGINS="%s"\n' "$CORS_ORIGINS" >> "$ENV_FILE"
+printf 'CLOUDINARY_CLOUD_NAME="%s"\n' "$CLOUDINARY_CLOUD_NAME" >> "$ENV_FILE"
+printf 'CLOUDINARY_FOLDER="%s"\n' "$CLOUDINARY_FOLDER" >> "$ENV_FILE"
+printf 'CLOUDINARY_BASE="%s"\n' "$CLOUDINARY_BASE" >> "$ENV_FILE"
+printf 'NOTIF_WINDOW_SECONDS="%s"\n' "$NOTIF_WINDOW_SECONDS" >> "$ENV_FILE"
+printf 'NOTIF_SUPPRESS_MINUTES="%s"\n' "$NOTIF_SUPPRESS_MINUTES" >> "$ENV_FILE"
+printf 'NOTIF_WORKER_POLL_MS="%s"\n' "$NOTIF_WORKER_POLL_MS" >> "$ENV_FILE"
+printf 'RESEND_API_KEY="%s"\n' "$RESEND_API_KEY" >> "$ENV_FILE"
+printf 'FROM_EMAIL="%s"\n' "$FROM_EMAIL" >> "$ENV_FILE"
+printf 'FROM_NAME="%s"\n' "$FROM_NAME" >> "$ENV_FILE"
+printf 'EMAIL_ENABLED="%s"\n' "$EMAIL_ENABLED" >> "$ENV_FILE"
+printf 'FRONTEND_URL="%s"\n' "$FRONTEND_URL" >> "$ENV_FILE"
+printf 'ENVIRONMENT="%s"\n' "$ENVIRONMENT" >> "$ENV_FILE"
+printf 'REDIS_URL=%s\n' "redis://redis:6379/0" >> "$ENV_FILE"
+printf 'MAX_TRIES=%s\n' "60" >> "$ENV_FILE"
+printf 'WAIT_SECONDS=%s\n' "1" >> "$ENV_FILE"
 
 chmod 600 "$ENV_FILE"
 log_info ".env.prod file created securely"
