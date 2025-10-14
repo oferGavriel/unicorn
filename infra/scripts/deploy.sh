@@ -68,17 +68,42 @@ CLOUDINARY_FOLDER=$(fetch_secret "/app/unicorn/cloudinary-folder")
 CLOUDINARY_BASE=$(fetch_secret "/app/unicorn/cloudinary-base")
 JWT_SECRET=$(fetch_secret "/app/unicorn/jwt-secret")
 
-# Create .env.prod file
+# Notification parameters
+NOTIF_WINDOW_SECONDS=$(fetch_secret "/app/unicorn/notif-window-seconds")
+NOTIF_SUPPRESS_MINUTES=$(fetch_secret "/app/unicorn/notif-suppress-minutes")
+NOTIF_WORKER_POLL_MS=$(fetch_secret "/app/unicorn/notif-worker-poll-ms")
+
+# Email parameters
+RESEND_API_KEY=$(fetch_secret "/app/unicorn/resend-api-key")
+FROM_EMAIL=$(fetch_secret "/app/unicorn/from-email")
+FROM_NAME=$(fetch_secret "/app/unicorn/from-name")
+EMAIL_ENABLED=$(fetch_secret "/app/unicorn/email-enabled")
+
+# Application parameters
+FRONTEND_URL=$(fetch_secret "/app/unicorn/frontend-url")
+ENVIRONMENT=$(fetch_secret "/app/unicorn/environment")
+
+# Create .env.prod file with ALL variables
 log_info "Generating .env.prod file..."
 cat > "$ENV_FILE" <<EOF
 DATABASE_URL="${DATABASE_URL}"
-CORS_ORIGINS=$CORS_ORIGINS
-CLOUDINARY_CLOUD_NAME=$CLOUDINARY_CLOUD_NAME
-CLOUDINARY_FOLDER=$CLOUDINARY_FOLDER
-CLOUDINARY_BASE=$CLOUDINARY_BASE
-SECRET_KEY=$JWT_SECRET
+SECRET_KEY="${JWT_SECRET}"
+CORS_ORIGINS="${CORS_ORIGINS}"
+CLOUDINARY_CLOUD_NAME="${CLOUDINARY_CLOUD_NAME}"
+CLOUDINARY_FOLDER="${CLOUDINARY_FOLDER}"
+CLOUDINARY_BASE="${CLOUDINARY_BASE}"
+NOTIF_WINDOW_SECONDS="${NOTIF_WINDOW_SECONDS}"
+NOTIF_SUPPRESS_MINUTES="${NOTIF_SUPPRESS_MINUTES}"
+NOTIF_WORKER_POLL_MS="${NOTIF_WORKER_POLL_MS}"
+RESEND_API_KEY="${RESEND_API_KEY}"
+FROM_EMAIL="${FROM_EMAIL}"
+FROM_NAME="${FROM_NAME}"
+EMAIL_ENABLED="${EMAIL_ENABLED}"
+FRONTEND_URL="${FRONTEND_URL}"
+ENVIRONMENT="${ENVIRONMENT}"
 REDIS_URL=redis://redis:6379/0
-ENVIRONMENT=production
+MAX_TRIES=60
+WAIT_SECONDS=1
 EOF
 
 chmod 600 "$ENV_FILE"
