@@ -1,150 +1,40 @@
 #!/bin/bash
 set -euo pipefail
 
-# ═══════════════════════════════════════════════════════════
-# Unicorn Production Deployment Script
-# ═══════════════════════════════════════════════════════════
+readonly DOCKER_IMAGE="${DOCKER_IMAGE:-oferikog/unicorn-app:latest}"
+readonly COMPOSE_FILE="/home/ec2-user/docker-compose.prod.yaml"
+readonly ENV_FILE="/home/ec2-user/.env.prod"
+readonly BACKUP_DIR="/home/ec2-user/backups"
+readonly MAX_HEALTH_RETRIES=30
+readonly HEALTH_CHECK_INTERVAL=2
+readonly AWS_REGION="eu-central-1"
 
-COLOR_GREEN='\033[0;32m'
-COLOR_RED='\033[0;31m'
-COLOR_YELLOW='\033[1;33m'
-COLOR_RESET='\033[0m'
-
-log_info() {
-    echo -e "${COLOR_GREEN}[INFO]${COLOR_RESET} $1"
+log() {
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
 }
 
-log_error() {
-    echo -e "${COLOR_RED}[ERROR]${COLOR_RESET} $1"
+error() {
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1" >&2
+    exit 1
 }
-
-log_warn() {
-    echo -e "${COLOR_YELLOW}[WARN]${COLOR_RESET} $1"
-}
-
-# ═══════════════════════════════════════════════════════════
-# Configuration
-# ═══════════════════════════════════════════════════════════
-DOCKER_IMAGE="${DOCKER_IMAGE:-oferikog/unicorn-app:latest}"
-COMPOSE_FILE="/home/ec2-user/docker-compose.prod.yaml"
-ENV_FILE="/home/ec2-user/.env.prod"
-BACKUP_DIR="/home/ec2-user/backups"
-MAX_HEALTH_RETRIES=30
-HEALTH_CHECK_INTERVAL=2
-
-# ═══════════════════════════════════════════════════════════
-# Step 1: Pull latest Docker image
-# ═══════════════════════════════════════════════════════════
-log_info "Pulling latest Docker image: $DOCKER_IMAGE"
-docker pull "$DOCKER_IMAGE"
-
-# ═══════════════════════════════════════════════════════════
-# Step 2: Fetch secrets from AWS SSM and generate .env file
-# ═══════════════════════════════════════════════════════════
-log_info "Fetching secrets from AWS SSM Parameter Store..."
-
-export AWS_DEFAULT_REGION=eu-central-1
 
 fetch_secret() {
     local param_name=$1
     local secret_value
+
     secret_value=$(aws ssm get-parameter \
         --name "$param_name" \
+        --region "$AWS_REGION" \
         --with-decryption \
         --query Parameter.Value \
-        --output text)
+        --output text 2>/dev/null)
 
     if [ -z "$secret_value" ]; then
-        log_error "Failed to fetch secret: $param_name"
-        exit 1
+        error "Failed to fetch secret: $param_name"
     fi
+
     echo "$secret_value"
 }
-
-DATABASE_URL=$(fetch_secret "/app/unicorn/db-url")
-CORS_ORIGINS=$(fetch_secret "/app/unicorn/cors-origins")
-CLOUDINARY_CLOUD_NAME=$(fetch_secret "/app/unicorn/cloudinary-cloud-name")
-CLOUDINARY_FOLDER=$(fetch_secret "/app/unicorn/cloudinary-folder")
-CLOUDINARY_BASE=$(fetch_secret "/app/unicorn/cloudinary-base")
-JWT_SECRET=$(fetch_secret "/app/unicorn/jwt-secret")
-NOTIF_WINDOW_SECONDS=$(fetch_secret "/app/unicorn/notif-window-seconds")
-NOTIF_SUPPRESS_MINUTES=$(fetch_secret "/app/unicorn/notif-suppress-minutes")
-NOTIF_WORKER_POLL_MS=$(fetch_secret "/app/unicorn/notif-worker-poll-ms")
-RESEND_API_KEY=$(fetch_secret "/app/unicorn/resend-api-key")
-FROM_EMAIL=$(fetch_secret "/app/unicorn/from-email")
-FROM_NAME=$(fetch_secret "/app/unicorn/from-name")
-EMAIL_ENABLED=$(fetch_secret "/app/unicorn/email-enabled")
-FRONTEND_URL=$(fetch_secret "/app/unicorn/frontend-url")
-ENVIRONMENT=$(fetch_secret "/app/unicorn/environment")
-
-# Create .env.prod file with ALL variables
-log_info "Generating .env.prod file..."
-printf 'DATABASE_URL="%s"\n' "$DATABASE_URL" > "$ENV_FILE"
-printf 'SECRET_KEY="%s"\n' "$JWT_SECRET" >> "$ENV_FILE"
-printf 'CORS_ORIGINS="%s"\n' "$CORS_ORIGINS" >> "$ENV_FILE"
-printf 'CLOUDINARY_CLOUD_NAME="%s"\n' "$CLOUDINARY_CLOUD_NAME" >> "$ENV_FILE"
-printf 'CLOUDINARY_FOLDER="%s"\n' "$CLOUDINARY_FOLDER" >> "$ENV_FILE"
-printf 'CLOUDINARY_BASE="%s"\n' "$CLOUDINARY_BASE" >> "$ENV_FILE"
-printf 'NOTIF_WINDOW_SECONDS="%s"\n' "$NOTIF_WINDOW_SECONDS" >> "$ENV_FILE"
-printf 'NOTIF_SUPPRESS_MINUTES="%s"\n' "$NOTIF_SUPPRESS_MINUTES" >> "$ENV_FILE"
-printf 'NOTIF_WORKER_POLL_MS="%s"\n' "$NOTIF_WORKER_POLL_MS" >> "$ENV_FILE"
-printf 'RESEND_API_KEY="%s"\n' "$RESEND_API_KEY" >> "$ENV_FILE"
-printf 'FROM_EMAIL="%s"\n' "$FROM_EMAIL" >> "$ENV_FILE"
-printf 'FROM_NAME="%s"\n' "$FROM_NAME" >> "$ENV_FILE"
-printf 'EMAIL_ENABLED="%s"\n' "$EMAIL_ENABLED" >> "$ENV_FILE"
-printf 'FRONTEND_URL="%s"\n' "$FRONTEND_URL" >> "$ENV_FILE"
-printf 'ENVIRONMENT="%s"\n' "$ENVIRONMENT" >> "$ENV_FILE"
-printf 'REDIS_URL=%s\n' "redis://redis:6379/0" >> "$ENV_FILE"
-printf 'MAX_TRIES=%s\n' "60" >> "$ENV_FILE"
-printf 'WAIT_SECONDS=%s\n' "1" >> "$ENV_FILE"
-
-chmod 600 "$ENV_FILE"
-log_info ".env.prod file created securely"
-
-# ═══════════════════════════════════════════════════════════
-# Step 3: Backup current state
-# ═══════════════════════════════════════════════════════════
-log_info "Creating backup of current deployment..."
-mkdir -p "$BACKUP_DIR"
-BACKUP_FILE="$BACKUP_DIR/backup-$(date +%Y%m%d-%H%M%S).tar.gz"
-
-if docker ps -q -f name=unicorn-app | grep -q .; then
-    docker logs unicorn-app > "$BACKUP_DIR/app-logs-$(date +%Y%m%d-%H%M%S).log" 2>&1 || true
-    log_info "Logs backed up to $BACKUP_DIR"
-fi
-
-# Keep only last 5 backups
-ls -t "$BACKUP_DIR"/backup-*.tar.gz 2>/dev/null | tail -n +6 | xargs rm -f 2>/dev/null || true
-
-# ═══════════════════════════════════════════════════════════
-# Step 4: Docker Compose will handle migrations via prestart.sh
-# ═══════════════════════════════════════════════════════════
-log_info "Migrations will be handled by prestart.sh in the container..."
-
-# ═══════════════════════════════════════════════════════════
-# Step 5: Deploy with Docker Compose (rolling update)
-# ═══════════════════════════════════════════════════════════
-log_info "Starting Docker Compose deployment..."
-
-cd /home/ec2-user
-
-# Export DOCKER_IMAGE for docker-compose
-export DOCKER_IMAGE="$DOCKER_IMAGE"
-
-# Pull all images defined in compose
-docker-compose -f "$COMPOSE_FILE" pull
-
-# Start services with rolling update strategy
-# This will:
-# 1. Start new containers
-# 2. Wait for health checks
-# 3. Stop old containers only after new ones are healthy
-docker-compose -f "$COMPOSE_FILE" up -d --remove-orphans --no-build
-
-# ═══════════════════════════════════════════════════════════
-# Step 6: Health check
-# ═══════════════════════════════════════════════════════════
-log_info "Waiting for services to become healthy..."
 
 wait_for_health() {
     local service_name=$1
@@ -152,80 +42,129 @@ wait_for_health() {
 
     while [ $retries -lt $MAX_HEALTH_RETRIES ]; do
         if docker inspect --format='{{.State.Health.Status}}' "unicorn-$service_name" 2>/dev/null | grep -q "healthy"; then
-            log_info "✓ $service_name is healthy"
+            log "$service_name is healthy"
             return 0
         fi
-
         retries=$((retries + 1))
         sleep $HEALTH_CHECK_INTERVAL
     done
 
-    log_error "✗ $service_name failed health check"
-    return 1
+    error "$service_name health check failed"
 }
 
-# Check critical services
-if ! wait_for_health "redis"; then
-    log_error "Redis health check failed"
-    exit 1
-fi
+create_env_file() {
+    log "Fetching configuration from AWS SSM"
 
-if ! wait_for_health "app"; then
-    log_error "App health check failed. Rolling back..."
-    docker-compose -f "$COMPOSE_FILE" logs app
-    exit 1
-fi
+    local database_url cors_origins cloudinary_cloud_name cloudinary_folder cloudinary_base
+    local jwt_secret notif_window notif_suppress notif_poll resend_key from_email
+    local from_name email_enabled frontend_url environment
 
-if ! wait_for_health "nginx"; then
-    log_error "Nginx health check failed"
-    exit 1
-fi
+    database_url=$(fetch_secret "/app/unicorn/db-url")
+    cors_origins=$(fetch_secret "/app/unicorn/cors-origins")
+    cloudinary_cloud_name=$(fetch_secret "/app/unicorn/cloudinary-cloud-name")
+    cloudinary_folder=$(fetch_secret "/app/unicorn/cloudinary-folder")
+    cloudinary_base=$(fetch_secret "/app/unicorn/cloudinary-base")
+    jwt_secret=$(fetch_secret "/app/unicorn/jwt-secret")
+    notif_window=$(fetch_secret "/app/unicorn/notif-window-seconds")
+    notif_suppress=$(fetch_secret "/app/unicorn/notif-suppress-minutes")
+    notif_poll=$(fetch_secret "/app/unicorn/notif-worker-poll-ms")
+    resend_key=$(fetch_secret "/app/unicorn/resend-api-key")
+    from_email=$(fetch_secret "/app/unicorn/from-email")
+    from_name=$(fetch_secret "/app/unicorn/from-name")
+    email_enabled=$(fetch_secret "/app/unicorn/email-enabled")
+    frontend_url=$(fetch_secret "/app/unicorn/frontend-url")
+    environment=$(fetch_secret "/app/unicorn/environment")
 
-log_info "Worker is starting (no health check required for background worker)"
+    log "Generating environment configuration"
 
-# ═══════════════════════════════════════════════════════════
-# Step 7: Cleanup old images
-# ═══════════════════════════════════════════════════════════
-log_info "Cleaning up old Docker images..."
+    cat > "$ENV_FILE" << EOF
+DATABASE_URL="$database_url"
+SECRET_KEY="$jwt_secret"
+CORS_ORIGINS="$cors_origins"
+CLOUDINARY_CLOUD_NAME="$cloudinary_cloud_name"
+CLOUDINARY_FOLDER="$cloudinary_folder"
+CLOUDINARY_BASE="$cloudinary_base"
+NOTIF_WINDOW_SECONDS="$notif_window"
+NOTIF_SUPPRESS_MINUTES="$notif_suppress"
+NOTIF_WORKER_POLL_MS="$notif_poll"
+RESEND_API_KEY="$resend_key"
+FROM_EMAIL="$from_email"
+FROM_NAME="$from_name"
+EMAIL_ENABLED="$email_enabled"
+FRONTEND_URL="$frontend_url"
+ENVIRONMENT="$environment"
+REDIS_URL="redis://redis:6379/0"
+MAX_TRIES="60"
+WAIT_SECONDS="1"
+EOF
 
-# Remove dangling images (untagged)
-docker image prune -f || true
+    chmod 600 "$ENV_FILE"
+    log "Environment configuration created"
+}
 
-# Remove old images (keep last 3 versions only)
-log_info "Keeping only the 3 most recent images..."
-docker images oferikog/unicorn-app --format "{{.ID}} {{.CreatedAt}}" | \
-  tail -n +4 | \
-  awk '{print $1}' | \
-  xargs -r docker rmi -f || true
+backup_logs() {
+    mkdir -p "$BACKUP_DIR"
 
-# Remove unused images older than 7 days
-docker image prune -a -f --filter "until=168h" || true
+    if docker ps -q -f name=unicorn-app | grep -q .; then
+        local timestamp
+        timestamp=$(date +%Y%m%d-%H%M%S)
+        docker logs unicorn-app > "$BACKUP_DIR/app-logs-$timestamp.log" 2>&1 || true
+        log "Logs backed up"
+    fi
 
-log_info "Disk usage after cleanup:"
-df -h / | grep -v Filesystem
+    ls -t "$BACKUP_DIR"/backup-*.tar.gz 2>/dev/null | tail -n +6 | xargs rm -f 2>/dev/null || true
+}
 
-# ═══════════════════════════════════════════════════════════
-# Step 8: Final verification
-# ═══════════════════════════════════════════════════════════
-log_info "Verifying deployment..."
+deploy_services() {
+    log "Deploying services"
 
-# Test API endpoint
-if curl -f -s -o /dev/null http://localhost:8000/health; then
-    log_info "✓ API health endpoint responding"
-else
-    log_error "✗ API health endpoint not responding"
-    docker-compose -f "$COMPOSE_FILE" logs app
-    exit 1
-fi
+    cd /home/ec2-user
+    export DOCKER_IMAGE="$DOCKER_IMAGE"
+    export AWS_DEFAULT_REGION="$AWS_REGION"
 
-# Show running containers
-log_info "Currently running services:"
-docker-compose -f "$COMPOSE_FILE" ps
+    docker-compose -f "$COMPOSE_FILE" pull
+    docker-compose -f "$COMPOSE_FILE" up -d --remove-orphans --no-build
+}
 
-log_info "═══════════════════════════════════════════════════════════"
-log_info "SUCCESS: Deployment completed successfully!"
-log_info "═══════════════════════════════════════════════════════════"
-log_info "App:    http://localhost:8000"
-log_info "Redis:  redis://localhost:6379"
-log_info "Nginx:  http://localhost:80 (HTTPS: 443)"
-log_info "═══════════════════════════════════════════════════════════"
+verify_deployment() {
+    log "Verifying deployment"
+
+    wait_for_health "redis"
+    wait_for_health "app"
+    wait_for_health "nginx"
+
+    if docker exec unicorn-app curl -f -s http://localhost:8000/api/v1/health > /dev/null; then
+        log "API health check passed"
+    else
+        error "API health check failed"
+    fi
+}
+
+cleanup() {
+    log "Cleaning up resources"
+
+    docker image prune -f > /dev/null 2>&1 || true
+
+    docker images oferikog/unicorn-app --format "{{.ID}} {{.CreatedAt}}" | \
+        tail -n +4 | \
+        awk '{print $1}' | \
+        xargs -r docker rmi -f > /dev/null 2>&1 || true
+
+    docker image prune -a -f --filter "until=168h" > /dev/null 2>&1 || true
+}
+
+main() {
+    log "Starting deployment: $DOCKER_IMAGE"
+
+    docker pull "$DOCKER_IMAGE"
+    create_env_file
+    backup_logs
+    deploy_services
+    verify_deployment
+    cleanup
+
+    log "Deployment completed successfully"
+    docker-compose -f "$COMPOSE_FILE" ps
+}
+
+main "$@"
