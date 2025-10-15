@@ -289,23 +289,18 @@ jobs:
           envs: DOCKER_IMAGE
           command_timeout: 10m
           script: |
-            set -e
+            chmod +x /home/ec2-user/scripts/deploy.sh
 
-            echo "Cleaning up old deployment files..."
-            rm -f /home/ec2-user/.env.prod
-            rm -f /home/ec2-user/scripts/deploy.sh
+            mkdir -p /home/ec2-user/scripts
+            mkdir -p /home/ec2-user/nginx
 
-            sleep 2
-
-            ls -la /home/ec2-user/docker-compose.prod.yaml || { echo "ERROR: compose file not found"; exit 1; }
-            ls -la /home/ec2-user/scripts/deploy.sh || { echo "ERROR: deploy.sh not found"; exit 1; }
+            mv /home/ec2-user/deploy.sh /home/ec2-user/scripts/ 2>/dev/null || true
+            mv /home/ec2-user/nginx.conf /home/ec2-user/nginx/ 2>/dev/null || true
 
             chmod +x /home/ec2-user/scripts/deploy.sh
 
             /home/ec2-user/scripts/deploy.sh
 
-            sleep 5
-            curl -f http://localhost:8000/api/v1/health || exit 1
 
       - name: Verify deployment health
         uses: appleboy/ssh-action@v1.0.3
@@ -314,21 +309,15 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            echo "=== Deployment Verification ==="
+            sleep 10
 
-            echo -e "\n📊 Container Status:"
-            docker-compose -f /home/ec2-user/docker-compose.prod.yaml ps
-
-            echo -e "\n🏥 Health Check:"
-            curl -s http://localhost:8000/api/v1/health | jq '.' || echo "Health check failed"
-
-            echo -e "\n📈 Resource Usage:"
-            docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}" || true
-
-            echo -e "\n📝 Recent App Logs (last 20 lines):"
-            docker logs --tail 20 unicorn-app
-
-            echo -e "\n✅ Deployment verification complete"
+            if curl -f http://localhost:8000/health; then
+              echo "✓ Deployment successful - API is responding"
+            else
+              echo "✗ Deployment failed - API not responding"
+              docker-compose -f /home/ec2-user/docker-compose.prod.yaml logs app
+              exit 1
+            fi
 
       - name: Rollback on failure
         if: failure()
