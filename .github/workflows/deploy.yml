@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - Unicorn
+name: CI/CD Pipeline
 
 on:
   push:
@@ -18,9 +18,6 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
-  # ═══════════════════════════════════════════════════════════
-  # Backend CI: Lint, Type Check, Tests
-  # ═══════════════════════════════════════════════════════════
   backend_ci:
     name: Backend CI
     runs-on: ubuntu-latest
@@ -54,24 +51,16 @@ jobs:
     env:
       DATABASE_URL: postgresql://test:test@localhost:5432/unicorn_test
       REDIS_URL: redis://localhost:6379/0
-      DB_HOST: localhost
-      DB_PORT: 5432
-      DB_NAME: unicorn_test
-      DB_USER: test
-      DB_PASS: test
       SECRET_KEY: test-secret-key-for-ci-only
       ENVIRONMENT: test
-      # Notification settings for tests
       NOTIF_WINDOW_SECONDS: 1
       NOTIF_SUPPRESS_MINUTES: 1
       NOTIF_WORKER_POLL_MS: 1000
-      # Email settings (disabled for tests)
       RESEND_API_KEY: test-key
       FROM_EMAIL: test@example.com
       FROM_NAME: Test Notifications
       FRONTEND_URL: http://localhost:5173
       EMAIL_ENABLED: false
-      # Cloudinary
       CLOUDINARY_CLOUD_NAME: test
       CLOUDINARY_FOLDER: test
       CLOUDINARY_BASE: test.png
@@ -85,7 +74,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -96,28 +85,27 @@ jobs:
           pip install --upgrade pip
           pip install poetry==1.7.1
 
-      - name: Cache Poetry dependencies
+      - name: Cache dependencies
         uses: actions/cache@v4
         with:
           path: ~/.cache/pypoetry
           key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-poetry-
+          restore-keys: ${{ runner.os }}-poetry-
 
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
 
-      - name: Lint with Ruff
+      - name: Lint
         run: poetry run ruff check .
 
-      - name: Type check with MyPy
+      - name: Type check
         continue-on-error: true
-        run: poetry run mypy . || echo "Type checking has warnings"
+        run: poetry run mypy .
 
-      - name: Run database migrations
+      - name: Run migrations
         run: poetry run alembic upgrade head
 
-      - name: Run tests with coverage
+      - name: Run tests
         run: |
           poetry run pytest \
             --cov=app \
@@ -125,7 +113,7 @@ jobs:
             --cov-report=term-missing \
             --verbose
 
-      - name: Upload coverage reports
+      - name: Upload coverage
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: codecov/codecov-action@v4
         continue-on-error: true
@@ -134,9 +122,6 @@ jobs:
           flags: backend
           fail_ci_if_error: false
 
-  # ═══════════════════════════════════════════════════════════
-  # Frontend CI: Lint, Type Check, Tests, Build
-  # ═══════════════════════════════════════════════════════════
   frontend_ci:
     name: Frontend CI
     runs-on: ubuntu-latest
@@ -170,7 +155,7 @@ jobs:
 
       - name: Type check
         continue-on-error: true
-        run: pnpm run type-check || echo "Type checking has warnings"
+        run: pnpm run type-check
 
       - name: Run tests
         run: pnpm run test -- --ci --run --coverage
@@ -186,19 +171,12 @@ jobs:
           path: ${{ env.FRONTEND_DIR }}/dist
           retention-days: 1
 
-  # ═══════════════════════════════════════════════════════════
-  # Build & Push Docker Image
-  # ═══════════════════════════════════════════════════════════
   build_docker:
-    name: Build & Push Docker Image
+    name: Build Docker Image
     runs-on: ubuntu-latest
     needs: [backend_ci, frontend_ci]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     timeout-minutes: 30
-
-    outputs:
-      image_tag: ${{ steps.meta.outputs.tags }}
-      image_digest: ${{ steps.build.outputs.digest }}
 
     steps:
       - name: Checkout code
@@ -216,7 +194,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract Docker metadata
+      - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -226,8 +204,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value={{date 'YYYYMMDD-HHmmss'}}
 
-      - name: Build and push Docker image
-        id: build
+      - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -243,16 +220,8 @@ jobs:
             GIT_COMMIT=${{ github.sha }}
           target: production
 
-      - name: Image digest
-        run: |
-          echo "Image digest: ${{ steps.build.outputs.digest }}"
-
-      # ═══════════════════════════════════════════════════════════
-      # Deploy Backend to EC2
-      # ═══════════════════════════════════════════════════════════
-
   deploy_backend:
-    name: Deploy Backend to EC2
+    name: Deploy Backend
     runs-on: ubuntu-latest
     needs: [build_docker]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -265,7 +234,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy deployment files to EC2
+      - name: Copy deployment files
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -274,11 +243,9 @@ jobs:
           source: "infra/docker-compose.prod.yaml,infra/scripts/deploy.sh,infra/nginx/nginx.conf"
           target: "/home/ec2-user/"
           strip_components: 1
+          overwrite: true
 
-      - name: Wait for files to settle
-        run: sleep 3
-
-      - name: Deploy to EC2
+      - name: Deploy application
         uses: appleboy/ssh-action@v1.0.3
         env:
           DOCKER_IMAGE: ${{ env.DOCKER_IMAGE }}:latest
@@ -289,20 +256,22 @@ jobs:
           envs: DOCKER_IMAGE
           command_timeout: 10m
           script: |
+            set -e
+
+            mkdir -p /home/ec2-user/scripts /home/ec2-user/nginx
+
+            if [ -f /home/ec2-user/deploy.sh ]; then
+              mv /home/ec2-user/deploy.sh /home/ec2-user/scripts/
+            fi
+
+            if [ -f /home/ec2-user/nginx.conf ]; then
+              mv /home/ec2-user/nginx.conf /home/ec2-user/nginx/
+            fi
+
             chmod +x /home/ec2-user/scripts/deploy.sh
-
-            mkdir -p /home/ec2-user/scripts
-            mkdir -p /home/ec2-user/nginx
-
-            mv /home/ec2-user/deploy.sh /home/ec2-user/scripts/ 2>/dev/null || true
-            mv /home/ec2-user/nginx.conf /home/ec2-user/nginx/ 2>/dev/null || true
-
-            chmod +x /home/ec2-user/scripts/deploy.sh
-
             /home/ec2-user/scripts/deploy.sh
 
-
-      - name: Verify deployment health
+      - name: Verify deployment
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -311,13 +280,18 @@ jobs:
           script: |
             sleep 10
 
-            if curl -f http://localhost:8000/health; then
-              echo "✓ Deployment successful - API is responding"
-            else
-              echo "✗ Deployment failed - API not responding"
-              docker-compose -f /home/ec2-user/docker-compose.prod.yaml logs app
-              exit 1
-            fi
+            for i in {1..5}; do
+              if docker exec unicorn-app curl -f -s http://localhost:8000/api/v1/health > /dev/null; then
+                echo "Deployment successful"
+                exit 0
+              fi
+              echo "Health check attempt $i failed, retrying..."
+              sleep 5
+            done
+
+            echo "Deployment verification failed"
+            docker-compose -f /home/ec2-user/docker-compose.prod.yaml logs app --tail 50
+            exit 1
 
       - name: Rollback on failure
         if: failure()
@@ -327,17 +301,11 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            echo "ERROR:Deployment failed, checking logs..."
             docker-compose -f /home/ec2-user/docker-compose.prod.yaml logs --tail 100
-
-            echo "Attempting to restart services..."
             docker-compose -f /home/ec2-user/docker-compose.prod.yaml restart
 
-  # ═══════════════════════════════════════════════════════════
-  # Deploy Frontend to Cloudflare Pages
-  # ═══════════════════════════════════════════════════════════
   deploy_frontend:
-    name: Deploy Frontend to Cloudflare Pages
+    name: Deploy Frontend
     runs-on: ubuntu-latest
     needs: [deploy_backend]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -366,13 +334,13 @@ jobs:
         working-directory: ${{ env.FRONTEND_DIR }}
         run: pnpm install --frozen-lockfile
 
-      - name: Create production environment file
+      - name: Create environment file
         working-directory: ${{ env.FRONTEND_DIR }}
         run: |
           echo "VITE_API_URL=${{ env.VITE_API_URL }}" > .env.production
           echo "VITE_ENVIRONMENT=production" >> .env.production
 
-      - name: Build frontend
+      - name: Build
         working-directory: ${{ env.FRONTEND_DIR }}
         run: pnpm run build
 
@@ -386,21 +354,18 @@ jobs:
           branch: main
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Verify frontend deployment
+      - name: Verify deployment
         run: |
-          echo "Waiting for Cloudflare Pages deployment to propagate..."
           sleep 15
 
-          if curl -f -s -o /dev/null -w "%{http_code}" https://myunicorn.pw | grep -q "200"; then
-            echo "SUCCESS: Frontend is live and responding"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://myunicorn.pw)
+          if [ "$STATUS" = "200" ]; then
+            echo "Frontend deployment successful"
           else
-            echo "WARNING: Frontend might not be fully deployed yet"
+            echo "Frontend deployment verification failed (HTTP $STATUS)"
             exit 1
           fi
 
-  # ═══════════════════════════════════════════════════════════
-  # Deployment Summary
-  # ═══════════════════════════════════════════════════════════
   deployment_summary:
     name: Deployment Summary
     runs-on: ubuntu-latest
@@ -408,43 +373,32 @@ jobs:
     if: always() && github.ref == 'refs/heads/main'
 
     steps:
-      - name: Generate deployment summary
+      - name: Generate summary
         run: |
-          echo "# SUCCESS: Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Author:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "**Time:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## SUCCESS: Services Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "### Services" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ "${{ needs.deploy_backend.result }}" == "success" ]; then
-            echo "- SUCCESS: **Backend API**: https://api.myunicorn.pw" >> $GITHUB_STEP_SUMMARY
-            echo "- SUCCESS: **Worker**: Background notification processor" >> $GITHUB_STEP_SUMMARY
-            echo "- SUCCESS: **Redis**: Cache layer" >> $GITHUB_STEP_SUMMARY
-            echo "- SUCCESS: **Nginx**: Reverse proxy" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Backend API: https://api.myunicorn.pw" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- ERROR: **Backend**: Deployment failed" >> $GITHUB_STEP_SUMMARY
+            echo "- ❌ Backend: Deployment failed" >> $GITHUB_STEP_SUMMARY
           fi
 
           if [ "${{ needs.deploy_frontend.result }}" == "success" ]; then
-            echo "- SUCCESS: **Frontend**: https://myunicorn.pw" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Frontend: https://myunicorn.pw" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- ERROR: **Frontend**: Deployment failed" >> $GITHUB_STEP_SUMMARY
+            echo "- ❌ Frontend: Deployment failed" >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## SUCCESS: Quick Links" >> $GITHUB_STEP_SUMMARY
+          echo "### Links" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- [API Health Check](https://api.myunicorn.pw/api/v1/health)" >> $GITHUB_STEP_SUMMARY
-          echo "- [Frontend](https://myunicorn.pw)" >> $GITHUB_STEP_SUMMARY
-          echo "- [Commit Details](https://github.com/${{ github.repository }}/commit/${{ github.sha }})" >> $GITHUB_STEP_SUMMARY
-
-      - name: Notify on failure
-        if: failure()
-        run: |
-          echo "::error::ERROR: Deployment failed! Check the logs above for details."
-          echo "# ERROR: Deployment Failed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The deployment encountered errors. Please review the job logs and fix the issues." >> $GITHUB_STEP_SUMMARY
+          echo "- [API Health](https://api.myunicorn.pw/api/v1/health)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Application](https://myunicorn.pw)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }})" >> $GITHUB_STEP_SUMMARY
