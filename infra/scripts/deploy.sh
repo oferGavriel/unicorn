@@ -119,10 +119,12 @@ deploy_services() {
     log "Deploying services"
 
     cd /home/ec2-user
-    export DOCKER_IMAGE="$DOCKER_IMAGE"
-    export AWS_DEFAULT_REGION="$AWS_REGION"
 
+    DOCKER_IMAGE="$DOCKER_IMAGE" \
+    AWS_DEFAULT_REGION="$AWS_REGION" \
     docker-compose -f "$COMPOSE_FILE" pull
+
+    DOCKER_IMAGE="$DOCKER_IMAGE" \
     docker-compose -f "$COMPOSE_FILE" up -d --remove-orphans --no-build
 }
 
