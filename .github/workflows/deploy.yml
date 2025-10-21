@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+  deployments: write
+
 env:
   DOCKER_IMAGE: oferikog/unicorn-app
   FRONTEND_DIR: apps/web
@@ -155,7 +159,7 @@ jobs:
 
       - name: Type check
         continue-on-error: true
-        run: pnpm run type-check
+        run: pnpm run lint:check
 
       - name: Run tests
         run: pnpm run test -- --ci --run --coverage
