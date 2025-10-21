@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-readonly DOCKER_IMAGE="${DOCKER_IMAGE:-oferikog/unicorn-app:latest}"
+readonly IMAGE="${DOCKER_IMAGE:-oferikog/unicorn-app:latest}"
 readonly COMPOSE_FILE="/home/ec2-user/docker-compose.prod.yaml"
 readonly ENV_FILE="/home/ec2-user/.env.prod"
 readonly BACKUP_DIR="/home/ec2-user/backups"
@@ -120,12 +120,8 @@ deploy_services() {
 
     cd /home/ec2-user
 
-    DOCKER_IMAGE="$DOCKER_IMAGE" \
-    AWS_DEFAULT_REGION="$AWS_REGION" \
-    docker-compose -f "$COMPOSE_FILE" pull
-
-    DOCKER_IMAGE="$DOCKER_IMAGE" \
-    docker-compose -f "$COMPOSE_FILE" up -d --remove-orphans --no-build
+    DOCKER_IMAGE="$IMAGE" docker-compose -f "$COMPOSE_FILE" pull
+    DOCKER_IMAGE="$IMAGE" docker-compose -f "$COMPOSE_FILE" up -d --remove-orphans --no-build
 }
 
 verify_deployment() {
@@ -156,9 +152,9 @@ cleanup() {
 }
 
 main() {
-    log "Starting deployment: $DOCKER_IMAGE"
+    log "Starting deployment: $IMAGE"
 
-    docker pull "$DOCKER_IMAGE"
+    docker pull "$IMAGE"
     create_env_file
     backup_logs
     deploy_services
