@@ -2,62 +2,113 @@ from __future__ import annotations
 from typing import Dict, Optional, Any
 from datetime import datetime, timezone
 
-from app.database_models import Row, Table
-from .schemas import Event, Snapshot
+from app.database_models import Row, Table, Board, User
+from .schemas import (
+    Event,
+    Snapshot,
+    UserSnapshot,
+    BoardContext,
+    TableContext,
+    FieldDelta,
+    EventType,
+)
 
 
-def build_row_event(  # noqa: PLR0913
+def build_row_event(
+    # ruff: noqa: PLR0913
     *,
-    etype: str,
+    etype: EventType,
     row: Row,
     table: Table,
-    actor_id: str,
-    actor_name: str,
+    board: Board,
+    actor: User,
     changed: Optional[list[str]] = None,
     old_values: Optional[Dict[str, Any]] = None,
 ) -> Event:
-    delta = {}
-    if changed and old_values:
-        for field in changed:
-            old_val = old_values.get(field)
-            new_val = getattr(row, field, None)
+    board_ctx: BoardContext = {
+        "id": str(board.id),
+        "name": board.name,
+    }
 
-            # Handle enum values
-            if old_val is not None and hasattr(old_val, "value"):
-                old_val = old_val.value
-            if new_val is not None and hasattr(new_val, "value"):
-                new_val = new_val.value
-
-            # Handle datetime values
-            if isinstance(old_val, datetime):
-                old_val = old_val.isoformat() if old_val else None
-            if isinstance(new_val, datetime):
-                new_val = new_val.isoformat() if new_val else None
-
-            delta[field] = {
-                "from": str(old_val) if old_val is not None else None,
-                "to": str(new_val) if new_val is not None else None
-            }
-
-
-    return {
-        "type": etype,  # type: ignore  # mypy: ignore incompatible type
+    table_ctx: TableContext = {
+        "id": str(table.id),
+        "name": table.name,
         "board_id": str(table.board_id),
-        "table_id": str(table.id),
-        "table_name": table.name,
-        "row_id": str(row.id),
-        "actor_id": str(actor_id),
-        "actor_name": actor_name,
+    }
+
+    actor_snapshot = _user_to_snapshot(actor)
+
+    delta: Dict[str, FieldDelta] = {}
+    if changed and old_values:
+        delta = _build_delta(row, changed, old_values)
+
+    event: Event = {
+        "type": etype,
+        "board": board_ctx,
+        "table": table_ctx,
+        "actor": actor_snapshot,
         "at": _iso_now(),
-        "snapshot": row_snapshot(row) if row else {},
-        "changed": changed or [],
-        "delta": {
-          k: {
-            "from": v["from"] or "",
-            "to": v["to"] or ""
-          }
-          for k, v in delta.items()
-        },
+    }
+
+    if row:
+        event["row_id"] = str(row.id)
+        event["snapshot"] = row_snapshot(row)
+
+    if changed:
+        event["changed"] = changed
+
+    if delta:
+        event["delta"] = delta
+
+    return event
+
+
+def _build_delta(
+    row: Row,
+    changed: list[str],
+    old_values: Dict[str, Any],
+) -> Dict[str, FieldDelta]:
+    delta: Dict[str, FieldDelta] = {}
+
+    for field in changed:
+        old_val = old_values.get(field)
+        new_val = getattr(row, field, None)
+
+        from_str = _format_value(old_val)
+        to_str = _format_value(new_val)
+
+        field_delta: FieldDelta = {
+            "from_value": from_str,
+            "to_value": to_str,
+        }
+
+        delta[field] = field_delta
+
+    return delta
+
+
+def _format_value(value: Any) -> str:
+    if value is None:
+        return ""
+
+    if hasattr(value, "value"):
+        return str(value.value)
+
+    if isinstance(value, datetime):
+        return value.isoformat()
+
+    if isinstance(value, list):
+        return ",".join(str(v) for v in value)
+
+    return str(value)
+
+
+def _user_to_snapshot(user: User) -> UserSnapshot:
+    return {
+        "id": str(user.id),
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "email": user.email,
     }
 
 

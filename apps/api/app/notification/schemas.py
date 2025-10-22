@@ -6,8 +6,27 @@ EventType = Literal[
     "RowDeleted",
     "TableCreated",
     "TableUpdated",
-    "TableDeleted"
+    "TableDeleted",
 ]
+
+
+class UserSnapshot(TypedDict):
+    id: str
+    first_name: str
+    last_name: str
+    email: str
+
+
+class BoardContext(TypedDict):
+    id: str
+    name: str
+
+
+class TableContext(TypedDict):
+    id: str
+    name: str
+    board_id: str
+
 
 class Snapshot(TypedDict, total=False):
     name: str
@@ -15,14 +34,19 @@ class Snapshot(TypedDict, total=False):
     priority: str
     due_date: str | None
 
+
+class FieldDelta(TypedDict):
+    from_value: str
+    to_value: str
+
+
 class Event(TypedDict):
     type: EventType
-    board_id: str
-    table_id: str | None
-    row_id: str | None
-    actor_id: str
-    actor_name: str
-    at: str  # ISO format datetime
+    board: BoardContext
+    table: TableContext
+    actor: UserSnapshot
+    at: str
+    row_id: NotRequired[str]
     snapshot: NotRequired[Snapshot]
     changed: NotRequired[list[str]]
-    delta: Dict[str, Dict[str, str]]  # example -> {"name": {"from": "Old", "to": "New"}}
+    delta: NotRequired[Dict[str, FieldDelta]]

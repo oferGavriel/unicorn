@@ -16,9 +16,9 @@ router = APIRouter()
 
 
 @router.get(
-  "/",
-  response_model=List[TableRead],
-  description="List all tables",
+    "/",
+    response_model=List[TableRead],
+    description="List all tables",
 )
 async def list_tables(
     board_id: UUID,

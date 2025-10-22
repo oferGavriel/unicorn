@@ -55,5 +55,8 @@ skip-string-normalization = true
 
 [tool.pytest.ini_options]
 filterwarnings = [
-  "ignore:'crypt' is deprecated:DeprecationWarning:passlib.utils"
+  "ignore:'crypt' is deprecated:DeprecationWarning:passlib.utils",
+  "ignore:The 'alias' attribute.*:pydantic.warnings.PydanticDeprecatedSince20",
+  "ignore:The 'validation_alias' attribute.*:pydantic.warnings.PydanticDeprecatedSince20",
+  "ignore:The 'serialization_alias' attribute.*:pydantic.warnings.PydanticDeprecatedSince20"
 ]

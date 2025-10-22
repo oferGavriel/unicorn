@@ -13,16 +13,15 @@ from app.core.config import get_settings
 DUE_ZSET = "notif:due"
 
 
-async def emit_activity(  # noqa: PLR0913
+async def emit_activity(
     db: AsyncSession,
     redis_client: redis.Redis,
     board_id: str,
     actor_id: str,
-    actor_name: str,
     events: Iterable[Event],
 ) -> None:
     settings = get_settings()
-    payloads = _serialize_events(events, actor_name)
+    payloads = _serialize_events(events)
 
     recipients = await _eligible_recipients_for_board(db, board_id, actor_id)
     if not recipients:
@@ -57,11 +56,9 @@ async def emit_activity(  # noqa: PLR0913
     )
 
 
-def _serialize_events(events: Iterable[Event], actor_name: str) -> list[str]:
+def _serialize_events(events: Iterable[Event]) -> list[str]:
     out: list[str] = []
     for e in events:
-        if not e.get("actor_name"):
-            e["actor_name"] = actor_name
         out.append(json.dumps(e, ensure_ascii=False))
     return out
 
@@ -74,14 +71,11 @@ def _expiry_ms(window_sec: int) -> int:
     return int(time.time() * 1000) + (window_sec * 1000)
 
 
-
 async def _eligible_recipients_for_board(
     db: AsyncSession, board_id: str, actor_id: str
 ) -> list[str]:
     settings = get_settings()
-    # Check if suppression is disabled (for tests)
     if settings.notif_suppress_minutes == 0:
-        # No suppression - notify all board members except actor
         rows = await db.execute(
             text("""
             SELECT bm.user_id
@@ -92,7 +86,6 @@ async def _eligible_recipients_for_board(
             {"b": board_id, "a": actor_id},
         )
     else:
-        # suppression logic
         threshold_timestamp = int(time.time()) - settings.notif_suppress_seconds
         rows = await db.execute(
             text("""

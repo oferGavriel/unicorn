@@ -25,8 +25,6 @@ class Settings(BaseSettings):
     notif_suppress_minutes: int = Field(default=5, ge=1)
     notif_worker_poll_ms: int = Field(default=5000, ge=1000)
 
-    # Environment settings - Set ENVIRONMENT=production and EMAIL_ENABLED=true
-    # to enable email sending
     environment: str = Field(default="development", alias="ENVIRONMENT")
 
     # Email settings
