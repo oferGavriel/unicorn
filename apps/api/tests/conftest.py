@@ -15,12 +15,7 @@ from app.core.database import get_db_session
 from app.core.redis import get_redis
 from tests.utils.register_and_login_user import register_and_login_user
 from app.notification.notification_service import NotificationService
-from app.api.services import (
-    AuthService,
-    BoardService,
-    RowService,
-    TableService
-)
+from app.api.services import AuthService, BoardService, RowService, TableService
 from app.api.dal import (
     AuthRepository,
     BoardRepository,
@@ -35,10 +30,10 @@ DATABASE_URL = "postgresql+asyncpg://test:test@localhost:5432/unicorn_test"
 @pytest_asyncio.fixture(scope="function", autouse=True)
 async def setup_test_database() -> AsyncGenerator[None, None]:
     engine = create_async_engine(
-      DATABASE_URL,
-      echo=False,
-      pool_pre_ping=True,
-      connect_args={"server_settings": {"timezone": "UTC"}}
+        DATABASE_URL,
+        echo=False,
+        pool_pre_ping=True,
+        connect_args={"server_settings": {"timezone": "UTC"}},
     )
     async_session_maker = async_sessionmaker(
         engine,
@@ -60,6 +55,7 @@ async def setup_test_database() -> AsyncGenerator[None, None]:
         await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
 
+
 @pytest.fixture(scope="function")
 def mock_redis() -> AsyncMock:
     r = AsyncMock()
@@ -80,6 +76,7 @@ def mock_redis() -> AsyncMock:
 def mock_redis_dependency(mock_redis: AsyncMock) -> Generator[AsyncMock, None, None]:
     async def override_get_redis() -> AsyncGenerator[AsyncMock, None]:
         yield mock_redis
+
     app.dependency_overrides[get_redis] = override_get_redis
 
     yield mock_redis
@@ -125,17 +122,21 @@ def disable_logger_during_tests() -> None:
 def auth_repository(db: AsyncSession) -> AuthRepository:
     return AuthRepository(db)
 
+
 @pytest.fixture
 def board_repository(db: AsyncSession) -> BoardRepository:
     return BoardRepository(db)
+
 
 @pytest.fixture
 def row_repository(db: AsyncSession) -> RowRepository:
     return RowRepository(db)
 
+
 @pytest.fixture
 def table_repository(db: AsyncSession) -> TableRepository:
     return TableRepository(db)
+
 
 @pytest.fixture
 def row_owner_repository(db: AsyncSession) -> RowOwnerRepository:
@@ -145,6 +146,7 @@ def row_owner_repository(db: AsyncSession) -> RowOwnerRepository:
 @pytest.fixture
 def auth_service(auth_repository: AuthRepository) -> AuthService:
     return AuthService(auth_repository)
+
 
 @pytest.fixture
 def board_service(
@@ -158,6 +160,7 @@ def board_service(
         row_service=row_service,
     )
 
+
 @pytest.fixture
 def table_service(
     table_repository: TableRepository,
@@ -170,13 +173,15 @@ def table_service(
         auth_repository=auth_repository,
     )
 
+
 @pytest.fixture
-def row_service(
+def row_service(  # noqa: PLR0913
     row_repository: RowRepository,
     table_repository: TableRepository,
     row_owner_repository: RowOwnerRepository,
     auth_repository: AuthRepository,
     notification_service: NotificationService,
+    board_repository: BoardRepository,
 ) -> RowService:
     return RowService(
         row_repository=row_repository,
@@ -184,6 +189,7 @@ def row_service(
         row_owner_repository=row_owner_repository,
         auth_repository=auth_repository,
         notification_service=notification_service,
+        board_repository=board_repository,
     )
 
 
@@ -222,6 +228,7 @@ async def create_table_with_authenticated_user() -> tuple[AsyncClient, str, str,
     table_id = create_table_resp.json()["id"]
     return client, user_id, board_id, table_id
 
+
 @pytest_asyncio.fixture
 async def table_with_two_members() -> AsyncGenerator[Dict[str, Any], None]:
     member_client, member_id = await get_authenticated_client()
@@ -234,7 +241,7 @@ async def table_with_two_members() -> AsyncGenerator[Dict[str, Any], None]:
         # add member to board
         add_member_resp = await owner_client.post(
             f"/api/v1/boards/{board_id}/members",
-            json={"user_id": member_id, "role": "MEMBER"}
+            json={"user_id": member_id, "role": "MEMBER"},
         )
         assert add_member_resp.status_code == HTTPStatus.CREATED
 

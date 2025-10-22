@@ -7,6 +7,7 @@ from app.api.dal.row_repository import RowRepositoryDep
 from app.api.dal.table_repository import TableRepositoryDep
 from app.api.dal.row_owner_repository import RowOwnerRepositoryDep
 from app.api.dal.auth_repository import AuthRepositoryDep
+from app.api.dal.board_repository import BoardRepositoryDep
 from app.database_models import Row, Table
 from app.api.models.row_model import RowCreate, RowUpdate, RowRead
 from app.common.service import BaseService, convert_to_model
@@ -15,20 +16,24 @@ from app.api.models.row_model import RowOwnerRead
 from app.api.services.duplicate.duplication_factory import DuplicationServiceFactory
 from app.notification.notification_service import NotificationServiceDep
 
+
 class RowService(BaseService[Row, RowRead]):
-    def __init__(  # noqa: PLR0913
+    def __init__(
+        # ruff: noqa: PLR0913
         self,
         row_repository: RowRepositoryDep,
         table_repository: TableRepositoryDep,
         row_owner_repository: RowOwnerRepositoryDep,
         auth_repository: AuthRepositoryDep,
-        notification_service: NotificationServiceDep
+        board_repository: BoardRepositoryDep,
+        notification_service: NotificationServiceDep,
     ):
         super().__init__(RowRead, row_repository)
         self.row_repository = row_repository
         self.table_repository = table_repository
         self.row_owner_repository = row_owner_repository
         self.auth_repository = auth_repository
+        self.board_repository = board_repository
         self.notification_service = notification_service
 
     async def get_row(self, row_id: UUID, table_id: UUID) -> RowRead:
@@ -61,14 +66,17 @@ class RowService(BaseService[Row, RowRead]):
         actor = await self.auth_repository.get_by_id(user_id)
         if actor is None:
             raise NotFoundError(message=f"User with ID {user_id} not found")
-        actor_name = f"{actor.first_name} {actor.last_name}"
+
+        board = await self.board_repository.get(table.board_id)
+        if board is None:
+            raise NotFoundError(message=f"Board with ID {table.board_id} not found")
 
         await self.notification_service.emit_row_created(
             db=self.row_repository.session,
             row=created,
             table=table,
-            actor_id=str(user_id),
-            actor_name=actor_name,
+            board=board,
+            actor=actor,
         )
 
         return self.row_to_read(created)
@@ -80,6 +88,7 @@ class RowService(BaseService[Row, RowRead]):
         row = await self._get_row_entity(row_id, table_id)
 
         payload = data.model_dump(exclude_unset=True)
+
         old_values = {}
         for field in payload:
             old_values[field] = getattr(row, field, None)
@@ -89,14 +98,17 @@ class RowService(BaseService[Row, RowRead]):
         actor = await self.auth_repository.get_by_id(user_id)
         if actor is None:
             raise NotFoundError(message=f"User with ID {user_id} not found")
-        actor_name = f"{actor.first_name} {actor.last_name}"
+
+        board = await self.board_repository.get(table.board_id)
+        if board is None:
+            raise NotFoundError(message=f"Board with ID {table.board_id} not found")
 
         await self.notification_service.emit_row_updated(
             db=self.row_repository.session,
             row=updated,
             table=table,
-            actor_id=str(user_id),
-            actor_name=actor_name,
+            board=board,
+            actor=actor,
             changed_fields=list(payload.keys()),
             old_values=old_values,
         )
@@ -107,19 +119,22 @@ class RowService(BaseService[Row, RowRead]):
         table = await self._check_if_table_exists(table_id, user_id)
         row = await self._get_row_entity(row_id, table_id)
 
-        await self.row_repository.delete(row_id, table_id)
-
         actor = await self.auth_repository.get_by_id(user_id)
         if actor is None:
             raise NotFoundError(message=f"User with ID {user_id} not found")
-        actor_name = f"{actor.first_name} {actor.last_name}"
+
+        board = await self.board_repository.get(table.board_id)
+        if board is None:
+            raise NotFoundError(message=f"Board with ID {table.board_id} not found")
+
+        await self.row_repository.delete(row_id, table_id)
 
         await self.notification_service.emit_row_deleted(
             db=self.row_repository.session,
             row=row,
             table=table,
-            actor_id=str(user_id),
-            actor_name=actor_name,
+            board=board,
+            actor=actor,
         )
 
     async def add_owner(
@@ -168,7 +183,8 @@ class RowService(BaseService[Row, RowRead]):
 
         return self.row_to_read(new_row)
 
-    async def update_row_position(  # noqa: PLR0913
+    async def update_row_position(
+        # ruff: noqa: PLR0913
         self,
         row_id: UUID,
         source_table_id: UUID,
@@ -278,7 +294,6 @@ class RowService(BaseService[Row, RowRead]):
             if row.position != index:
                 await self.row_repository.update(row, {"position": index})
         return rows
-
 
 
 RowServiceDep = Annotated[RowService, Depends(RowService)]

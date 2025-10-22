@@ -29,6 +29,7 @@ async def get_current_user(current_user: User = CurrentUserDep) -> UserRead:
 async def get_all_users(auth_service: AuthServiceDep) -> List[UserRead]:
     return await auth_service.get_all_users()
 
+
 @router.get(
     "/{user_id}",
     response_model=UserRead,

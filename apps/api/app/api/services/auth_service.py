@@ -77,7 +77,6 @@ class AuthService(BaseService[User, UserRead]):
             raise NotFoundError(message="User not found")
         return self.convert_to_model(user)
 
-
     async def _issue_tokens(self, user: User) -> Tuple[str, str]:
         user.access_token = TokenService.create_access_token(str(user.id))
 

@@ -81,7 +81,9 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
         swagger_ui_init_oauth={
             "usePkceWithAuthorizationCodeGrant": True,
-        } if not is_production else None,
+        }
+        if not is_production
+        else None,
     )
 
     setup_cors(app)
@@ -129,9 +131,7 @@ def setup_cors(app: FastAPI) -> None:
 def setup_request_logging(app: FastAPI) -> None:
     @app.middleware("http")
     async def log_requests(
-      request: Request,
-      call_next: Callable[[Request],
-      Awaitable[Response]]
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         logger.debug(
             f"→ {request.method} {request.url.path}",
@@ -226,9 +226,7 @@ def setup_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(Exception)
-    async def generic_exception_handler(
-        request: Request, exc: Exception
-    ) -> JSONResponse:
+    async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         logger.exception(
             "❌ Unhandled exception occurred",
             extra={
