@@ -14,6 +14,7 @@ interface DraggableRowProps {
   onDuplicate: (rowId: string) => void;
   onDelete: (rowId: string, rowName: string) => void;
   isDeleting?: boolean;
+  isEditing?: boolean;
 }
 
 const DraggableRow: React.FC<DraggableRowProps> = ({
@@ -22,7 +23,8 @@ const DraggableRow: React.FC<DraggableRowProps> = ({
   boardId,
   onDuplicate,
   onDelete,
-  isDeleting = false
+  isDeleting = false,
+  isEditing = false
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({
@@ -32,7 +34,8 @@ const DraggableRow: React.FC<DraggableRowProps> = ({
         row: row.original,
         tableId,
         boardId
-      }
+      },
+      disabled: isEditing
     });
 
   const style = {
@@ -50,8 +53,8 @@ const DraggableRow: React.FC<DraggableRowProps> = ({
         cursor-grab active:cursor-grabbing
         ${isDragging ? 'opacity-50 bg-[#2a2a2a] shadow-lg scale-105 cursor-grabbing' : ''}
       `}
-      {...listeners}
-      {...attributes}
+      {...(isEditing ? {} : listeners)}
+      {...(isEditing ? {} : attributes)}
     >
       {/* Row Menu */}
       <div

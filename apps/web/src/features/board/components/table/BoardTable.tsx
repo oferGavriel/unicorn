@@ -58,6 +58,19 @@ const BoardTable: React.FC<BoardTableProps> = ({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [isAddingTask, setIsAddingTask] = useState<boolean>(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [editingRows, setEditingRows] = useState<Set<string>>(new Set());
+
+  const handleEditingChange = useCallback((rowId: string, isEditing: boolean) => {
+    setEditingRows((prev) => {
+      const newSet = new Set(prev);
+      if (isEditing) {
+        newSet.add(rowId);
+      } else {
+        newSet.delete(rowId);
+      }
+      return newSet;
+    });
+  }, []);
 
   const [updateRow] = useUpdateRowMutation();
   const [updateTable] = useUpdateTableMutation();
@@ -83,7 +96,8 @@ const BoardTable: React.FC<BoardTableProps> = ({
           target.closest('[data-editable-text]') ||
           target.closest('[data-color-picker]');
 
-        if (isInteractiveElement) {
+        // Disable dragging if any row is being edited
+        if (isInteractiveElement || editingRows.size > 0) {
           event.stopPropagation();
           return;
         }
@@ -91,7 +105,7 @@ const BoardTable: React.FC<BoardTableProps> = ({
         dragListeners.onPointerDown?.(event);
       }
     };
-  }, [dragListeners]);
+  }, [dragListeners, editingRows]);
 
   const {
     sensors: rowSensors,
@@ -105,8 +119,15 @@ const BoardTable: React.FC<BoardTableProps> = ({
   });
 
   const columns = useMemo<ColumnDef<IRow>[]>(
-    () => createTableColumns(boardId, TABLE_COLUMNS, table.color, updateRow),
-    [updateRow, boardId, table.color]
+    () =>
+      createTableColumns(
+        boardId,
+        TABLE_COLUMNS,
+        table.color,
+        updateRow,
+        handleEditingChange
+      ),
+    [updateRow, boardId, table.color, handleEditingChange]
   );
 
   const tableInstance = useReactTable({
@@ -243,7 +264,12 @@ const BoardTable: React.FC<BoardTableProps> = ({
         >
           <div className="min-w-full text-sm text-center board-table">
             <TableHeader table={tableInstance} />
-            <TableBody table={tableInstance} boardId={boardId} tableId={table.id} />
+            <TableBody
+              table={tableInstance}
+              boardId={boardId}
+              tableId={table.id}
+              editingRows={editingRows}
+            />
             <TableFooter
               table={table}
               isAddingTask={isAddingTask}

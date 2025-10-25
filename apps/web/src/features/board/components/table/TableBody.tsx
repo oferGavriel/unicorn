@@ -12,9 +12,15 @@ interface TableBodyProps {
   table: TanStackTable<IRow>;
   boardId: string;
   tableId: string;
+  editingRows?: Set<string>;
 }
 
-const TableBody: React.FC<TableBodyProps> = ({ table, boardId, tableId }) => {
+const TableBody: React.FC<TableBodyProps> = ({
+  table,
+  boardId,
+  tableId,
+  editingRows = new Set()
+}) => {
   const {
     deleteRowData,
     isDeletingRow,
@@ -44,6 +50,7 @@ const TableBody: React.FC<TableBodyProps> = ({ table, boardId, tableId }) => {
               onDuplicate={handleDuplicateRow}
               onDelete={handleDeleteRow}
               isDeleting={isDeletingRow}
+              isEditing={editingRows.has(row.original.id)}
             />
           ))}
         </SortableContext>

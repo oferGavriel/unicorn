@@ -63,7 +63,8 @@ export function createTableColumns(
   boardId: string,
   columnDefs: TableColumn[],
   tableColor: string,
-  updateRowMutation: UpdateRowMutationTrigger
+  updateRowMutation: UpdateRowMutationTrigger,
+  onEditingChange?: (rowId: string, isEditing: boolean) => void
 ): ColumnDef<IRow>[] {
   return columnDefs.map((colDef) => ({
     id: colDef.id,
@@ -119,7 +120,8 @@ export function createTableColumns(
             value: (value as string) || '',
             row: row.original,
             column: colDef,
-            onUpdate: baseOnUpdate
+            onUpdate: baseOnUpdate,
+            onEditingChange: onEditingChange ? (isEditing: boolean) => onEditingChange(row.original.id, isEditing) : undefined
           };
           return <TextCell {...cellProps} />;
         }

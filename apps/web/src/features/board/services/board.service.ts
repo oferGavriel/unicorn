@@ -111,7 +111,6 @@ export const boardApi = api.injectEndpoints({
 
         try {
           await queryFulfilled;
-          showSuccessToast('Board updated successfully');
         } catch (error) {
           patchResults.forEach((result) => result.undo());
           showErrorToast(error, 'update board');

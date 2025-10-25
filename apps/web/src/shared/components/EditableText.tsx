@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import { useEditableText } from '@/features/board/hooks/useEditableText';
 
@@ -16,6 +16,7 @@ interface EditableTextProps {
   title?: string;
   autoEdit?: boolean;
   onCancel?: () => void;
+  onEditingChange?: (isEditing: boolean) => void;
 }
 
 export const EditableText: React.FC<EditableTextProps> = ({
@@ -31,7 +32,8 @@ export const EditableText: React.FC<EditableTextProps> = ({
   multiline = false,
   title = 'Click to edit',
   autoEdit = false,
-  onCancel
+  onCancel,
+  onEditingChange
 }) => {
   const {
     isEditing,
@@ -51,6 +53,12 @@ export const EditableText: React.FC<EditableTextProps> = ({
     autoEdit,
     onCancel
   });
+
+  // Notify parent component about editing state changes
+  useEffect(() => {
+    onEditingChange?.(isEditing);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing]);
 
   const baseInputClassName = `bg-transparent border rounded px-2 border-blue-500 outline-none min-w-0 ${inputClassName}`;
 
@@ -94,14 +102,20 @@ export const EditableText: React.FC<EditableTextProps> = ({
   }
 
   return (
-    <span
-      className={`min-w-5 w-max min-h-4 leading-5 cursor-pointer outline-gray-400 rounded px-2 outline-1 hover:outline transition-opacity ${className}`}
-      style={style}
+    <div
+      className={`min-w-5 w-full min-h-4 leading-5 cursor-pointer outline-gray-400 rounded px-2 py-0 outline-1 hover:outline transition-all duration-200 hover:max-h-[70px] hover:overflow-hidden hover:whitespace-normal ${className}`}
+      style={{
+        ...style,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        lineHeight: '36px'
+      }}
       onClick={startEditing}
       title={title}
       data-editable-text
     >
       {value || <span className="text-gray-500 italic">{placeholder}</span>}
-    </span>
+    </div>
   );
 };
