@@ -244,7 +244,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "infra/docker-compose.prod.yaml,infra/scripts/deploy.sh,infra/nginx/nginx.conf"
+          source: "infra/docker-compose.prod.yaml,infra/docker-compose.observability.yaml,infra/scripts/deploy.sh,infra/nginx/nginx.conf,infra/observability"
           target: "/home/ec2-user/"
           strip_components: 1
           overwrite: true
