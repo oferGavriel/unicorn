@@ -110,6 +110,8 @@ services:
     image: grafana/grafana:10.2.3
     container_name: unicorn-grafana
     restart: unless-stopped
+    env_file:
+      - .env.observability.${ENVIRONMENT:-prod}
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
@@ -170,7 +172,7 @@ services:
     container_name: unicorn-redis-exporter
     restart: unless-stopped
     environment:
-      - REDIS_ADDR=redis:6379
+      - REDIS_ADDR=${REDIS_ADDR:-redis:6379}
     networks:
       - unicorn-dev
       - unicorn-net
