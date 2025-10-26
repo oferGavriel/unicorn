@@ -1,4 +1,10 @@
-from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import (
+  Counter,
+  Histogram,
+  Gauge,
+  generate_latest,
+  CONTENT_TYPE_LATEST
+)
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from typing import Callable, Awaitable
@@ -31,6 +37,9 @@ http_exceptions_total = Counter(
 
 
 class PrometheusMiddleware(BaseHTTPMiddleware):
+
+    _ID_PART_LENGTH_THRESHOLD = 20
+
 
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
@@ -75,16 +84,17 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
 
             http_requests_in_progress.labels(method=method, endpoint=path).dec()
 
+
     @staticmethod
     def _normalize_path(path: str) -> str:
         parts = path.split("/")
         normalized_parts = []
 
-        for i, part in enumerate(parts):
+        for part in parts:
             if part and (
                 part.isdigit()
                 or "-" in part
-                or (len(part) > 20 and part.isalnum())
+                or (len(part) > PrometheusMiddleware._ID_PART_LENGTH_THRESHOLD and part.isalnum()) # noqa: E501
             ):
                 normalized_parts.append("{id}")
             else:

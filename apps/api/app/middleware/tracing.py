@@ -45,7 +45,7 @@ class TracingMiddleware(BaseHTTPMiddleware):
             response.headers["X-Trace-ID"] = trace_id
 
             logger.info(
-                f"Request completed: {request.method} {request.url.path} - {response.status_code}",
+                f"Request completed: {request.method} {request.url.path} - {response.status_code}", # noqa: E501
                 extra={
                     "extra_fields": {
                         "trace_id": trace_id,

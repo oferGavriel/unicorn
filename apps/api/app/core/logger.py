@@ -20,7 +20,7 @@ class StructuredFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         # Base log entry
         log_entry: dict[str, Any] = {
-            "timestamp": datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(),
+            "timestamp": datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(), # noqa: E501
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -75,8 +75,8 @@ def setup_logging() -> logging.Logger:
     """
     Setup application logging with structured JSON format.
     """
-    LOG_DIR = Path("logs")
-    LOG_DIR.mkdir(exist_ok=True)
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
 
     json_formatter = StructuredFormatter()
 
@@ -84,7 +84,7 @@ def setup_logging() -> logging.Logger:
     console_handler.setFormatter(json_formatter)
     console_handler.setLevel(logging.INFO)
 
-    log_file = LOG_DIR / f"{datetime.now().strftime('%Y-%m-%d')}.log"
+    log_file = log_dir / f"{datetime.now().strftime('%Y-%m-%d')}.log"
     file_handler = logging.FileHandler(filename=log_file, encoding="utf-8")
     file_handler.setFormatter(json_formatter)
     file_handler.setLevel(logging.INFO)

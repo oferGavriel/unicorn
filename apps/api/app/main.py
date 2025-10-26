@@ -188,7 +188,7 @@ def setup_exception_handlers(app: FastAPI) -> None:
             })
 
         logger.warning(
-            f"[{status.HTTP_422_UNPROCESSABLE_ENTITY}] ValidationError: {exc.error_count()} errors",
+            f"[{status.HTTP_422_UNPROCESSABLE_ENTITY}] ValidationError: {exc.error_count()} errors", # noqa: E501
             extra={
                 "extra_fields": {
                     "trace_id": trace_id,
