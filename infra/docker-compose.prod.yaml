@@ -1,9 +1,7 @@
 version: '3.9'
 
 services:
-  # ═══════════════════════════════════════════════════════════
-  # Redis - In-memory cache & pub/sub for notifications
-  # ═══════════════════════════════════════════════════════════
+
   redis:
     image: redis:7-alpine
     container_name: unicorn-redis
@@ -24,9 +22,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # ═══════════════════════════════════════════════════════════
-  # App - Main FastAPI application
-  # ═══════════════════════════════════════════════════════════
+
   app:
     image: ${DOCKER_IMAGE:-oferikog/unicorn-app:latest}
     container_name: unicorn-app
@@ -48,21 +44,21 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 60s  # Increased for prestart script
+      start_period: 60s
+    ports:
+      - "8000:8000"  # Expose for Prometheus scraping
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+        labels: "service=unicorn-app,environment=production"
 
-  # ═══════════════════════════════════════════════════════════
-  # Worker - Background notification processor
-  # ═══════════════════════════════════════════════════════════
   worker:
     image: ${DOCKER_IMAGE:-oferikog/unicorn-app:latest}
     container_name: unicorn-worker
     restart: unless-stopped
-    command: python -m app.worker.notification_worker
+    command: python -m app.notification.worker
     env_file:
       - .env.prod
     environment:
@@ -86,10 +82,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+        labels: "service=unicorn-worker,environment=production"
 
-  # ═══════════════════════════════════════════════════════════
-  # Nginx - Reverse proxy with SSL termination
-  # ═══════════════════════════════════════════════════════════
+
   nginx:
     image: nginx:alpine
     container_name: unicorn-nginx

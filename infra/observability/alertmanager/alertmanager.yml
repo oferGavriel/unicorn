@@ -1,0 +1,226 @@
+global:
+  resolve_timeout: 5m
+  smtp_from: 'notifications@myunicorn.pw'
+  smtp_smarthost: 'email-smtp.eu-central-1.amazonaws.com:587'
+  smtp_auth_username: 'AKIAZOX7S7DVKZCCFV4U'
+  smtp_auth_password: 'BMeSUDovhYWokznPUJaKE7ivaj+WmWJWgn9lWL2/FnU'
+  smtp_require_tls: true
+
+# Route all alerts to email
+route:
+  group_by: ['alertname', 'severity', 'category']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: 'email-alerts'
+
+  routes:
+    # Critical alerts - send immediately
+    - match:
+        severity: critical
+      receiver: 'email-critical'
+      group_wait: 10s
+      repeat_interval: 1h
+
+    # Warning alerts - group and send
+    - match:
+        severity: warning
+      receiver: 'email-warnings'
+      group_wait: 1m
+      repeat_interval: 4h
+
+    # Info alerts - group more and send less frequently
+    - match:
+        severity: info
+      receiver: 'email-info'
+      group_wait: 5m
+      repeat_interval: 12h
+
+receivers:
+  # Critical alerts receiver
+  - name: 'email-critical'
+    email_configs:
+      - to: 'ofergavri@gmail.com'
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }} - Unicorn API'
+        html: |
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <style>
+                  body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                  .header { background-color: #dc3545; color: white; padding: 20px; border-radius: 5px 5px 0 0; }
+                  .content { background-color: #f8f9fa; padding: 20px; border: 1px solid #dee2e6; }
+                  .alert { background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 10px 0; }
+                  .footer { background-color: #e9ecef; padding: 15px; border-radius: 0 0 5px 5px; font-size: 12px; }
+                  .label { font-weight: bold; color: #495057; }
+                  .value { color: #212529; }
+                  table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+                  td { padding: 8px; border-bottom: 1px solid #dee2e6; }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <div class="header">
+                      <h2>CRITICAL ALERT</h2>
+                      <p>{{ .GroupLabels.alertname }}</p>
+                  </div>
+                  <div class="content">
+                      {{ range .Alerts }}
+                      <div class="alert">
+                          <table>
+                              <tr>
+                                  <td class="label">Alert:</td>
+                                  <td class="value">{{ .Labels.alertname }}</td>
+                              </tr>
+                              <tr>
+                                  <td class="label">Severity:</td>
+                                  <td class="value">{{ .Labels.severity | toUpper }}</td>
+                              </tr>
+                              <tr>
+                                  <td class="label">Category:</td>
+                                  <td class="value">{{ .Labels.category }}</td>
+                              </tr>
+                              <tr>
+                                  <td class="label">Started:</td>
+                                  <td class="value">{{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}</td>
+                              </tr>
+                              {{ if .Annotations.summary }}
+                              <tr>
+                                  <td class="label">Summary:</td>
+                                  <td class="value">{{ .Annotations.summary }}</td>
+                              </tr>
+                              {{ end }}
+                              {{ if .Annotations.description }}
+                              <tr>
+                                  <td class="label">Description:</td>
+                                  <td class="value">{{ .Annotations.description }}</td>
+                              </tr>
+                              {{ end }}
+                              {{ if .Annotations.impact }}
+                              <tr>
+                                  <td class="label">Impact:</td>
+                                  <td class="value">{{ .Annotations.impact }}</td>
+                              </tr>
+                              {{ end }}
+                              {{ if .Annotations.action }}
+                              <tr>
+                                  <td class="label">Recommended Action:</td>
+                                  <td class="value">{{ .Annotations.action }}</td>
+                              </tr>
+                              {{ end }}
+                          </table>
+                      </div>
+                      {{ end }}
+                  </div>
+                  <div class="footer">
+                      <p><a href="https://myunicorn.pw/grafana">View in Grafana</a></p>
+                      <p>This is an automated alert from Unicorn API monitoring system.</p>
+                  </div>
+              </div>
+          </body>
+          </html>
+
+  # Warning alerts receiver
+  - name: 'email-warnings'
+    email_configs:
+      - to: 'ofergavri@gmail.com'
+        headers:
+          Subject: '[WARNING] {{ .GroupLabels.alertname }} - Unicorn API'
+        html: |
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <style>
+                  body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                  .header { background-color: #ffc107; color: #212529; padding: 20px; border-radius: 5px 5px 0 0; }
+                  .content { background-color: #f8f9fa; padding: 20px; border: 1px solid #dee2e6; }
+                  .alert { background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 10px 0; }
+                  .footer { background-color: #e9ecef; padding: 15px; border-radius: 0 0 5px 5px; font-size: 12px; }
+                  .label { font-weight: bold; color: #495057; }
+                  .value { color: #212529; }
+                  table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+                  td { padding: 8px; border-bottom: 1px solid #dee2e6; }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <div class="header">
+                      <h2>WARNING ALERT</h2>
+                      <p>{{ .GroupLabels.alertname }}</p>
+                  </div>
+                  <div class="content">
+                      <p><strong>{{ .Alerts | len }} alert(s) in this group</strong></p>
+                      {{ range .Alerts }}
+                      <div class="alert">
+                          <table>
+                              <tr>
+                                  <td class="label">Alert:</td>
+                                  <td class="value">{{ .Labels.alertname }}</td>
+                              </tr>
+                              {{ if .Annotations.summary }}
+                              <tr>
+                                  <td class="label">Summary:</td>
+                                  <td class="value">{{ .Annotations.summary }}</td>
+                              </tr>
+                              {{ end }}
+                              {{ if .Annotations.description }}
+                              <tr>
+                                  <td class="label">Description:</td>
+                                  <td class="value">{{ .Annotations.description }}</td>
+                              </tr>
+                              {{ end }}
+                          </table>
+                      </div>
+                      {{ end }}
+                  </div>
+                  <div class="footer">
+                      <p><a href="https://myunicorn.pw/grafana">View in Grafana</a></p>
+                  </div>
+              </div>
+          </body>
+          </html>
+
+  # Info alerts receiver
+  - name: 'email-info'
+    email_configs:
+      - to: 'ofergavri@gmail.com'
+        headers:
+          Subject: '[INFO] {{ .GroupLabels.alertname }} - Unicorn API'
+        html: |
+          <html>
+          <body style="font-family: Arial, sans-serif;">
+              <h3>Information Alert</h3>
+              <p><strong>{{ .GroupLabels.alertname }}</strong></p>
+              {{ range .Alerts }}
+              <p>{{ .Annotations.summary }}</p>
+              {{ end }}
+              <p style="font-size: 12px; color: #666;">
+                  <a href="https://myunicorn.pw/grafana">View in Grafana</a>
+              </p>
+          </body>
+          </html>
+
+  # Default receiver
+  - name: 'email-alerts'
+    email_configs:
+      - to: 'ofergavri@gmail.com'
+        headers:
+          Subject: '[ALERT] {{ .GroupLabels.alertname }} - Unicorn API'
+
+inhibit_rules:
+  # Suppress warning alerts when critical alerts are firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+
+  # Disable alerts on high error rates if service is down
+  - source_match:
+      alertname: 'ServiceDown'
+    target_match_re:
+      alertname: 'High.*ErrorRate'
+    equal: ['instance']

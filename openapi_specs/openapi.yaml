@@ -167,23 +167,38 @@ components:
       type: object
     ErrorResponseModel:
       properties:
+        details:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - items: {}
+            type: array
+          - type: string
+          - type: 'null'
+          description: Additional details
+          title: Details
         error:
           description: Error type
           title: Error
           type: string
         error_code:
-          anyOf:
-          - type: string
-          - type: 'null'
-          description: Custom error code or identifier
+          description: Specific error code
           title: Error Code
+          type: string
         message:
           description: Human-readable error message
           title: Message
           type: string
+        trace_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Request trace ID
+          title: Trace Id
       required:
       - error
       - message
+      - error_code
       title: ErrorResponseModel
       type: object
     HTTPValidationError:

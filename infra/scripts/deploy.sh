@@ -3,7 +3,9 @@ set -euo pipefail
 
 readonly IMAGE="${DOCKER_IMAGE:-oferikog/unicorn-app:latest}"
 readonly COMPOSE_FILE="/home/ec2-user/docker-compose.prod.yaml"
+readonly OBSERVABILITY_COMPOSE="/home/ec2-user/docker-compose.observability.yaml"
 readonly ENV_FILE="/home/ec2-user/.env.prod"
+readonly OBS_ENV_FILE="/home/ec2-user/.env.observability.prod"
 readonly BACKUP_DIR="/home/ec2-user/backups"
 readonly MAX_HEALTH_RETRIES=30
 readonly HEALTH_CHECK_INTERVAL=2
@@ -102,6 +104,39 @@ EOF
     log "Environment configuration created"
 }
 
+create_observability_env() {
+    # Only create if it doesn't exist (to preserve custom configs)
+    if [ ! -f "$OBS_ENV_FILE" ]; then
+        log "Creating observability environment configuration"
+
+        local grafana_password
+        grafana_password=$(fetch_secret "/app/unicorn/grafana-password" || echo "admin")
+
+        local server_ip
+        server_ip=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+
+        cat > "$OBS_ENV_FILE" << EOF
+# Observability - Production
+GRAFANA_ADMIN_PASSWORD=$grafana_password
+GRAFANA_ROOT_URL=http://$server_ip:3000
+ENVIRONMENT=production
+
+# Redis connection for exporters
+REDIS_ADDR=unicorn-redis:6379
+EOF
+
+        chmod 600 "$OBS_ENV_FILE"
+        log "Observability environment configuration created"
+    else
+        log "Observability environment file already exists, skipping creation"
+    fi
+}
+
+setup_networks() {
+    log "Setting up Docker networks"
+    docker network create unicorn-net 2>/dev/null || log "Network unicorn-net already exists"
+}
+
 backup_logs() {
     mkdir -p "$BACKUP_DIR"
 
@@ -116,16 +151,41 @@ backup_logs() {
 }
 
 deploy_services() {
-    log "Deploying services"
+    log "Deploying application services"
 
     cd /home/ec2-user
 
+    # Pull application images
     DOCKER_IMAGE="$IMAGE" docker-compose -f "$COMPOSE_FILE" pull
+
+    # Deploy application
     DOCKER_IMAGE="$IMAGE" docker-compose -f "$COMPOSE_FILE" up -d --remove-orphans --no-build
+
+    log "Application services deployed"
+}
+
+deploy_observability() {
+    log "Deploying observability stack"
+
+    cd /home/ec2-user
+
+    # Check if observability compose file exists
+    if [ ! -f "$OBSERVABILITY_COMPOSE" ]; then
+        log "Warning: Observability compose file not found, skipping observability deployment"
+        return 0
+    fi
+
+    # Pull observability images
+    docker-compose -f "$OBSERVABILITY_COMPOSE" pull
+
+    # Deploy observability
+    ENVIRONMENT=prod docker-compose -f "$OBSERVABILITY_COMPOSE" up -d --remove-orphans
+
+    log "Observability stack deployed"
 }
 
 verify_deployment() {
-    log "Verifying deployment"
+    log "Verifying application deployment"
 
     wait_for_health "redis"
     wait_for_health "app"
@@ -136,6 +196,36 @@ verify_deployment() {
     else
         error "API health check failed"
     fi
+}
+
+verify_observability() {
+    log "Verifying observability stack"
+
+    # Give services time to start
+    sleep 10
+
+    # Check Grafana (non-fatal)
+    if curl -f -s http://localhost:3000/api/health > /dev/null 2>&1; then
+        log "✓ Grafana is healthy"
+    else
+        log "⚠ Grafana health check failed (may still be starting)"
+    fi
+
+    # Check Prometheus (non-fatal)
+    if curl -f -s http://localhost:9090/-/healthy > /dev/null 2>&1; then
+        log "✓ Prometheus is healthy"
+    else
+        log "⚠ Prometheus health check failed (may still be starting)"
+    fi
+
+    # Check Loki (non-fatal)
+    if curl -f -s http://localhost:3100/ready > /dev/null 2>&1; then
+        log "✓ Loki is ready"
+    else
+        log "⚠ Loki health check failed (may still be starting)"
+    fi
+
+    log "Observability verification completed (warnings are non-fatal)"
 }
 
 cleanup() {
@@ -151,18 +241,48 @@ cleanup() {
     docker image prune -a -f --filter "until=168h" > /dev/null 2>&1 || true
 }
 
+show_status() {
+    log "Deployment Status"
+    echo ""
+    echo "==================================="
+    echo "Application Services:"
+    echo "==================================="
+    docker-compose -f "$COMPOSE_FILE" ps
+    echo ""
+
+    if [ -f "$OBSERVABILITY_COMPOSE" ]; then
+        echo "==================================="
+        echo "Observability Services:"
+        echo "==================================="
+        docker-compose -f "$OBSERVABILITY_COMPOSE" ps
+        echo ""
+        echo "Access Grafana: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):3000"
+    fi
+}
+
 main() {
     log "Starting deployment: $IMAGE"
 
+    # Setup
     docker pull "$IMAGE"
+    setup_networks
     create_env_file
+    create_observability_env
     backup_logs
+
+    # Deploy
     deploy_services
     verify_deployment
+
+    # Deploy observability (non-fatal if it fails)
+    deploy_observability || log "Warning: Observability deployment had issues but continuing"
+    verify_observability || log "Warning: Observability verification had issues but continuing"
+
+    # Cleanup
     cleanup
 
     log "Deployment completed successfully"
-    docker-compose -f "$COMPOSE_FILE" ps
+    show_status
 }
 
 main "$@"
