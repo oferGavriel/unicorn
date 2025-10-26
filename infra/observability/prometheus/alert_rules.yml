@@ -1,0 +1,161 @@
+groups:
+  - name: unicorn_api_alerts
+    interval: 30s
+    rules:
+      # === CRITICAL ALERTS ===
+
+      # High 5xx error rate
+      - alert: HighServerErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total[5m]))
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          category: errors
+        annotations:
+          summary: "High 5xx error rate detected"
+          description: "{{ $value | humanizePercentage }} of requests are returning 5xx errors (threshold: 5%)"
+          impact: "Users are experiencing server errors"
+          action: "Check application logs and recent deployments"
+
+      # Service down (health check failing)
+      - alert: ServiceDown
+        expr: up{job="unicorn-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Unicorn API is down"
+          description: "The API service has been unavailable for more than 1 minute"
+          impact: "Complete service outage"
+          action: "Check Docker containers and EC2 instance status immediately"
+
+      # === WARNING ALERTS ===
+
+      # High 4xx error rate (possible attack or client issues)
+      - alert: High4xxErrorRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status_code=~"4.."}[5m]))
+            /
+            sum(rate(http_requests_total[5m]))
+          ) > 0.10
+        for: 5m
+        labels:
+          severity: warning
+          category: errors
+        annotations:
+          summary: "High 4xx error rate detected"
+          description: "{{ $value | humanizePercentage }} of requests are returning 4xx errors (threshold: 10%)"
+          impact: "Users may be experiencing authentication or validation issues"
+          action: "Review client errors and check for potential abuse"
+
+      # High request latency (P95)
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, endpoint)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High request latency detected"
+          description: "P95 latency is {{ $value | humanizeDuration }} on {{ $labels.endpoint }} (threshold: 2s)"
+          impact: "Users experiencing slow response times"
+          action: "Check database performance and slow query logs"
+
+      # Traffic spike (3x normal)
+      - alert: TrafficSpike
+        expr: |
+          sum(rate(http_requests_total[5m]))
+          >
+          3 * avg_over_time(sum(rate(http_requests_total[5m]))[1h:5m])
+        for: 3m
+        labels:
+          severity: warning
+          category: traffic
+        annotations:
+          summary: "Unusual traffic spike detected"
+          description: "Request rate is {{ $value | humanize }} req/s (3x normal)"
+          impact: "Possible DDoS attack or viral traffic"
+          action: "Monitor resource usage and consider rate limiting"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+          /
+          node_memory_MemTotal_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "High memory usage on server"
+          description: "Memory usage is at {{ $value | humanizePercentage }} (threshold: 85%)"
+          impact: "Risk of OOM kills and service degradation"
+          action: "Check for memory leaks or consider scaling up"
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: |
+          100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "High CPU usage on server"
+          description: "CPU usage is at {{ $value | humanize }}% (threshold: 80%)"
+          impact: "Degraded performance and increased response times"
+          action: "Check for runaway processes or consider scaling"
+
+      # Disk space low
+      - alert: DiskSpaceLow
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/"}
+          /
+          node_filesystem_size_bytes{mountpoint="/"}) < 0.15
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "Low disk space on server"
+          description: "Only {{ $value | humanizePercentage }} disk space remaining"
+          impact: "Risk of application failures due to insufficient disk space"
+          action: "Clean up logs or expand disk volume"
+
+      # Redis down
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: dependencies
+        annotations:
+          summary: "Redis is down"
+          description: "Redis service is unavailable"
+          impact: "Caching and pub/sub features unavailable"
+          action: "Check Redis container and connection"
+
+      # === INFO ALERTS ===
+
+      # Deployment detected (spike in restarts)
+      - alert: DeploymentDetected
+        expr: changes(process_start_time_seconds{job="unicorn-api"}[5m]) > 0
+        labels:
+          severity: info
+          category: deployment
+        annotations:
+          summary: "Application restart detected"
+          description: "The application has been restarted, possibly due to a deployment"
+          impact: "Temporary service interruption during restart"
+          action: "Monitor for errors after deployment"
