@@ -118,8 +118,8 @@ services:
       - unicorn-net
 
 networks:
-  unicorn-dev:
-    name: unicorn-dev
+  unicorn-net:
+    name: unicorn-net
     driver: bridge
 
 volumes:

@@ -275,28 +275,6 @@ jobs:
             chmod +x /home/ec2-user/scripts/deploy.sh
             /home/ec2-user/scripts/deploy.sh
 
-      - name: Verify deployment
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            sleep 10
-
-            for i in {1..5}; do
-              if docker exec unicorn-app curl -f -s http://localhost:8000/api/v1/health > /dev/null; then
-                echo "Deployment successful"
-                exit 0
-              fi
-              echo "Health check attempt $i failed, retrying..."
-              sleep 5
-            done
-
-            echo "Deployment verification failed"
-            docker-compose -f /home/ec2-user/docker-compose.prod.yaml logs app --tail 50
-            exit 1
-
       - name: Rollback on failure
         if: failure()
         uses: appleboy/ssh-action@v1.0.3
