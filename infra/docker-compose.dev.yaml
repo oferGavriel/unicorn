@@ -17,7 +17,7 @@ services:
     volumes:
       - ./docker-volumes/postgres:/var/lib/postgresql/data
     networks:
-      - unicorn-dev
+      - unicorn-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d unicorn"]
       interval: 5s
@@ -37,7 +37,7 @@ services:
     volumes:
       - ./docker-volumes/redis:/data
     networks:
-      - unicorn-dev
+      - unicorn-net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -77,7 +77,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - unicorn-dev
+      - unicorn-net
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:8000/api/v1/health || exit 1"]
       interval: 30s
@@ -115,7 +115,7 @@ services:
       api:
         condition: service_healthy
     networks:
-      - unicorn-dev
+      - unicorn-net
 
 networks:
   unicorn-dev:

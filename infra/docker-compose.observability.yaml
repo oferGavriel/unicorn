@@ -16,7 +16,6 @@ services:
       - ./observability/prometheus:/etc/prometheus:ro
       - prometheus-data:/prometheus
     networks:
-      - unicorn-dev
       - unicorn-net
     ports:
       - "9090:9090"
@@ -42,7 +41,6 @@ services:
       - ./observability/alertmanager:/etc/alertmanager:ro
       - alertmanager-data:/alertmanager
     networks:
-      - unicorn-dev
       - unicorn-net
     ports:
       - "9093:9093"
@@ -69,7 +67,6 @@ services:
       - ./observability/loki:/etc/loki:ro
       - loki-data:/loki
     networks:
-      - unicorn-dev
       - unicorn-net
     ports:
       - "3100:3100"
@@ -95,7 +92,6 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - promtail-positions:/tmp
     networks:
-      - unicorn-dev
       - unicorn-net
     depends_on:
       loki:
@@ -123,7 +119,6 @@ services:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana-data:/var/lib/grafana
     networks:
-      - unicorn-dev
       - unicorn-net
     ports:
       - "3000:3000"
@@ -157,7 +152,6 @@ services:
       - /sys:/host/sys:ro
       - /:/rootfs:ro
     networks:
-      - unicorn-dev
       - unicorn-net
     ports:
       - "9100:9100"
@@ -174,7 +168,6 @@ services:
     environment:
       - REDIS_ADDR=${REDIS_ADDR:-redis:6379}
     networks:
-      - unicorn-dev
       - unicorn-net
     ports:
       - "9121:9121"
