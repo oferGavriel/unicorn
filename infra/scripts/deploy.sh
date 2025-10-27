@@ -38,6 +38,21 @@ fetch_secret() {
     echo "$secret_value"
 }
 
+wait_for_health() {
+    local service_name=$1
+    local retries=0
+
+    while [ $retries -lt $MAX_HEALTH_RETRIES ]; do
+        if docker inspect --format='{{.State.Health.Status}}' "unicorn-$service_name" 2>/dev/null | grep -q "healthy"; then
+            log "$service_name is healthy"
+            return 0
+        fi
+        retries=$((retries + 1))
+        sleep $HEALTH_CHECK_INTERVAL
+    done
+
+    error "$service_name health check failed"
+}
 
 create_env_file() {
     log "Fetching configuration from AWS SSM"
