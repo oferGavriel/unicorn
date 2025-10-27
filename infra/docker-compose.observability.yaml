@@ -179,9 +179,6 @@ services:
 
 # Networks - connect to both dev and prod networks
 networks:
-  unicorn-dev:
-    name: unicorn-dev
-    external: true
   unicorn-net:
     name: unicorn-net
     external: true

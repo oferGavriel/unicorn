@@ -39,7 +39,6 @@ dev-up:
 dev-up-full:
 	@echo "$(COLOR_INFO)🚀 Starting full development environment with observability...$(COLOR_RESET)"
 	@echo "$(COLOR_INFO)Creating networks...$(COLOR_RESET)"
-	@docker network create unicorn-dev 2>/dev/null || true
 	@docker network create unicorn-net 2>/dev/null || true
 	docker-compose -f $(COMPOSE_DEV) up -d
 	@echo "$(COLOR_INFO)⏳ Waiting for core services to be ready...$(COLOR_RESET)"
@@ -120,7 +119,6 @@ dev-rebuild:
 
 obs-up:
 	@echo "$(COLOR_INFO)🔍 Starting observability stack...$(COLOR_RESET)"
-	@docker network create unicorn-dev 2>/dev/null || true
 	@docker network create unicorn-net 2>/dev/null || true
 	docker-compose -f $(COMPOSE_OBSERVABILITY) up -d
 	@echo "$(COLOR_SUCCESS)✅ Observability stack started!$(COLOR_RESET)"
