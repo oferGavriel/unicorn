@@ -38,21 +38,6 @@ fetch_secret() {
     echo "$secret_value"
 }
 
-wait_for_health() {
-    local service_name=$1
-    local retries=0
-
-    while [ $retries -lt $MAX_HEALTH_RETRIES ]; do
-        if docker inspect --format='{{.State.Health.Status}}' "unicorn-$service_name" 2>/dev/null | grep -q "healthy"; then
-            log "$service_name is healthy"
-            return 0
-        fi
-        retries=$((retries + 1))
-        sleep $HEALTH_CHECK_INTERVAL
-    done
-
-    error "$service_name health check failed"
-}
 
 create_env_file() {
     log "Fetching configuration from AWS SSM"
@@ -105,17 +90,15 @@ EOF
 }
 
 create_observability_env() {
-    # Only create if it doesn't exist (to preserve custom configs)
-    if [ ! -f "$OBS_ENV_FILE" ]; then
-        log "Creating observability environment configuration"
+    log "Creating/updating observability environment configuration"
 
-        local grafana_password
-        grafana_password=$(fetch_secret "/app/unicorn/grafana-password" || echo "admin")
+    local grafana_password
+    grafana_password=$(fetch_secret "/app/unicorn/grafana-password" || echo "admin")
 
-        local server_ip
-        server_ip=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+    local server_ip
+    server_ip=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 
-        cat > "$OBS_ENV_FILE" << EOF
+    cat > "$OBS_ENV_FILE" << EOF
 # Observability - Production
 GRAFANA_ADMIN_PASSWORD=$grafana_password
 GRAFANA_ROOT_URL=http://$server_ip:3000
@@ -125,11 +108,8 @@ ENVIRONMENT=production
 REDIS_ADDR=unicorn-redis:6379
 EOF
 
-        chmod 600 "$OBS_ENV_FILE"
-        log "Observability environment configuration created"
-    else
-        log "Observability environment file already exists, skipping creation"
-    fi
+    chmod 600 "$OBS_ENV_FILE"
+    log "Observability environment configuration created/updated"
 }
 
 setup_networks() {
@@ -175,10 +155,13 @@ deploy_observability() {
         return 0
     fi
 
+    # Ensure observability config directory exists
+    mkdir -p observability
+
     # Pull observability images
     docker-compose -f "$OBSERVABILITY_COMPOSE" pull
 
-    # Deploy observability
+    # Deploy observability with proper environment
     ENVIRONMENT=prod docker-compose -f "$OBSERVABILITY_COMPOSE" up -d --remove-orphans
 
     log "Observability stack deployed"
@@ -202,7 +185,7 @@ verify_observability() {
     log "Verifying observability stack"
 
     # Give services time to start
-    sleep 10
+    sleep 15
 
     # Check Grafana (non-fatal)
     if curl -f -s http://localhost:3000/api/health > /dev/null 2>&1; then
@@ -270,9 +253,13 @@ main() {
     create_observability_env
     backup_logs
 
-    # Deploy
+    # Deploy application services first
     deploy_services
     verify_deployment
+
+    # Wait for application to be fully ready before observability
+    log "Waiting for application services to stabilize..."
+    sleep 30
 
     # Deploy observability (non-fatal if it fails)
     deploy_observability || log "Warning: Observability deployment had issues but continuing"
