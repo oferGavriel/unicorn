@@ -1,0 +1,38 @@
+apps/bot/
+├── Dockerfile
+├── pyproject.toml
+├── poetry.lock
+├── README.md
+├── app/
+│   ├── __init__.py
+│   ├── main.py                    # Bot startup & configuration
+│   ├── handlers/                  # Telegram command handlers
+│   │   ├── __init__.py
+│   │   ├── start.py               # /start command
+│   │   ├── boards.py              # /boards command
+│   │   ├── help.py                # /help command
+│   │   └── message.py             # Natural language messages
+│   ├── services/                  # Business logic
+│   │   ├── __init__.py
+│   │   ├── command_processor.py   # Process parsed commands
+│   │   ├── nlp_service.py         # Claude API integration
+│   │   └── context_manager.py     # Conversation state
+│   ├── api/                       # Unicorn API client
+│   │   ├── __init__.py
+│   │   ├── client.py              # HTTP client
+│   │   └── models.py              # Response models
+│   ├── core/                      # Configuration & utilities
+│   │   ├── __init__.py
+│   │   ├── config.py              # Settings
+│   │   ├── logger.py              # Logging setup
+│   │   └── constants.py           # Bot constants
+│   └── utils/                     # Helper functions
+│       ├── __init__.py
+│       ├── formatters.py          # Message formatting
+│       └── validators.py          # Input validation
+└── tests/
+    ├── __init__.py
+    ├── conftest.py
+    ├── test_handlers.py
+    ├── test_services.py
+    └── test_api_client.py
