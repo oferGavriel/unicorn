@@ -146,40 +146,30 @@ backup_logs() {
 }
 
 deploy_services() {
-    log "Deploying application services"
+    log "Deploying all services (application + observability)"
 
     cd /home/ec2-user
-
-    # Pull application images
-    DOCKER_IMAGE="$IMAGE" docker-compose -f "$COMPOSE_FILE" pull
-
-    # Deploy application
-    DOCKER_IMAGE="$IMAGE" docker-compose -f "$COMPOSE_FILE" up -d --remove-orphans --no-build
-
-    log "Application services deployed"
-}
-
-deploy_observability() {
-    log "Deploying observability stack"
-
-    cd /home/ec2-user
-
-    # Check if observability compose file exists
-    if [ ! -f "$OBSERVABILITY_COMPOSE" ]; then
-        log "Warning: Observability compose file not found, skipping observability deployment"
-        return 0
-    fi
 
     # Ensure observability config directory exists
     mkdir -p observability
 
-    # Pull observability images
-    docker-compose -f "$OBSERVABILITY_COMPOSE" pull
+    # Pull all images
+    DOCKER_IMAGE="$IMAGE" docker-compose -f "$COMPOSE_FILE" pull
 
-    # Deploy observability with proper environment
-    ENVIRONMENT=prod docker-compose -f "$OBSERVABILITY_COMPOSE" up -d --remove-orphans
+    if [ -f "$OBSERVABILITY_COMPOSE" ]; then
+        docker-compose -f "$OBSERVABILITY_COMPOSE" pull
+    fi
 
-    log "Observability stack deployed"
+    # Deploy all services together to avoid network conflicts
+    if [ -f "$OBSERVABILITY_COMPOSE" ]; then
+        log "Deploying application and observability services together"
+        DOCKER_IMAGE="$IMAGE" ENVIRONMENT=prod docker-compose -f "$COMPOSE_FILE" -f "$OBSERVABILITY_COMPOSE" up -d --remove-orphans --no-build
+    else
+        log "Deploying application services only (observability compose file not found)"
+        DOCKER_IMAGE="$IMAGE" docker-compose -f "$COMPOSE_FILE" up -d --remove-orphans --no-build
+    fi
+
+    log "All services deployed"
 }
 
 verify_deployment() {
@@ -268,16 +258,11 @@ main() {
     create_observability_env
     backup_logs
 
-    # Deploy application services first
+    # Deploy all services together
     deploy_services
     verify_deployment
 
-    # Wait for application to be fully ready before observability
-    log "Waiting for application services to stabilize..."
-    sleep 30
-
-    # Deploy observability (non-fatal if it fails)
-    deploy_observability || log "Warning: Observability deployment had issues but continuing"
+    # Verify observability (non-fatal if it fails)
     verify_observability || log "Warning: Observability verification had issues but continuing"
 
     # Cleanup
