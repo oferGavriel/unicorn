@@ -1,6 +1,9 @@
 .PHONY: help
 .DEFAULT_GOAL := help
 
+# ═══════════════════════════════════════════════════════════
+# Unicorn - Development Makefile
+# ═══════════════════════════════════════════════════════════
 
 # Colors for output
 COLOR_RESET = \033[0m
@@ -19,15 +22,19 @@ COMPOSE_DEV = $(INFRA_DIR)/docker-compose.dev.yaml
 COMPOSE_PROD = $(INFRA_DIR)/docker-compose.prod.yaml
 COMPOSE_OBSERVABILITY = $(INFRA_DIR)/docker-compose.observability.yaml
 
-help:
+help: ## Show this help message
 	@echo "$(COLOR_INFO)═══════════════════════════════════════════════════════════$(COLOR_RESET)"
 	@echo "$(COLOR_INFO)  Unicorn Development Commands$(COLOR_RESET)"
 	@echo "$(COLOR_INFO)═══════════════════════════════════════════════════════════$(COLOR_RESET)"
-	@grep -E '^[a-zA-Z_-]+:.*?
-		awk 'BEGIN {FS = ":.*?
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  $(COLOR_SUCCESS)%-20s$(COLOR_RESET) %s\n", $$1, $$2}'
 	@echo ""
 
-dev-up:
+# ═══════════════════════════════════════════════════════════
+# Docker Compose - Development
+# ═══════════════════════════════════════════════════════════
+
+dev-up: ## Start all development services
 	@echo "$(COLOR_INFO)🚀 Starting development environment...$(COLOR_RESET)"
 	docker-compose -f $(COMPOSE_DEV) up -d
 	@echo "$(COLOR_SUCCESS)✅ Services started!$(COLOR_RESET)"
@@ -36,14 +43,9 @@ dev-up:
 	@echo "$(COLOR_INFO)PostgreSQL: localhost:5432$(COLOR_RESET)"
 	@echo "$(COLOR_INFO)Redis: localhost:6379$(COLOR_RESET)"
 
-dev-up-full:
+dev-up-full: ## Start full development environment with observability
 	@echo "$(COLOR_INFO)🚀 Starting full development environment with observability...$(COLOR_RESET)"
-	@echo "$(COLOR_INFO)Creating networks...$(COLOR_RESET)"
-	@docker network create unicorn-net 2>/dev/null || true
-	docker-compose -f $(COMPOSE_DEV) up -d
-	@echo "$(COLOR_INFO)⏳ Waiting for core services to be ready...$(COLOR_RESET)"
-	@sleep 5
-	docker-compose -f $(COMPOSE_OBSERVABILITY) up -d
+	docker-compose -f $(COMPOSE_DEV) -f $(COMPOSE_OBSERVABILITY) up -d
 	@echo "$(COLOR_SUCCESS)✅ Full stack started!$(COLOR_RESET)"
 	@echo ""
 	@echo "$(COLOR_INFO)═══════════════════════════════════════════════════════════$(COLOR_RESET)"
@@ -63,52 +65,50 @@ dev-up-full:
 	@echo "$(COLOR_SUCCESS)Loki:$(COLOR_RESET)         http://localhost:3100"
 	@echo ""
 
-dev-down:
+dev-down: ## Stop all development services
 	@echo "$(COLOR_WARNING)🛑 Stopping development environment...$(COLOR_RESET)"
 	docker-compose -f $(COMPOSE_DEV) down
 	@echo "$(COLOR_SUCCESS)✅ Services stopped$(COLOR_RESET)"
 
-dev-down-full:
+dev-down-full: ## Stop full development environment with observability
 	@echo "$(COLOR_WARNING)🛑 Stopping full development environment...$(COLOR_RESET)"
-	docker-compose -f $(COMPOSE_OBSERVABILITY) down
-	docker-compose -f $(COMPOSE_DEV) down
+	docker-compose -f $(COMPOSE_DEV) -f $(COMPOSE_OBSERVABILITY) down
 	@echo "$(COLOR_SUCCESS)✅ All services stopped$(COLOR_RESET)"
 
-dev-restart:
+dev-restart: ## Restart all development services
 	@echo "$(COLOR_INFO)🔄 Restarting development environment...$(COLOR_RESET)"
 	docker-compose -f $(COMPOSE_DEV) restart
 	@echo "$(COLOR_SUCCESS)✅ Services restarted$(COLOR_RESET)"
 
-dev-logs:
+dev-logs: ## Show logs from all development services
 	docker-compose -f $(COMPOSE_DEV) logs -f
 
-dev-logs-api:
+dev-logs-api: ## Show API logs only
 	docker-compose -f $(COMPOSE_DEV) logs -f api
 
-dev-logs-worker:
+dev-logs-worker: ## Show worker logs only
 	docker-compose -f $(COMPOSE_DEV) logs -f notification_worker
 
-dev-ps:
+dev-ps: ## Show status of development services
 	docker-compose -f $(COMPOSE_DEV) ps
 
-dev-clean:
+dev-clean: ## Stop and remove all containers, networks, and volumes
 	@echo "$(COLOR_WARNING)⚠️  Cleaning development environment (this will delete data!)...$(COLOR_RESET)"
 	docker-compose -f $(COMPOSE_DEV) down -v --remove-orphans
 	@echo "$(COLOR_SUCCESS)✅ Development environment cleaned$(COLOR_RESET)"
 
-dev-clean-full:
+dev-clean-full: ## Clean full development environment including observability data
 	@echo "$(COLOR_ERROR)⚠️  WARNING: This will delete ALL data including metrics and logs!$(COLOR_RESET)"
 	@read -p "Are you sure? [y/N] " -n 1 -r; \
 	echo; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		docker-compose -f $(COMPOSE_OBSERVABILITY) down -v --remove-orphans; \
-		docker-compose -f $(COMPOSE_DEV) down -v --remove-orphans; \
+		docker-compose -f $(COMPOSE_DEV) -f $(COMPOSE_OBSERVABILITY) down -v --remove-orphans; \
 		echo "$(COLOR_SUCCESS)✅ Full environment cleaned$(COLOR_RESET)"; \
 	else \
 		echo "$(COLOR_INFO)Cancelled$(COLOR_RESET)"; \
 	fi
 
-dev-rebuild:
+dev-rebuild: ## Rebuild development containers
 	@echo "$(COLOR_INFO)🔨 Rebuilding development containers...$(COLOR_RESET)"
 	docker-compose -f $(COMPOSE_DEV) build --no-cache
 	@echo "$(COLOR_SUCCESS)✅ Containers rebuilt$(COLOR_RESET)"
@@ -117,7 +117,7 @@ dev-rebuild:
 # Observability
 # ═══════════════════════════════════════════════════════════
 
-obs-up:
+obs-up: ## Start observability stack only
 	@echo "$(COLOR_INFO)🔍 Starting observability stack...$(COLOR_RESET)"
 	@docker network create unicorn-net 2>/dev/null || true
 	docker-compose -f $(COMPOSE_OBSERVABILITY) up -d
@@ -126,32 +126,32 @@ obs-up:
 	@echo "$(COLOR_INFO)Prometheus: http://localhost:9090$(COLOR_RESET)"
 	@echo "$(COLOR_INFO)Alertmanager: http://localhost:9093$(COLOR_RESET)"
 
-obs-down:
+obs-down: ## Stop observability stack only
 	@echo "$(COLOR_WARNING)🛑 Stopping observability stack...$(COLOR_RESET)"
 	docker-compose -f $(COMPOSE_OBSERVABILITY) down
 	@echo "$(COLOR_SUCCESS)✅ Observability stack stopped$(COLOR_RESET)"
 
-obs-restart:
+obs-restart: ## Restart observability stack
 	@echo "$(COLOR_INFO)🔄 Restarting observability stack...$(COLOR_RESET)"
 	docker-compose -f $(COMPOSE_OBSERVABILITY) restart
 	@echo "$(COLOR_SUCCESS)✅ Observability stack restarted$(COLOR_RESET)"
 
-obs-logs:
+obs-logs: ## Show logs from all observability services
 	docker-compose -f $(COMPOSE_OBSERVABILITY) logs -f
 
-obs-logs-grafana:
+obs-logs-grafana: ## Show Grafana logs only
 	docker-compose -f $(COMPOSE_OBSERVABILITY) logs -f grafana
 
-obs-logs-prometheus:
+obs-logs-prometheus: ## Show Prometheus logs only
 	docker-compose -f $(COMPOSE_OBSERVABILITY) logs -f prometheus
 
-obs-logs-loki:
+obs-logs-loki: ## Show Loki logs only
 	docker-compose -f $(COMPOSE_OBSERVABILITY) logs -f loki
 
-obs-ps:
+obs-ps: ## Show status of observability services
 	docker-compose -f $(COMPOSE_OBSERVABILITY) ps
 
-obs-clean:
+obs-clean: ## Clean observability data (metrics and logs)
 	@echo "$(COLOR_WARNING)⚠️  This will delete all stored metrics and logs!$(COLOR_RESET)"
 	@read -p "Are you sure? [y/N] " -n 1 -r; \
 	echo; \
@@ -162,7 +162,7 @@ obs-clean:
 		echo "$(COLOR_INFO)Cancelled$(COLOR_RESET)"; \
 	fi
 
-grafana-reset-password:
+grafana-reset-password: ## Reset Grafana admin password to 'admin'
 	@echo "$(COLOR_INFO)🔑 Resetting Grafana password to 'admin'...$(COLOR_RESET)"
 	docker exec -it unicorn-grafana grafana-cli admin reset-admin-password admin
 	@echo "$(COLOR_SUCCESS)✅ Password reset to: admin$(COLOR_RESET)"
@@ -171,38 +171,38 @@ grafana-reset-password:
 # Backend - API
 # ═══════════════════════════════════════════════════════════
 
-api-shell:
+api-shell: ## Open a shell in the API container
 	docker exec -it api bash
 
-api-restart:
+api-restart: ## Restart API container
 	docker-compose -f $(COMPOSE_DEV) restart api
 
-api-test:
+api-test: ## Run backend tests
 	@echo "$(COLOR_INFO)🧪 Running backend tests...$(COLOR_RESET)"
 	cd $(API_DIR) && poetry run pytest -v
 	@echo "$(COLOR_SUCCESS)✅ Tests completed$(COLOR_RESET)"
 
-api-test-cov:
+api-test-cov: ## Run backend tests with coverage
 	@echo "$(COLOR_INFO)🧪 Running backend tests with coverage...$(COLOR_RESET)"
 	cd $(API_DIR) && poetry run pytest --cov=app --cov-report=html --cov-report=term-missing -v
 	@echo "$(COLOR_SUCCESS)✅ Coverage report generated at $(API_DIR)/htmlcov/index.html$(COLOR_RESET)"
 
-api-lint:
+api-lint: ## Run linting on backend code
 	@echo "$(COLOR_INFO)🔍 Linting backend code...$(COLOR_RESET)"
 	cd $(API_DIR) && poetry run ruff check .
 	@echo "$(COLOR_SUCCESS)✅ Linting completed$(COLOR_RESET)"
 
-api-lint-fix:
+api-lint-fix: ## Run linting and auto-fix issues
 	@echo "$(COLOR_INFO)🔧 Linting and fixing backend code...$(COLOR_RESET)"
 	cd $(API_DIR) && poetry run ruff check --fix .
 	@echo "$(COLOR_SUCCESS)✅ Auto-fix completed$(COLOR_RESET)"
 
-api-format:
+api-format: ## Format backend code
 	@echo "$(COLOR_INFO)✨ Formatting backend code...$(COLOR_RESET)"
 	cd $(API_DIR) && poetry run ruff format .
 	@echo "$(COLOR_SUCCESS)✅ Formatting completed$(COLOR_RESET)"
 
-api-type-check:
+api-type-check: ## Run type checking on backend
 	@echo "$(COLOR_INFO)🔍 Running type checks...$(COLOR_RESET)"
 	cd $(API_DIR) && poetry run mypy .
 	@echo "$(COLOR_SUCCESS)✅ Type checking completed$(COLOR_RESET)"
@@ -211,12 +211,12 @@ api-type-check:
 # Database - Migrations
 # ═══════════════════════════════════════════════════════════
 
-migrate:
+migrate: ## Run database migrations
 	@echo "$(COLOR_INFO)🗄️  Running database migrations...$(COLOR_RESET)"
 	docker exec api alembic upgrade head
 	@echo "$(COLOR_SUCCESS)✅ Migrations completed$(COLOR_RESET)"
 
-migrate-create:
+migrate-create: ## Create a new migration (usage: make migrate-create message="description")
 	@echo "$(COLOR_INFO)📝 Creating new migration...$(COLOR_RESET)"
 	@if [ -z "$(message)" ]; then \
 		echo "$(COLOR_ERROR)❌ Error: Please provide a message. Usage: make migrate-create message='your description'$(COLOR_RESET)"; \
@@ -225,26 +225,26 @@ migrate-create:
 	docker exec api alembic revision --autogenerate -m "$(message)"
 	@echo "$(COLOR_SUCCESS)✅ Migration created$(COLOR_RESET)"
 
-migrate-history:
+migrate-history: ## Show migration history
 	docker exec api alembic history
 
-migrate-current:
+migrate-current: ## Show current migration
 	docker exec api alembic current
 
-migrate-downgrade:
+migrate-downgrade: ## Downgrade one migration
 	@echo "$(COLOR_WARNING)⚠️  Downgrading database by one migration...$(COLOR_RESET)"
 	docker exec api alembic downgrade -1
 	@echo "$(COLOR_SUCCESS)✅ Downgrade completed$(COLOR_RESET)"
 
-migrate-rollback:
+migrate-rollback: ## Rollback to specific revision (usage: make migrate-rollback revision=<revision>)
 	@echo "$(COLOR_WARNING)⚠️  Rolling back to revision $(revision)...$(COLOR_RESET)"
 	docker exec api alembic downgrade $(revision)
 	@echo "$(COLOR_SUCCESS)✅ Rollback completed$(COLOR_RESET)"
 
-db-shell:
+db-shell: ## Open PostgreSQL shell
 	docker exec -it postgres_container psql -U postgres -d unicorn
 
-db-reset:
+db-reset: ## Reset database (WARNING: deletes all data!)
 	@echo "$(COLOR_ERROR)⚠️  WARNING: This will delete all data!$(COLOR_RESET)"
 	@read -p "Are you sure? [y/N] " -n 1 -r; \
 	echo; \
@@ -261,36 +261,36 @@ db-reset:
 # Frontend - Web
 # ═══════════════════════════════════════════════════════════
 
-web-install:
+web-install: ## Install frontend dependencies
 	@echo "$(COLOR_INFO)📦 Installing frontend dependencies...$(COLOR_RESET)"
 	cd $(WEB_DIR) && pnpm install
 	@echo "$(COLOR_SUCCESS)✅ Dependencies installed$(COLOR_RESET)"
 
-web-dev:
+web-dev: ## Start frontend development server
 	@echo "$(COLOR_INFO)🚀 Starting frontend dev server...$(COLOR_RESET)"
 	cd $(WEB_DIR) && pnpm run dev
 
-web-build:
+web-build: ## Build frontend for production
 	@echo "$(COLOR_INFO)🏗️  Building frontend...$(COLOR_RESET)"
 	cd $(WEB_DIR) && pnpm run build
 	@echo "$(COLOR_SUCCESS)✅ Build completed$(COLOR_RESET)"
 
-web-lint:
+web-lint: ## Lint frontend code
 	@echo "$(COLOR_INFO)🔍 Linting frontend code...$(COLOR_RESET)"
 	cd $(WEB_DIR) && pnpm run lint:check
 	@echo "$(COLOR_SUCCESS)✅ Linting completed$(COLOR_RESET)"
 
-web-lint-fix:
+web-lint-fix: ## Lint and fix frontend code
 	@echo "$(COLOR_INFO)🔧 Linting and fixing frontend code...$(COLOR_RESET)"
 	cd $(WEB_DIR) && pnpm run lint:fix
 	@echo "$(COLOR_SUCCESS)✅ Auto-fix completed$(COLOR_RESET)"
 
-web-test:
+web-test: ## Run frontend tests
 	@echo "$(COLOR_INFO)🧪 Running frontend tests...$(COLOR_RESET)"
 	cd $(WEB_DIR) && pnpm run test
 	@echo "$(COLOR_SUCCESS)✅ Tests completed$(COLOR_RESET)"
 
-web-type-check:
+web-type-check: ## Run TypeScript type checking
 	@echo "$(COLOR_INFO)🔍 Running type checks...$(COLOR_RESET)"
 	cd $(WEB_DIR) && pnpm run lint:check
 	@echo "$(COLOR_SUCCESS)✅ Type checking completed$(COLOR_RESET)"
@@ -299,49 +299,49 @@ web-type-check:
 # Full Stack
 # ═══════════════════════════════════════════════════════════
 
-install:
+install: ## Install all dependencies (backend + frontend)
 	@echo "$(COLOR_INFO)📦 Installing all dependencies...$(COLOR_RESET)"
 	cd $(API_DIR) && poetry install
 	cd $(WEB_DIR) && pnpm install
 	@echo "$(COLOR_SUCCESS)✅ All dependencies installed$(COLOR_RESET)"
 
-lint: api-lint web-lint
+lint: api-lint web-lint ## Lint all code (backend + frontend)
 
-lint-fix: api-lint-fix web-lint-fix
+lint-fix: api-lint-fix web-lint-fix ## Auto-fix linting issues in all code
 
-test: api-test web-test
+test: api-test web-test ## Run all tests (backend + frontend)
 
-format: api-format
+format: api-format ## Format all code
 
-type-check: api-type-check web-type-check
+type-check: api-type-check web-type-check ## Run type checking on all code
 
-quality: lint type-check test
+quality: lint type-check test ## Run all quality checks
 
 # ═══════════════════════════════════════════════════════════
 # Redis
 # ═══════════════════════════════════════════════════════════
 
-redis-cli:
+redis-cli: ## Open Redis CLI
 	docker exec -it redis_container redis-cli
 
-redis-flush:
+redis-flush: ## Flush all Redis data
 	@echo "$(COLOR_WARNING)⚠️  Flushing Redis data...$(COLOR_RESET)"
 	docker exec redis_container redis-cli FLUSHALL
 	@echo "$(COLOR_SUCCESS)✅ Redis flushed$(COLOR_RESET)"
 
-redis-monitor:
+redis-monitor: ## Monitor Redis commands in real-time
 	docker exec -it redis_container redis-cli MONITOR
 
 # ═══════════════════════════════════════════════════════════
 # Docker Management
 # ═══════════════════════════════════════════════════════════
 
-docker-prune:
+docker-prune: ## Remove unused Docker resources
 	@echo "$(COLOR_WARNING)🧹 Pruning Docker resources...$(COLOR_RESET)"
 	docker system prune -f
 	@echo "$(COLOR_SUCCESS)✅ Pruning completed$(COLOR_RESET)"
 
-docker-prune-all:
+docker-prune-all: ## Remove all unused Docker resources including volumes
 	@echo "$(COLOR_ERROR)⚠️  WARNING: This will remove all unused volumes!$(COLOR_RESET)"
 	@read -p "Are you sure? [y/N] " -n 1 -r; \
 	echo; \
@@ -352,22 +352,22 @@ docker-prune-all:
 		echo "$(COLOR_INFO)Cancelled$(COLOR_RESET)"; \
 	fi
 
-docker-stats:
+docker-stats: ## Show Docker container statistics
 	docker stats --no-stream
 
-docker-images:
+docker-images: ## List Docker images
 	docker images
 
 # ═══════════════════════════════════════════════════════════
 # Production Deployment (Local Testing)
 # ═══════════════════════════════════════════════════════════
 
-prod-build:
+prod-build: ## Build production Docker image
 	@echo "$(COLOR_INFO)🏗️  Building production image...$(COLOR_RESET)"
 	docker build -t unicorn-app:latest -f $(API_DIR)/Dockerfile --target production .
 	@echo "$(COLOR_SUCCESS)✅ Production image built$(COLOR_RESET)"
 
-prod-test:
+prod-test: ## Test production image locally
 	@echo "$(COLOR_INFO)🧪 Testing production image...$(COLOR_RESET)"
 	docker run --rm -p 8001:8000 \
 		-e DATABASE_URL="postgresql+asyncpg://postgres:3578@host.docker.internal:5432/unicorn" \
@@ -382,7 +382,7 @@ prod-test:
 # Utilities
 # ═══════════════════════════════════════════════════════════
 
-health:
+health: ## Check health of all services
 	@echo "$(COLOR_INFO)🏥 Checking service health...$(COLOR_RESET)"
 	@echo "\n$(COLOR_INFO)API Health:$(COLOR_RESET)"
 	@curl -s http://localhost:8000/api/v1/health | jq '.' || echo "$(COLOR_ERROR)API not responding$(COLOR_RESET)"
@@ -391,7 +391,7 @@ health:
 	@echo "\n$(COLOR_INFO)Redis:$(COLOR_RESET)"
 	@docker exec redis_container redis-cli ping || echo "$(COLOR_ERROR)Redis not responding$(COLOR_RESET)"
 
-health-full:
+health-full: ## Check health of full stack including observability
 	@echo "$(COLOR_INFO)🏥 Checking full stack health...$(COLOR_RESET)"
 	@echo "\n$(COLOR_INFO)═══ Application Services ═══$(COLOR_RESET)"
 	@echo "$(COLOR_INFO)API:$(COLOR_RESET)"
@@ -410,10 +410,10 @@ health-full:
 	@echo "$(COLOR_INFO)Alertmanager:$(COLOR_RESET)"
 	@curl -s http://localhost:9093/-/healthy > /dev/null && echo "$(COLOR_SUCCESS)✓ Healthy$(COLOR_RESET)" || echo "$(COLOR_ERROR)✗ Unhealthy$(COLOR_RESET)"
 
-logs-all:
+logs-all: ## Show logs from all services
 	docker-compose -f $(COMPOSE_DEV) logs -f --tail=100
 
-ports:
+ports: ## Show which ports are in use
 	@echo "$(COLOR_INFO)📡 Active ports:$(COLOR_RESET)"
 	@echo "$(COLOR_INFO)Application Services:$(COLOR_RESET)"
 	@echo "  5432  - PostgreSQL"
@@ -429,7 +429,7 @@ ports:
 	@echo "  9100  - Node Exporter"
 	@echo "  9121  - Redis Exporter"
 
-clean-cache:
+clean-cache: ## Clean Python and Node cache files
 	@echo "$(COLOR_INFO)🧹 Cleaning cache files...$(COLOR_RESET)"
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
@@ -438,23 +438,23 @@ clean-cache:
 	find . -type d -name ".next" -exec rm -rf {} + 2>/dev/null || true
 	@echo "$(COLOR_SUCCESS)✅ Cache cleaned$(COLOR_RESET)"
 
-setup: install dev-up migrate
+setup: install dev-up migrate ## Complete setup (install deps, start services, run migrations)
 	@echo "$(COLOR_SUCCESS)🎉 Setup complete! Your environment is ready.$(COLOR_RESET)"
 	@echo "$(COLOR_INFO)API: http://localhost:8000$(COLOR_RESET)"
 	@echo "$(COLOR_INFO)Docs: http://localhost:8000/docs$(COLOR_RESET)"
 
-setup-full: install dev-up-full migrate
+setup-full: install dev-up-full migrate ## Complete setup with observability
 	@echo "$(COLOR_SUCCESS)🎉 Full setup complete! Your environment is ready with observability.$(COLOR_RESET)"
 
 # ═══════════════════════════════════════════════════════════
 # CI/CD Simulation
 # ═══════════════════════════════════════════════════════════
 
-ci: lint type-check test
+ci: lint type-check test ## Simulate CI pipeline locally
 	@echo "$(COLOR_SUCCESS)✅ All CI checks passed!$(COLOR_RESET)"
 
-pre-commit: api-format lint
+pre-commit: api-format lint ## Run before committing code
 	@echo "$(COLOR_SUCCESS)✅ Pre-commit checks passed!$(COLOR_RESET)"
 
-pre-push: quality
+pre-push: quality ## Run before pushing code
 	@echo "$(COLOR_SUCCESS)✅ Pre-push checks passed!$(COLOR_RESET)"

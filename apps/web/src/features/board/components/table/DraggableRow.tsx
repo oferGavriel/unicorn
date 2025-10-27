@@ -76,6 +76,7 @@ const DraggableRow: React.FC<DraggableRowProps> = ({
       {row.getVisibleCells().map((cell) => {
         const isIndicator = cell.column.id === CellTypeEnum.INDICATOR;
         const isSpacer = cell.column.id === CellTypeEnum.SPACER;
+        const isTextCell = cell.column.id === 'name'; // Assuming 'name' is the text column
 
         return (
           <div
@@ -84,6 +85,13 @@ const DraggableRow: React.FC<DraggableRowProps> = ({
             style={{
               width: isIndicator ? '6px' : `${cell.column.getSize()}px`
             }}
+            {...(isTextCell
+              ? {
+                  onPointerDown: (e) => e.stopPropagation(),
+                  onMouseDown: (e) => e.stopPropagation(),
+                  onClick: (e) => e.stopPropagation()
+                }
+              : {})}
           >
             <div className={'h-full w-full'}>
               {flexRender(cell.column.columnDef.cell, cell.getContext())}
