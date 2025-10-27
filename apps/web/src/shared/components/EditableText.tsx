@@ -94,14 +94,19 @@ export const EditableText: React.FC<EditableTextProps> = ({
   }
 
   return (
-    <span
-      className={`min-w-5 w-max min-h-4 leading-5 cursor-pointer outline-gray-400 rounded px-2 outline-1 hover:outline transition-opacity ${className}`}
-      style={style}
+    <div
+      className={`min-w-5 w-full leading-5 cursor-pointer outline-gray-400 rounded p-[3px] outline-1 hover:outline transition-all duration-200 ${className}`}
+      style={{
+        ...style,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+      }}
       onClick={startEditing}
       title={title}
       data-editable-text
     >
       {value || <span className="text-gray-500 italic">{placeholder}</span>}
-    </span>
+    </div>
   );
 };

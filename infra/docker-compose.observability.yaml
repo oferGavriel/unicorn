@@ -181,7 +181,7 @@ services:
 networks:
   unicorn-net:
     name: unicorn-net
-    external: true
+    driver: bridge
 
 volumes:
   prometheus-data:
