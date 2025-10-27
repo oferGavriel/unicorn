@@ -52,7 +52,6 @@ export const EditableText: React.FC<EditableTextProps> = ({
     onCancel
   });
 
-
   const baseInputClassName = `bg-transparent border rounded px-2 border-blue-500 outline-none min-w-0 ${inputClassName}`;
 
   if (isEditing || autoEdit) {
