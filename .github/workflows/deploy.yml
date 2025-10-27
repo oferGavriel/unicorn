@@ -244,7 +244,7 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "infra/docker-compose.prod.yaml,infra/docker-compose.observability.yaml,infra/scripts/deploy.sh,infra/nginx/nginx.conf,infra/observability"
+          source: "infra/"
           target: "/home/ec2-user/"
           strip_components: 1
           overwrite: true
@@ -262,17 +262,23 @@ jobs:
           script: |
             set -e
 
-            mkdir -p /home/ec2-user/scripts /home/ec2-user/nginx
+            mkdir -p /home/ec2-user/scripts /home/ec2-user/nginx /home/ec2-user/observability
 
-            if [ -f /home/ec2-user/deploy.sh ]; then
-              mv /home/ec2-user/deploy.sh /home/ec2-user/scripts/
+            # Move files to correct locations
+            if [ -f /home/ec2-user/scripts/deploy.sh ]; then
+              chmod +x /home/ec2-user/scripts/deploy.sh
+            else
+              echo "Error: deploy.sh not found in scripts directory"
+              exit 1
             fi
 
-            if [ -f /home/ec2-user/nginx.conf ]; then
-              mv /home/ec2-user/nginx.conf /home/ec2-user/nginx/
+            # Verify observability configs exist
+            if [ ! -d /home/ec2-user/observability ]; then
+              echo "Error: observability configuration directory not found"
+              exit 1
             fi
 
-            chmod +x /home/ec2-user/scripts/deploy.sh
+            # Run deployment
             /home/ec2-user/scripts/deploy.sh
 
       - name: Rollback on failure

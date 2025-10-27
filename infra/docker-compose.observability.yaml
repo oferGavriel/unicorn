@@ -177,7 +177,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
-# Networks - connect to both dev and prod networks
+# Networks - connect to main application network
 networks:
   unicorn-net:
     name: unicorn-net
